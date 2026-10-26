@@ -1,4 +1,5 @@
-import { CONTINENTAL, CUP_DEFS, LEAGUE_DEFS, REAL_PLAYERS } from './data/leagues';
+import { CUP_DEFS, LEAGUE_DEFS, REAL_PLAYERS } from './data/leagues';
+import { ensureEurope } from './europe';
 import { NAME_POOLS, NAT_MIX } from './data/names';
 import { addDays, iso, toDate } from './dates';
 import { altPositionsFor, generateAttrs, overall, wageFor } from './ratings';
@@ -113,7 +114,7 @@ export function generatePlayer(g: GameState, opts: { pos: Pos; ovr: number; age:
   return createPlayer(g, { first, last, nat, age: opts.age, pos: opts.pos, ovr: Math.round(opts.ovr), pa: opts.pa }, opts.clubId, opts.rep);
 }
 
-function parsePlayer(line: string): PlayerSpec {
+export function parsePlayer(line: string): PlayerSpec {
   const [name, pos, age, nat, ovr, pa, style] = line.split('|');
   const parts = name.split(' ');
   // Mononyms (e.g. "Rodri") keep the whole name as surname
@@ -124,7 +125,7 @@ function parsePlayer(line: string): PlayerSpec {
 
 const SHAPES: CrestShape[] = ['shield', 'circle', 'diamond', 'badge'];
 
-function parseClub(line: string, leagueId: string, country: string, id: number): Club & { level: number } {
+export function parseClub(line: string, leagueId: string, country: string, id: number): Club & { level: number } {
   const [name, short, c1, c2, rep, level, stadium, cap, pattern] = line.split('|');
   const r = Number(rep);
   const shape = SHAPES[hashString(name) % SHAPES.length];
@@ -354,7 +355,8 @@ export function createWorld(opts: NewGameOptions): GameState {
   for (const def of CUP_DEFS) {
     g.cups.push({ id: def.id, name: def.name, short: def.short, type: 'domestic', country: def.country, color: def.color, alive: [], rounds: [], current: 0, winner: null, runnerUp: null });
   }
-  g.cups.push({ id: CONTINENTAL.id, name: CONTINENTAL.name, short: CONTINENTAL.short, type: 'continental', country: null, color: CONTINENTAL.color, alive: [], rounds: [], current: 0, winner: null, runnerUp: null });
+  // European competitions and the guest clubs from the rest of Europe
+  ensureEurope(g);
 
   return g;
 }

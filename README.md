@@ -3,6 +3,7 @@
 A fast, modern football management game for mobile: a hybrid of Football Manager / Championship Manager depth and EA FC-style accessibility.
 
 - **Real leagues and players**: the full English pyramid (Premier League → National League) plus La Liga, Serie A, Bundesliga and Ligue 1, with 1,100+ real players and generated depth players.
+- **European competitions**: the Champions League, Europa League and Conference League in the current UEFA format, with the real 2026/27 line-ups and 70 clubs from the rest of Europe (Benfica, Porto, PSV, Celtic, Galatasaray and more).
 - **One-minute matches**: watch a live 2D match with commentary, change formation, roles and instructions mid-match, and make subs. Or take the instant result.
 - **Deep tactics**: 6 quick presets, 30+ player roles and a full set of team instructions, each with real trade-offs in the match engine.
 - **Detailed player stats**: shots, xG, key passes, xA, passing, dribbles, tackles, interceptions, saves and more, tracked every match, with per-90 figures and leaderboards.
@@ -70,10 +71,34 @@ They appear in four places:
 - The live match screen and post-match ratings.
 - The **Competitions** leaderboards.
 
+## European competitions
+
+The Champions League, Europa League and Conference League follow UEFA's current format:
+
+- **League phase** (Sep–Jan): 36 clubs in one table. Each club plays 8 different opponents (6 in the Conference League), 4 at home and 4 away. The draw avoids clubs from the same country where it can.
+- **1st–8th** go straight into the round of 16, **9th–24th** play two-legged knockout play-offs (9th v 24th, 10th v 23rd …), and **25th–36th** are out.
+- **Knockouts** (Feb–May): two-legged ties decided on aggregate, with penalties if level after the second leg. The final is a single match at a neutral venue at the end of May.
+- **Prize money** for taking part, for each league-phase win or draw, and for every round reached. The winner also gets a reputation boost and a big lift in board confidence.
+
+**2026/27** uses the real league-phase line-ups from UEFA's draw. From 2027/28 on, places come from the final tables:
+
+| Country | Champions League | Europa League | Conference League |
+| --- | --- | --- | --- |
+| England, Spain | Top 5 | Next 2 | Next 1 |
+| Italy | Top 4 | Next 3 | Next 1 |
+| Germany | Top 4 | Next 2 | Next 1 |
+| France | Top 3 | Next 3 | Next 1 |
+
+The domestic cup winner takes the first Europa League place. The Europa League winner moves up to the Champions League, and the Conference League winner to the Europa League. The rest of each 36-team field is filled with the **rest-of-Europe clubs**, chosen by reputation. These clubs don't play a domestic league in the game. Their squads are generated, apart from a few real players who moved there in summer 2026 (e.g. Salah at Trabzonspor, Greenwood at Fenerbahçe, Leão at Galatasaray). You can view them, scout them and buy from them.
+
+The league tables are coloured by European place, and the Competitions screen has a league-phase table, matchday fixtures and the knockout bracket for each competition.
+
+Older saves pick up the new competitions at the start of the next season.
+
 ## Season calendar
 
 - **1 Jul**: the season starts. Fixtures are drawn, budgets and board objectives are set, and the summer window opens.
-- **Aug–May**: league games on Saturdays (Tuesdays too, for 24-team divisions). Domestic cups are played on Wednesdays and the Champions League on Tuesdays.
+- **Aug–May**: league games on Saturdays (Tuesdays too, for 24-team divisions). Domestic cups are played on Wednesdays, the Champions League on Tuesdays, and the Europa League and Conference League on Thursdays.
 - **1 Sep / 1 Feb**: the windows close. **1–31 Jan**: the winter window. Free agents can be signed at any time.
 - **15 Mar**: youth intake.
 - **5 Jun**: the season ends. Promotion and relegation (3 up/3 down in most English divisions), prize money, contract expiries, retirements and the season review.
@@ -122,7 +147,7 @@ Badges are shrunk to 160px and stored in the browser on that device only. They'r
 
 ## Editing the data
 
-All leagues, clubs and real players are in [`src/game/data/leagues.ts`](src/game/data/leagues.ts). League line-ups and squads are for **2026/27, as of 15 October 2026** (after the summer window). They were researched from web reports, so some moves may be wrong or missing, and lower-league squads are only partly covered (generated players fill the gaps). Each line is easy to edit:
+All leagues, clubs and real players are in [`src/game/data/leagues.ts`](src/game/data/leagues.ts). The European competitions, rest-of-Europe clubs and 2026/27 line-ups are in [`src/game/data/europe.ts`](src/game/data/europe.ts). League line-ups and squads are for **2026/27, as of 15 October 2026** (after the summer window). They were researched from web reports, so some moves may be wrong or missing, and lower-league squads are only partly covered (generated players fill the gaps). Each line is easy to edit:
 
 ```
 Club:   "Name|SHORT|primary|secondary|reputation|level|Stadium|capacity|crestPattern"
@@ -140,6 +165,7 @@ src/game/       pure TypeScript game engine (no UI)
   season.ts       day/season loop (Continue)
   club.ts         finances and board
   competitions.ts fixtures, tables, cups
+  europe.ts       Champions League / Europa League / Conference League
 src/ui/         React screens and components
 src/store.ts    game state store and IndexedDB saves
 tests/          headless season simulations

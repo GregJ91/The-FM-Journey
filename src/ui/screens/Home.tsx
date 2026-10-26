@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { clubFixtures, compName, leagueTable } from '../../game/competitions';
+import { clubFixtures, compColor, compName, leagueTable } from '../../game/competitions';
+import { europeFor, europeTable } from '../../game/europe';
 import { diffDays, fmtShort } from '../../game/dates';
 import { FORMATIONS, MENTALITY, PRESSING, STYLES } from '../../game/formations';
 import { leagueOf, squadOf } from '../../game/generate';
@@ -54,7 +55,7 @@ export function Home() {
         {next ? (
           <div className="next-match">
             <div className="row small bold">
-              <span className="comp-dot" style={{ background: league.color }} />
+              <span className="comp-dot" style={{ background: compColor(g, next.comp) }} />
               <span className="ellipsis">{compName(g, next.comp)}{next.roundName ? ` · ${next.roundName}` : ''}</span>
               <span className="right muted">{diffDays(next.date, g.date) === 0 ? 'TODAY' : `in ${diffDays(next.date, g.date)}d`}</span>
             </div>
@@ -93,6 +94,32 @@ export function Home() {
         {recent.length > 0 && <div className="section-label">Recent results</div>}
         {recent.map((f) => <FixtureRow key={f.id} g={g} f={f} />)}
       </Card>
+
+      {europeFor(g, club.id).map((cup) => {
+        const lp = cup.lp ?? 0;
+        const et = europeTable(g, cup);
+        const pos = et.findIndex((r) => r.clubId === club.id);
+        const elo = Math.max(0, Math.min(et.length - 5, pos - 2));
+        const status = cup.winner === club.id ? '🏆 Winners!' : cup.current < lp ? null : cup.alive.includes(club.id) && cup.winner === null ? `Still in: ${cup.rounds[cup.current]?.name ?? 'final'}` : 'Knocked out';
+        return (
+          <Card key={cup.id} title={cup.name} tag={cup.short} tagColor={cup.color} right={<button className="btn sm" onClick={() => ui.go('competitions', cup.id)}>Open</button>}>
+            {status ? <div className="bold">{status}</div> : (
+              <table className="t">
+                <tbody>
+                  {et.slice(elo, elo + 5).map((r) => (
+                    <tr key={r.clubId} className={`click ${r.clubId === club.id ? 'me' : ''}`} onClick={() => ui.go('club', r.clubId)}>
+                      <td className="num">{et.indexOf(r) + 1}</td>
+                      <td><span className="row" style={{ gap: 6 }}><Crest club={g.clubs[r.clubId]} size={18} /><span className="ellipsis" style={{ maxWidth: 170 }}>{g.clubs[r.clubId].name}</span></span></td>
+                      <td className="r num">{r.p}</td>
+                      <td className="r num bold">{r.pts}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        );
+      })}
 
       <Card title="Top Players" tag="Stars" tagColor="var(--yellow)" right={<button className="btn sm" onClick={() => ui.go('squad')}>Squad</button>}>
         <div className="list">

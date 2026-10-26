@@ -833,5 +833,3 @@ export const CUP_DEFS = [
   { id: 'DFB', name: 'DFB-Pokal', short: 'DFB', country: 'GER', color: '#111111' },
   { id: 'CDF', name: 'Coupe de France', short: 'CDF', country: 'FRA', color: '#0055A4' },
 ];
-
-export const CONTINENTAL = { id: 'UCL', name: 'Champions League', short: 'UCL', color: '#0B1F5B' };

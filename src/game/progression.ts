@@ -1,3 +1,4 @@
+import { EURO_GUEST_LEAGUE } from './data/europe';
 import { ATTR_GROUPS, POS_WEIGHTS, age, clampAttr, overall, rawOverallAt } from './ratings';
 import { normal } from './rng';
 import type { AttrKey, GameState, Player, TrainingFocus } from './types';
@@ -86,7 +87,9 @@ export function monthlyChange(g: GameState, p: Player) {
   const gap = p.pa - ovr;
   const intensity = isUser ? intensityFactor(g.training.intensity) : 1;
   const facilities = club ? 0.8 + 0.1 * club.facilities.training : 0.7;
-  const minsRatio = p.squad === 'youth' ? 0.5 : Math.min(1, p.monthMins / 300);
+  // Guest clubs' domestic league games aren't simulated: regular starters count as playing
+  const mins = club?.leagueId === EURO_GUEST_LEAGUE ? Math.max(p.monthMins, club.lineup.includes(p.id) ? 300 : 120) : p.monthMins;
+  const minsRatio = p.squad === 'youth' ? 0.5 : Math.min(1, mins / 300);
   const playing = club ? 0.6 + 0.6 * minsRatio : 0.45;
   const avg = p.monthRatings.length ? p.monthRatings.reduce((s, x) => s + x, 0) / p.monthRatings.length : 6.8;
   const form = 1 + Math.max(-0.2, Math.min(0.25, (avg - 6.8) * 0.3));

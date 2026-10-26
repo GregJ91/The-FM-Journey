@@ -9,7 +9,10 @@ import { Card, FixtureRow, PlayerRow } from '../components/common';
 import { Crest } from '../components/Crest';
 import { luminance } from '../theme';
 import { SquadList } from './Squad';
-import type { Player } from '../../game/types';
+import type { Cup, Player } from '../../game/types';
+import { EURO_PLACES } from '../../game/data/europe';
+import { europeFor, europeTable } from '../../game/europe';
+import { winnerOf } from '../../game/match';
 import { ClubBadgeButton } from '../components/BadgesSheet';
 
 export function Competitions() {
@@ -17,7 +20,7 @@ export function Competitions() {
   const ui = useUI();
   const club = g.clubs[g.userClubId];
   const myLeague = leagueOf(g, club.id);
-  const [comp, setComp] = useState<string>(ui.param === 'fixtures' ? 'MY' : myLeague.id);
+  const [comp, setComp] = useState<string>(ui.param === 'fixtures' ? 'MY' : typeof ui.param === 'string' && g.cups.some((c) => c.id === ui.param) ? ui.param : myLeague.id);
   const [tab, setTab] = useState<'table' | 'fixtures' | 'scorers'>('table');
   const league = g.leagues.find((l) => l.id === comp);
   const cup = g.cups.find((c) => c.id === comp);
@@ -34,8 +37,11 @@ export function Competitions() {
           <optgroup label="Leagues">
             {g.leagues.map((l) => <option key={l.id} value={l.id}>{l.name}{l.id === myLeague.id ? ' (yours)' : ''}</option>)}
           </optgroup>
-          <optgroup label="Cups">
-            {g.cups.map((c) => <option key={c.id} value={c.id}>🏆 {c.name}</option>)}
+          <optgroup label="Europe">
+            {g.cups.filter((c) => c.type === 'continental').map((c) => <option key={c.id} value={c.id}>⭐ {c.name}{europeFor(g, club.id).includes(c) ? ' (yours)' : ''}</option>)}
+          </optgroup>
+          <optgroup label="Domestic cups">
+            {g.cups.filter((c) => c.type === 'domestic').map((c) => <option key={c.id} value={c.id}>🏆 {c.name}</option>)}
           </optgroup>
         </select>
       </div>
@@ -57,7 +63,9 @@ export function Competitions() {
         </>
       )}
 
-      {cup && (
+      {cup && cup.lp !== undefined && <EuropeView key={cup.id} cup={cup} />}
+
+      {cup && cup.lp === undefined && (
         <>
           {cup.winner !== null && (
             <div className="card" style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.22), var(--surface))', borderColor: 'rgba(251,191,36,0.35)' }}>
@@ -90,13 +98,15 @@ export function LeagueTableCard({ leagueId }: { leagueId: string }) {
   const table = leagueTable(g, league);
   const n = table.length;
   const higher = g.leagues.find((l) => l.country === league.country && l.tier === league.tier - 1);
+  const places = league.tier === 1 ? EURO_PLACES[league.country] : undefined;
+  const euroZone = (i: number) => !places ? '' : i < places.UCL ? 'zone-ucl' : i < places.UCL + places.UEL ? 'zone-uel' : i < places.UCL + places.UEL + places.UECL ? 'zone-uecl' : '';
   return (
     <Card title={league.name} tag={league.short} tagColor={league.color}>
       <table className="t">
         <thead><tr><th>#</th><th>Club</th><th className="r">P</th><th className="r">W-D-L</th><th className="r">GD</th><th className="r">Pts</th></tr></thead>
         <tbody>
           {table.map((r, i) => {
-            const zone = league.tier === 1 ? (i < 4 ? 'zone-up' : league.down && i >= n - league.down ? 'zone-down' : '') : (higher && i < league.up ? 'zone-up' : league.down > 0 && i >= n - league.down ? 'zone-down' : '');
+            const zone = league.down > 0 && i >= n - league.down ? 'zone-down' : places ? euroZone(i) : higher && i < league.up ? 'zone-up' : '';
             const c = g.clubs[r.clubId];
             return (
               <tr key={r.clubId} className={`click ${zone} ${r.clubId === g.userClubId ? 'me' : ''}`} onClick={() => ui.go('club', r.clubId)}>
@@ -111,11 +121,105 @@ export function LeagueTableCard({ leagueId }: { leagueId: string }) {
           })}
         </tbody>
       </table>
-      <div className="row small muted" style={{ marginTop: 10, gap: 12 }}>
-        <span><span className="comp-dot" style={{ background: 'var(--grass)' }} /> {league.tier === 1 ? 'Champions League' : 'Promotion'}</span>
+      <div className="row wrap small muted" style={{ marginTop: 10, gap: 12 }}>
+        {places ? (
+          <>
+            <span><span className="comp-dot" style={{ background: 'var(--sky)' }} /> Champions League</span>
+            <span><span className="comp-dot" style={{ background: 'var(--orange)' }} /> Europa League</span>
+            <span><span className="comp-dot" style={{ background: 'var(--grass)' }} /> Conference League</span>
+          </>
+        ) : higher && <span><span className="comp-dot" style={{ background: 'var(--grass)' }} /> Promotion</span>}
         {league.down > 0 && <span><span className="comp-dot" style={{ background: 'var(--coral)' }} /> Relegation</span>}
       </div>
     </Card>
+  );
+}
+
+function EuropeView({ cup }: { cup: Cup }) {
+  const g = useGame();
+  const ui = useUI();
+  const me = g.userClubId;
+  const lp = cup.lp!;
+  const [tab, setTab] = useState<'table' | 'matches' | 'ko'>(cup.current >= lp ? 'ko' : 'table');
+  const fx = g.fixtures.filter((f) => f.comp === cup.id);
+  const firstOpen = fx.find((f) => f.round <= lp && !f.result)?.round ?? lp;
+  const [round, setRound] = useState(Math.min(lp, Math.max(1, firstOpen)));
+  const table = europeTable(g, cup);
+  const inIt = (cup.teams ?? []).includes(me);
+  return (
+    <>
+      {cup.winner !== null && (
+        <div className="card" style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.22), var(--surface))', borderColor: 'rgba(251,191,36,0.35)' }}>
+          <div className="row"><span style={{ fontSize: 34 }}>🏆</span><Crest club={g.clubs[cup.winner]} size={46} /><div><div className="small bold">{cup.name} winners</div><h2 style={{ fontSize: 22 }}>{g.clubs[cup.winner].name}</h2></div></div>
+        </div>
+      )}
+      <div className="small muted" style={{ marginBottom: 10 }}>
+        36 clubs, {lp} league-phase games each. Top 8 go to the round of 16, 9th–24th play two-legged knockout play-offs.{inIt ? '' : ` ${g.clubs[me].name} aren't in it this season.`}
+      </div>
+      <div className="seg" style={{ marginBottom: 12 }}>
+        <button className={tab === 'table' ? 'on' : ''} onClick={() => setTab('table')}>League phase</button>
+        <button className={tab === 'matches' ? 'on' : ''} onClick={() => setTab('matches')}>Matches</button>
+        <button className={tab === 'ko' ? 'on' : ''} onClick={() => setTab('ko')}>Knockouts</button>
+      </div>
+      {tab === 'table' && (
+        <Card title={cup.name} tag={cup.short} tagColor={cup.color}>
+          <table className="t">
+            <thead><tr><th>#</th><th>Club</th><th className="r">P</th><th className="r">W-D-L</th><th className="r">GD</th><th className="r">Pts</th></tr></thead>
+            <tbody>
+              {table.map((r, i) => {
+                const c = g.clubs[r.clubId];
+                const zone = i < 8 ? 'zone-up' : i < 24 ? 'zone-po' : 'zone-down';
+                return (
+                  <tr key={r.clubId} className={`click ${zone} ${r.clubId === me ? 'me' : ''}`} onClick={() => ui.go('club', r.clubId)}>
+                    <td className="num bold">{i + 1}</td>
+                    <td><span className="row" style={{ gap: 6 }}><Crest club={c} size={18} /><span className="ellipsis" style={{ maxWidth: 120 }}>{c.name}</span></span></td>
+                    <td className="r num">{r.p}</td>
+                    <td className="r num small">{r.w}-{r.d}-{r.l}</td>
+                    <td className="r num">{r.gf - r.ga > 0 ? '+' : ''}{r.gf - r.ga}</td>
+                    <td className="r num bold">{r.pts}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div className="row wrap small muted" style={{ marginTop: 10, gap: 12 }}>
+            <span><span className="comp-dot" style={{ background: 'var(--grass)' }} /> Round of 16</span>
+            <span><span className="comp-dot" style={{ background: 'var(--yellow)' }} /> Play-offs</span>
+            <span><span className="comp-dot" style={{ background: 'var(--coral)' }} /> Eliminated</span>
+          </div>
+        </Card>
+      )}
+      {tab === 'matches' && (
+        <Card>
+          <div className="row" style={{ marginBottom: 8 }}>
+            <button className="btn sm" disabled={round <= 1} onClick={() => setRound(round - 1)}>◀</button>
+            <b style={{ flex: 1, textAlign: 'center', fontFamily: 'var(--display)', fontSize: 17 }}>Matchday {round}</b>
+            <button className="btn sm" disabled={round >= lp} onClick={() => setRound(round + 1)}>▶</button>
+          </div>
+          {[...fx.filter((f) => f.round === round)].sort((a, b) => Number(b.home === me || b.away === me) - Number(a.home === me || a.away === me)).map((f) => <FixtureRow key={f.id} g={g} f={f} showComp={false} />)}
+        </Card>
+      )}
+      {tab === 'ko' && cup.rounds.slice(lp).map((r, i) => {
+        const rf = fx.filter((f) => f.round === lp + i + 1);
+        const ties = [...new Set(rf.map((f) => f.tie ?? f.id))].map((t) => rf.filter((f) => (f.tie ?? f.id) === t).sort((a, b) => (a.date < b.date ? -1 : 1)));
+        ties.sort((a, b) => Number(b.some((f) => f.home === me || f.away === me)) - Number(a.some((f) => f.home === me || f.away === me)));
+        return (
+          <Card key={r.name} title={r.name} tag={fmtShort(r.date)} tagColor="var(--muted)">
+            {ties.map((legs) => {
+              const last = legs[legs.length - 1];
+              const w = winnerOf(last);
+              return (
+                <div key={last.id} className="tie">
+                  {legs.map((f) => <FixtureRow key={f.id} g={g} f={f} showComp={false} />)}
+                  {w !== null && <div className="through">{g.clubs[w].name} {r.name === 'Final' ? 'win the trophy' : 'go through'}{last.result?.pens ? ' on penalties' : ''}</div>}
+                </div>
+              );
+            })}
+            {!rf.length && <div className="muted small">{cup.current < lp ? 'Decided by the league phase' : 'Draw after the previous round'}</div>}
+          </Card>
+        );
+      })}
+    </>
   );
 }
 
@@ -197,7 +301,8 @@ export function ClubView() {
           <div style={{ minWidth: 0 }}><h1>{club.name}</h1></div>
         </div>
         <div className="pills">
-          <span className="pill">{league.name}</span>
+          <span className="pill">{league?.name ?? 'Rest of Europe'}</span>
+          {europeFor(g, id).map((c) => <span key={c.id} className="pill">⭐ {c.name}</span>)}
           <span className="pill">🏟️ {club.stadium}</span>
           <span className="pill">⭐ Rep {club.reputation}</span>
           <span className="pill">🏆 {club.trophies.length}</span>

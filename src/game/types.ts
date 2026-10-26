@@ -152,6 +152,7 @@ export interface FixtureResult {
   hg: number;
   ag: number;
   pens?: [number, number];
+  agg?: [number, number]; // two-legged tie: aggregate after this match (home, away)
   goals: GoalRecord[];
   reds: { minute: number; team: 0 | 1; player: number }[];
   stats?: MatchStats;
@@ -170,6 +171,9 @@ export interface Fixture {
   result: FixtureResult | null;
   neutral?: boolean;
   knockout?: boolean;
+  leg?: 1 | 2; // two-legged ties
+  firstLeg?: number; // leg 2: id of the first leg
+  tie?: number; // knockout tie index (bracket order)
 }
 
 export interface League {
@@ -196,6 +200,9 @@ export interface Cup {
   current: number; // index into rounds of next round to be drawn/played
   winner: number | null;
   runnerUp: number | null;
+  /** European format: league phase (one round per matchday) then two-legged knockouts */
+  teams?: number[]; // league-phase entrants
+  lp?: number; // number of league-phase matchdays
 }
 
 export interface MatchStats {
@@ -289,6 +296,7 @@ export interface GameState {
   autoSubs: boolean;
   shortlist: number[];
   ledger: { month: string; income: number; expense: number; balance: number }[];
-  continental: number[]; // entrants for next season's continental cup
+  continental: number[]; // legacy (pre-Europe saves)
+  europe?: Record<string, number[]>; // qualified clubs for next season's European competitions
   ledgerMark?: { i: number; e: number };
 }

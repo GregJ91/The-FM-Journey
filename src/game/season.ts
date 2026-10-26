@@ -1,8 +1,9 @@
 import { boardMonthly, checkFacilityUpgrade, clampConf, monthlyFinances, prizeMoney, recordLedger, setBoardObjective, setSeasonBudgets, weeklyWages } from './club';
-import { compName, continentalEntrants, leagueTable, progressCup, scheduleLeague, setupCups } from './competitions';
+import { compName, leagueTable, progressCup, scheduleLeague, setupCups } from './competitions';
+import { computeEntrants, ensureEurope, europeFor, guestLevel, initialEntrants, isGuest, progressEurope, setupEurope } from './europe';
 import { addDays, dayOfMonth, month, weekday } from './dates';
 import { LEAGUE_DEFS } from './data/leagues';
-import { emptyStats, fillSquad, generatePlayer, generateYouth, leagueOf, squadOf } from './generate';
+import { START_SEASON, emptyStats, fillSquad, generatePlayer, generateYouth, leagueOf, squadOf } from './generate';
 import { sendMessage } from './inbox';
 import { applyResult, createMatch, randomInjury, simulateFixture, simulateToEnd } from './match';
 import { monthlyDevelopment } from './progression';
@@ -12,7 +13,7 @@ import { aiBidsForUser, aiTransfers, expireOffers, respondToUserBids } from './t
 import { matchdayIncome } from './club';
 import { bestFormation } from './selection';
 import { normaliseTactics } from './tactics';
-import type { Fixture, GameState, SeasonHistory } from './types';
+import type { Cup, Fixture, GameState, SeasonHistory } from './types';
 
 export function seasonLabel(season: number) {
   return `${season}/${String(season + 1).slice(2)}`;
@@ -21,8 +22,10 @@ export function seasonLabel(season: number) {
 export function startSeason(g: GameState) {
   g.fixtures = [];
   for (const league of g.leagues) scheduleLeague(g, league);
-  const entrants = g.continental.length ? g.continental : continentalEntrants(g, false);
-  setupCups(g, entrants);
+  ensureEurope(g);
+  setupCups(g);
+  setupEurope(g, g.europe ?? (g.season === START_SEASON ? initialEntrants(g) : computeEntrants(g)));
+  g.europe = undefined;
   setSeasonBudgets(g);
   setBoardObjective(g);
   for (const c of Object.values(g.clubs)) if (!c.isUser) c.tactics = normaliseTactics({ ...c.tactics, formation: bestFormation(c, squadOf(g, c.id)), roles: [] });
@@ -33,12 +36,12 @@ export function startSeason(g: GameState) {
   }
   const club = g.clubs[g.userClubId];
   const league = leagueOf(g, club.id);
-  const inUCL = g.cups.find((c) => c.type === 'continental')?.alive.includes(club.id);
+  const euro = europeFor(g, club.id).map((c) => c.name);
   sendMessage(g, {
     from: 'The Board',
     kind: 'board',
     title: `Welcome to the ${seasonLabel(g.season)} season`,
-    body: `The board expects: ${g.board.objective}.\n\nCompetitions: ${league.name}, ${compName(g, g.cups.find((c) => c.country === club.country)!.id)}${inUCL ? ', Champions League' : ''}.\nTransfer budget: ${fmtMoney(club.transferBudget)}. Wage budget: ${fmtMoney(club.wageBudget)}/week.\n\nThe summer transfer window is open until 31 August.`,
+    body: `The board expects: ${g.board.objective}.\n\nCompetitions: ${league.name}, ${compName(g, g.cups.find((c) => c.country === club.country)!.id)}${euro.length ? `, ${euro.join(', ')}` : ''}.\nTransfer budget: ${fmtMoney(club.transferBudget)}. Wage budget: ${fmtMoney(club.wageBudget)}/week.\n\nThe summer transfer window is open until 31 August.`,
   });
 }
 
@@ -63,20 +66,17 @@ export function playDayFixtures(g: GameState) {
     if (cup.winner) continue;
     const before = cup.current;
     const round = g.fixtures.filter((f) => f.comp === cup.id && f.round === cup.current + 1);
+    if (cup.lp !== undefined) {
+      // European competitions send their own draw / elimination news
+      if (round.length && round.every((f) => f.result) && progressEurope(g, cup) && cup.winner !== null) cupWon(g, cup, round.some((f) => f.home === g.userClubId || f.away === g.userClubId));
+      continue;
+    }
     if (round.length && round.every((f) => f.result) && round[0].date <= g.date) {
       progressCup(g, cup);
       const club = g.clubs[g.userClubId];
       const userWasIn = round.some((f) => f.home === club.id || f.away === club.id);
       if (cup.winner !== null) {
-        const w = g.clubs[cup.winner];
-        w.trophies.push({ season: g.season, name: cup.name });
-        w.reputation = Math.min(100, w.reputation + 2);
-        if (cup.winner === club.id) {
-          g.board.confidence = clampConf(g.board.confidence + 15);
-          sendMessage(g, { from: 'The Board', kind: 'season', title: `🏆 ${cup.name} winners!`, body: `Incredible! ${club.name} have won the ${cup.name}. The board is delighted.` });
-        } else if (userWasIn) {
-          sendMessage(g, { from: 'Media', kind: 'match', title: `${cup.name} final lost`, body: `${w.name} lift the ${cup.name} after beating ${club.name} in the final.` });
-        }
+        cupWon(g, cup, userWasIn);
       } else if (cup.current > before && userWasIn) {
         if (cup.alive.includes(club.id)) {
           const next = g.fixtures.find((f) => f.comp === cup.id && f.round === cup.current + 1 && (f.home === club.id || f.away === club.id));
@@ -87,6 +87,19 @@ export function playDayFixtures(g: GameState) {
         }
       }
     }
+  }
+}
+
+function cupWon(g: GameState, cup: Cup, userWasIn: boolean) {
+  const club = g.clubs[g.userClubId];
+  const w = g.clubs[cup.winner!];
+  w.trophies.push({ season: g.season, name: cup.name });
+  w.reputation = Math.min(100, w.reputation + (cup.type === 'continental' ? 3 : 2));
+  if (cup.winner === club.id) {
+    g.board.confidence = clampConf(g.board.confidence + (cup.id === 'UCL' ? 25 : 15));
+    sendMessage(g, { from: 'The Board', kind: 'season', title: `🏆 ${cup.name} winners!`, body: `Incredible! ${club.name} have won the ${cup.name}. The board is delighted.` });
+  } else if (userWasIn) {
+    sendMessage(g, { from: 'Media', kind: 'match', title: `${cup.name} final lost`, body: `${w.name} lift the ${cup.name} after beating ${club.name} in the final.` });
   }
 }
 
@@ -196,7 +209,7 @@ function youthIntake(g: GameState) {
       const kids = generateYouth(g, club, n, true);
       const best = [...kids].sort((a, b) => b.pa - a.pa)[0];
       sendMessage(g, { from: 'Head of Youth Development', kind: 'youth', title: `Youth intake: ${n} new prospects`, body: `This year's youth intake has arrived!\n\n${kids.map((p) => `• ${fullName(p)} (${p.pos}, ${age(p, g.date)}) — OVR ${overall(p)}`).join('\n')}\n\nThe pick of the bunch looks to be ${fullName(best)}. Visit the Youth Team page to have a look.` });
-    } else if (chance(0.7)) {
+    } else if (!isGuest(club) && chance(0.7)) {
       generateYouth(g, club, int(1, 3), true);
     }
   }
@@ -237,8 +250,8 @@ export function endSeason(g: GameState) {
   for (const cup of g.cups) if (cup.winner !== null) hist.winners.push({ comp: cup.name, name: g.clubs[cup.winner].name, clubId: cup.winner });
   g.history.push(hist);
 
-  // Continental places for next season
-  g.continental = continentalEntrants(g, true);
+  // European places for next season (before promotion and relegation)
+  g.europe = computeEntrants(g);
 
   // Promotion & relegation (English pyramid)
   const eng = g.leagues.filter((l) => l.country === 'ENG').sort((a, b) => a.tier - b.tier);
@@ -321,7 +334,7 @@ export function endSeason(g: GameState) {
     if (squad.length > 28) {
       squad.sort((a, b) => overall(a) - overall(b)).slice(0, squad.length - 28).forEach((p) => { p.clubId = null; });
     }
-    const lvl = leagueLevel(club.leagueId) + (club.reputation - 50) * 0.12;
+    const lvl = isGuest(club) ? guestLevel(club) : leagueLevel(club.leagueId) + (club.reputation - 50) * 0.12;
     fillSquad(g, club, Math.round(lvl), 22);
   }
   // Refresh free-agent pool

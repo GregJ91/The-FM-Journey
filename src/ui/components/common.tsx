@@ -122,7 +122,7 @@ export function FixtureRow({ g, f, showComp = true, compact }: { g: GameState; f
         <span title={h.name}>{compact || h.name.length > 13 ? h.short : h.name}</span>
         <Crest club={h} size={20} />
       </div>
-      <div className={`score ${r ? '' : 'tbd'}`}>{r ? `${r.hg} - ${r.ag}` : 'v'}</div>
+      <div className={`score ${r ? '' : 'tbd'}`}>{r ? `${r.hg} - ${r.ag}` : 'v'}{r?.agg && <span className="agg">agg {r.agg[0]}-{r.agg[1]}</span>}</div>
       <div className={`a ${f.away === me ? 'me' : ''}`} onClick={() => ui.go('club', a.id)} style={{ cursor: 'pointer' }}>
         <Crest club={a} size={20} />
         <span title={a.name}>{compact || a.name.length > 13 ? a.short : a.name}</span>

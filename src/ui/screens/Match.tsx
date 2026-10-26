@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { compName } from '../../game/competitions';
 import { FORMATIONS, MENTALITY } from '../../game/formations';
 import { squadOf } from '../../game/generate';
-import { applyResult, changeTactics, createMatch, makeSub, simulateToEnd, stepMinute, type LiveMatch, type MatchEvent } from '../../game/match';
+import { aggGoals, applyResult, changeTactics, createMatch, makeSub, simulateToEnd, stepMinute, type LiveMatch, type MatchEvent } from '../../game/match';
 import { overall, ratingAt, shortName } from '../../game/ratings';
 import { finishUserMatch, pendingUserFixture } from '../../game/season';
 import { validateLineup } from '../../game/selection';
@@ -155,7 +155,7 @@ export function MatchScreen() {
   return (
     <div className="match-screen">
       <div className="match-inner">
-        <Scoreboard home={home} away={away} score={`${m.score[0]} - ${m.score[1]}`} clock={`${m.finished ? 'FULL TIME' : halfTime ? 'HALF-TIME' : `${m.minute}'`} · ${compName(g, fixture.comp)}`} progress={(m.minute / 90) * 100} />
+        <Scoreboard home={home} away={away} score={`${m.score[0]} - ${m.score[1]}`} clock={`${m.finished ? 'FULL TIME' : halfTime ? 'HALF-TIME' : `${m.minute}'`} · ${m.agg0 ? `AGG ${aggGoals(m, 0)}-${aggGoals(m, 1)}` : compName(g, fixture.comp)}`} progress={(m.minute / 90) * 100} />
         <div className="match-scroll">
           <LivePitch m={m} kits={[hk, ak]} ballPhase={ballPhase} />
           <div className="shouts">
@@ -312,10 +312,12 @@ function PreMatch({ g, fixture, onKick, onInstant, onTactics }: { g: GameState; 
   const oppId = fixture.home === user.id ? fixture.away : fixture.home;
   const opp = squadOf(g, oppId).sort((a, b) => overall(b) - overall(a)).slice(0, 3);
   const out = squad.filter((p) => p.injury || p.suspended > 0);
+  const leg1 = fixture.leg === 2 ? g.fixtures.find((f) => f.id === fixture.firstLeg) : undefined;
   return (
     <div className="match-screen">
       <div className="match-inner">
         <Scoreboard home={home} away={away} score="VS" clock={`${compName(g, fixture.comp)}${fixture.roundName ? ` · ${fixture.roundName}` : ''}`} />
+        {leg1?.result && <div className="small bold" style={{ textAlign: 'center', color: '#a8c6b4', marginTop: -4 }}>First leg: {g.clubs[leg1.home].short} {leg1.result.hg}-{leg1.result.ag} {g.clubs[leg1.away].short}</div>}
         <div className="match-scroll">
           <div className="small" style={{ color: '#a8c6b4', textAlign: 'center' }}>{fixture.neutral ? 'Neutral venue' : home.stadium} · {user.tactics.formation} · {MENTALITY[user.tactics.mentality + 2]}</div>
           <div className="panel">
@@ -362,7 +364,7 @@ function PostMatch({ g, fixture, m, onClose }: { g: GameState; fixture: Fixture;
   return (
     <div className="match-screen">
       <div className="match-inner">
-        <Scoreboard home={home} away={away} score={`${r.hg} - ${r.ag}`} clock={`FULL TIME${r.pens ? ` · ${r.pens[0]}-${r.pens[1]} pens` : ''}`} />
+        <Scoreboard home={home} away={away} score={`${r.hg} - ${r.ag}`} clock={`FULL TIME${r.agg ? ` · AGG ${r.agg[0]}-${r.agg[1]}` : ''}${r.pens ? ` · ${r.pens[0]}-${r.pens[1]} pens` : ''}`} />
         <div className="match-scroll">
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: 40, color: won ? 'var(--lime)' : lost ? 'var(--coral)' : 'var(--yellow)' }}>{won ? 'VICTORY!' : lost ? 'DEFEAT' : 'DRAW'}</div>

@@ -55,6 +55,7 @@ export interface LiveMatch {
   minute: number;
   score: [number, number];
   pens?: [number, number];
+  agg0?: [number, number]; // second leg: first-leg goals for (home, away) of this match
   events: MatchEvent[];
   goals: GoalRecord[];
   reds: { minute: number; team: 0 | 1; player: number }[];
@@ -163,12 +164,26 @@ function newLive(g: GameState, id: number, slot: number, pos: Pos, x: number, y:
   return { id, slot, pos, x, y, s: emptyLine(), rating: 6.55, cond: p.condition, goals: 0, assists: 0, yellow: false, red: false, injured: false, on: minute, off: null };
 }
 
+/** Second leg: first-leg goals from the point of view of this fixture's home and away sides. */
+function firstLeg(g: GameState, f: Fixture): [number, number] | undefined {
+  if (f.leg !== 2 || f.firstLeg === undefined) return undefined;
+  const l1 = g.fixtures.find((x) => x.id === f.firstLeg);
+  if (!l1?.result) return undefined;
+  return l1.home === f.away ? [l1.result.ag, l1.result.hg] : [l1.result.hg, l1.result.ag];
+}
+
+/** Goals for a side, including the first leg of a two-legged tie. */
+export function aggGoals(m: LiveMatch, side: 0 | 1) {
+  return m.score[side] + (m.agg0?.[side] ?? 0);
+}
+
 export function createMatch(g: GameState, f: Fixture): LiveMatch {
   const home = g.clubs[f.home];
   const away = g.clubs[f.away];
   const m: LiveMatch = {
     fixtureId: f.id,
     knockout: !!f.knockout,
+    agg0: firstLeg(g, f),
     sides: [buildSide(g, home, home.isUser), buildSide(g, away, away.isUser)],
     minute: 0,
     score: [0, 0],
@@ -222,7 +237,7 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
     for (const side of [0, 1] as const) {
       const s = m.sides[side];
       if (g.clubs[s.clubId].isUser) continue;
-      const diff = m.score[side] - m.score[side === 0 ? 1 : 0];
+      const diff = aggGoals(m, side) - aggGoals(m, side === 0 ? 1 : 0);
       if (diff < 0 && s.tactics.mentality < 2) changeTactics(g, m, side, { mentality: s.tactics.mentality + 1 });
       if (diff > 0 && minute === 80 && s.tactics.mentality > -1) changeTactics(g, m, side, { mentality: s.tactics.mentality - 1 });
     }
@@ -243,7 +258,7 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
   m.ball = { x: 50 + dir * (rand() * 30 - 5), y: 15 + rand() * 70 };
   const at = att.tactics;
   const dt = def.tactics;
-  const leading = (side: 0 | 1) => m.score[side] > m.score[side === 0 ? 1 : 0];
+  const leading = (side: 0 | 1) => aggGoals(m, side) > aggGoals(m, side === 0 ? 1 : 0);
 
   // Passing: share out this minute's passes by role, completion by skill & style
   passMinute(g, att, dt.pressing);
@@ -542,7 +557,7 @@ function aiSub(g: GameState, m: LiveMatch, side: 0 | 1): MatchEvent | null {
   const s = m.sides[side];
   if (s.subsLeft <= 0 || !s.bench.length) return null;
   const tired = s.onPitch.filter((lp) => lp.pos !== 'GK').sort((a, b) => a.cond - b.cond)[0];
-  const losing = m.score[side] < m.score[side === 0 ? 1 : 0];
+  const losing = aggGoals(m, side) < aggGoals(m, side === 0 ? 1 : 0);
   if (!tired) return null;
   if (tired.cond < 68 || (losing && m.minute > 64) || tired.rating < 5.8) {
     return autoSub(g, m, side, tired, false);
@@ -553,12 +568,17 @@ function aiSub(g: GameState, m: LiveMatch, side: 0 | 1): MatchEvent | null {
 function finishLive(g: GameState, m: LiveMatch, evs: MatchEvent[]) {
   m.finished = true;
   const [H, A] = m.sides;
-  if (m.knockout && m.score[0] === m.score[1]) {
+  if (m.knockout && aggGoals(m, 0) === aggGoals(m, 1)) {
     const pens = shootout(g, m);
     m.pens = pens;
     evs.push({ minute: 90, type: 'pens', team: pens[0] > pens[1] ? 0 : 1, text: `Penalties! ${g.clubs[(pens[0] > pens[1] ? H : A).clubId].name} win the shootout ${pens[0]}-${pens[1]}!` });
   }
-  evs.push({ minute: 90, type: 'ft', team: -1, text: `Full-time: ${g.clubs[H.clubId].name} ${m.score[0]} - ${m.score[1]} ${g.clubs[A.clubId].name}${m.pens ? ` (${m.pens[0]}-${m.pens[1]} pens)` : ''}` });
+  const agg = m.agg0 ? ` (${aggGoals(m, 0)}-${aggGoals(m, 1)} on aggregate)` : '';
+  evs.push({ minute: 90, type: 'ft', team: -1, text: `Full-time: ${g.clubs[H.clubId].name} ${m.score[0]} - ${m.score[1]} ${g.clubs[A.clubId].name}${agg}${m.pens ? ` (${m.pens[0]}-${m.pens[1]} pens)` : ''}` });
+  if (m.agg0 && !m.pens) {
+    const w = aggGoals(m, 0) > aggGoals(m, 1) ? H : A;
+    evs.push({ minute: 90, type: 'info', team: -1, text: `${g.clubs[w.clubId].name} go through ${Math.max(aggGoals(m, 0), aggGoals(m, 1))}-${Math.min(aggGoals(m, 0), aggGoals(m, 1))} on aggregate.` });
+  }
 }
 
 function shootout(g: GameState, m: LiveMatch): [number, number] {
@@ -673,6 +693,7 @@ export function applyResult(g: GameState, m: LiveMatch) {
     hg: m.score[0],
     ag: m.score[1],
     pens: m.pens,
+    agg: m.agg0 ? [aggGoals(m, 0), aggGoals(m, 1)] : undefined,
     goals: m.goals,
     reds: m.reds,
     motm: motm?.id,
@@ -701,8 +722,9 @@ export function simulateFixture(g: GameState, f: Fixture) {
 export function winnerOf(f: Fixture): number | null {
   if (!f.result) return null;
   const r = f.result;
-  if (r.hg > r.ag) return f.home;
-  if (r.ag > r.hg) return f.away;
+  const [h, a] = r.agg ?? [r.hg, r.ag];
+  if (h > a) return f.home;
+  if (a > h) return f.away;
   if (r.pens) return r.pens[0] > r.pens[1] ? f.home : f.away;
   return null;
 }

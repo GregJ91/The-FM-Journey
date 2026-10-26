@@ -123,26 +123,18 @@ function cupRoundDates(season: number, n: number, first: string, final: string, 
   return out;
 }
 
-export function setupCups(g: GameState, continentalEntrants: number[]) {
+export function setupCups(g: GameState) {
   for (const cup of g.cups) {
+    if (cup.type !== 'domestic') continue;
     cup.winner = null;
     cup.runnerUp = null;
     cup.current = 0;
-    if (cup.type === 'domestic') {
-      cup.alive = g.leagues.filter((l) => l.country === cup.country).flatMap((l) => l.clubIds);
-      const n = Math.ceil(Math.log2(cup.alive.length));
-      const names = DOMESTIC_ROUND_NAMES(n);
-      const dates = cupRoundDates(g.season, n, `${g.season}-09-16`, `${g.season + 1}-05-23`, 3);
-      dates[n - 1] = nextWeekday(`${g.season + 1}-05-22`, 6); // final on a Saturday
-      cup.rounds = names.map((name, i) => ({ name, date: dates[i] }));
-    } else {
-      cup.alive = [...continentalEntrants];
-      const n = Math.ceil(Math.log2(Math.max(2, cup.alive.length)));
-      const names = DOMESTIC_ROUND_NAMES(n).map((x) => (x.startsWith('Round') ? 'Round of 32' : x));
-      const dates = cupRoundDates(g.season, n, `${g.season}-10-20`, `${g.season + 1}-05-29`, 2);
-      dates[n - 1] = nextWeekday(`${g.season + 1}-05-29`, 6);
-      cup.rounds = names.map((name, i) => ({ name, date: dates[i] }));
-    }
+    cup.alive = g.leagues.filter((l) => l.country === cup.country).flatMap((l) => l.clubIds);
+    const n = Math.ceil(Math.log2(cup.alive.length));
+    const names = DOMESTIC_ROUND_NAMES(n);
+    const dates = cupRoundDates(g.season, n, `${g.season}-09-16`, `${g.season + 1}-05-23`, 3);
+    dates[n - 1] = nextWeekday(`${g.season + 1}-05-22`, 6); // final on a Saturday
+    cup.rounds = names.map((name, i) => ({ name, date: dates[i] }));
     drawCupRound(g, cup);
   }
 }
@@ -208,25 +200,4 @@ export function compColor(g: GameState, comp: string) {
 
 export function clubFixtures(g: GameState, clubId: number) {
   return g.fixtures.filter((f) => f.home === clubId || f.away === clubId).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-}
-
-/** Continental entrants: top 4 of each top division + best of the rest by reputation to make 32. */
-export function continentalEntrants(g: GameState, useTables: boolean) {
-  const tops = g.leagues.filter((l) => l.tier === 1);
-  const picked: number[] = [];
-  for (const l of tops) {
-    const order = useTables ? leagueTable(g, l).map((r) => r.clubId) : [...l.clubIds].sort((a, b) => g.clubs[b].reputation - g.clubs[a].reputation);
-    picked.push(...order.slice(0, 4));
-  }
-  const rest = tops
-    .flatMap((l) => {
-      const order = useTables ? leagueTable(g, l).map((r) => r.clubId) : [...l.clubIds].sort((a, b) => g.clubs[b].reputation - g.clubs[a].reputation);
-      return order.slice(4, 8).map((id, i) => ({ id, score: g.clubs[id].reputation - i * 4 }));
-    })
-    .sort((a, b) => b.score - a.score);
-  for (const r of rest) {
-    if (picked.length >= 32) break;
-    picked.push(r.id);
-  }
-  return picked;
 }
