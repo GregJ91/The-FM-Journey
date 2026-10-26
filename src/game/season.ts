@@ -3,6 +3,7 @@ import { compName, leagueTable, progressCup, scheduleLeague, setupCups } from '.
 import { computeEntrants, ensureEurope, europeFor, initialEntrants, progressEurope, setupEurope } from './europe';
 import { guestLevel, isGuest } from './guests';
 import { intlDay } from './intl';
+import { setupYouth, youthDay } from './youth';
 import { CWC_ID, progressClubWorldCup, setupClubWorldCup } from './world';
 import { addDays, dayOfMonth, diffDays, month, weekday } from './dates';
 import { LEAGUE_DEFS } from './data/leagues';
@@ -30,6 +31,7 @@ export function startSeason(g: GameState) {
   setupCups(g);
   setupEurope(g, g.europe ?? (g.season === START_SEASON ? initialEntrants(g) : computeEntrants(g)));
   g.europe = undefined;
+  setupYouth(g);
   setSeasonBudgets(g);
   setBoardObjective(g);
   for (const c of Object.values(g.clubs)) if (!c.isUser) c.tactics = normaliseTactics({ ...c.tactics, formation: bestFormation(c, squadOf(g, c.id)), roles: [] });
@@ -378,6 +380,7 @@ export function advanceDay(g: GameState): AdvanceResult {
   if (pendingUserFixture(g)) return { ok: false, reason: 'match' };
   playDayFixtures(g);
   intlDay(g);
+  youthDay(g);
   daily(g);
   g.date = addDays(g.date, 1);
   newDay(g);

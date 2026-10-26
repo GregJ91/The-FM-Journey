@@ -1,0 +1,479 @@
+// Real academy prospects (U18/U21/U19 squads), 2026/27 as of October 2026.
+// Researched from web reports; ages, positions and ratings are estimates. Same line format as REAL_PLAYERS.
+// These players start in the youth squad; every club's academy is topped up with generated players.
+export const YOUTH_PLAYERS: Record<string, string[]> = {
+  "AC Milan": [
+    "Emanuele Sala|MC|19|ITA|57|75",
+    "Mattia Angelicchio|AMC|17|ITA|54|78",
+  ],
+  "Angers": [
+    "Jules Bouffandeau|MC|17|FRA|54|74",
+  ],
+  "Arsenal": [
+    "Andre Harriman-Annous|AMR|17|ENG|60|80",
+    "Marli Salmon|DC|17|ENG|61|82",
+    "Ceadach O'Neill|ST|17|IRL|56|76",
+    "Jaden Dixon|DC|17|ENG|55|75",
+    "Ife Ibrahim|DM|17|ENG|55|75",
+    "Khari Ranson|GK|17|ENG|52|74",
+    "Emerson Nwaneri|AMR|16|ENG|52|76",
+  ],
+  "Aston Villa": [
+    "Brian Madjo|ST|17|FRA|64|84",
+    "George Hemmings|ST|17|ENG|58|78",
+    "Alysson|AML|20|BRA|66|80",
+    "Kadan Young|AMR|20|ENG|62|76",
+    "Jamaldeen Jimoh-Aloba|AMC|19|ENG|60|76",
+    "Bradley Burrowes|ST|18|ENG|57|75",
+  ],
+  "Atalanta": [
+    "Dominic Vavassori|DC|20|ITA|63|77",
+    "Sergej Levak|MC|20|CRO|62|76",
+    "Javison Idele|AMR|19|ITA|58|76",
+    "Albert Navarro|DC|19|ESP|57|75",
+  ],
+  "Athletic Club": [
+    "Selton Sánchez|AMC|19|ESP|64|82",
+    "Asier Hierro|ST|19|ESP|60|78",
+    "Elijah Gift|AML|19|ESP|58|76",
+    "Iker Monreal|DC|20|ESP|57|74",
+    "Mikel Santos|GK|20|ESP|56|73",
+  ],
+  "Atlético Madrid": [
+    "Rayane Belaid|AML|18|ESP|57|78",
+  ],
+  "Augsburg": [
+    "Noahkai Banks|DC|19|USA|63|77",
+  ],
+  "Auxerre": [
+    "Ackah-Tidiane Zoukrou|DC|17|FRA|55|75",
+  ],
+  "Barcelona": [
+    "Guille Fernández|MC|18|ESP|63|84",
+    "Toni Fernández|ST|18|ESP|62|83",
+    "Ibrahim Diarra|AMR|20|MLI|64|80",
+    "Xavi Espart|DR|19|ESP|62|79",
+    "Quim Junyent|MC|19|ESP|59|77",
+    "Alex Campos|DC|19|ESP|58|76",
+    "Hamza Abdelkarim|ST|18|EGY|58|76",
+  ],
+  "Bayer Leverkusen": [
+    "Montrell Culbreath|ST|18|GER|62|80",
+    "Jonah Berghoff|ST|18|GER|56|74",
+    "Ken Izekor|AMR|17|GER|58|79",
+  ],
+  "Bayern Munich": [
+    "Erblin Osmani|DM|17|GER|62|82",
+    "Cassiano Kiala|DC|17|GER|60|81",
+    "Filip Pavić|DC|17|GER|58|79",
+    "David Santos Daiber|AML|18|GER|60|79",
+    "Wisdom Mike|AML|18|GER|61|80",
+  ],
+  "Blackburn Rovers": [
+    "Osman Kamara|AML|19|ENG|58|71",
+    "Frank Vare|MC|18|ENG|53|68",
+    "Jayden Sergeant|AML|18|ENG|53|68",
+    "Freddie Leatherbarrow|MC|18|ENG|52|67",
+    "Michael Decandia|DC|18|ENG|52|67",
+  ],
+  "Bologna": [
+    "Massimo Pessina|GK|19|ITA|56|75",
+  ],
+  "Bolton Wanderers": [
+    "Toby Ritchie|ST|18|ENG|54|68",
+  ],
+  "Borussia Dortmund": [
+    "Samuele Inácio|AMC|18|ITA|66|83",
+    "Mussa Kaba|MC|18|GER|60|81",
+    "Mathis Albert|DC|17|GER|58|79",
+  ],
+  "Borussia Mönchengladbach": [
+    "Wael Mohya|AMC|17|GER|67|86",
+  ],
+  "Bournemouth": [
+    "Veljko Milosavljević|DC|19|SRB|67|81",
+    "George Chubinidze|ML|18|ENG|55|72",
+  ],
+  "Brentford": [
+    "Kaye Furo|ST|19|BEL|65|80",
+    "Benjamin Fredrick|DC|20|NGA|63|76",
+    "Tony Yogane|MC|20|ENG|60|73",
+    "Iwan Morgan|ST|20|WAL|58|72",
+  ],
+  "Brest": [
+    "Raphaël Le Guen|DC|19|FRA|55|70",
+  ],
+  "Brighton": [
+    "Zadok Yohanna|AMR|19|NGA|68|84",
+    "Kofi Shaw|MC|18|ENG|56|75",
+    "Nehemiah Oriola|MC|18|ENG|56|74",
+    "Shane Nti|MC|18|ENG|54|72",
+    "Steven Hall|GK|18|AUS|54|73",
+  ],
+  "Bristol City": [
+    "Leo Pecover|DC|18|ENG|52|66",
+    "Ranel Young|AMR|18|ENG|52|67",
+  ],
+  "Burnley": [
+    "George Brierley|MC|18|ENG|57|72",
+    "Braidin Derbyshire|ST|18|ENG|53|68",
+    "Zach Johnson|AML|19|ENG|54|68",
+    "Jack Robinson|GK|18|ENG|50|66",
+  ],
+  "Cardiff City": [
+    "Robert Tankiewicz|MC|16|WAL|50|72",
+    "Alex Donczew|MC|16|WAL|49|70",
+  ],
+  "Celta Vigo": [
+    "Yoel Lago|DC|21|ESP|62|74",
+  ],
+  "Chelsea": [
+    "Josh Acheampong|DR|20|ENG|67|80",
+    "Reggie Watson|DM|16|ENG|60|83",
+    "Dastan Satpaev|ST|17|KAZ|62|82",
+    "Olutayo Subuloye|ST|18|ENG|58|76",
+    "Ryan Kavuma-McQueen|AML|18|ENG|58|77",
+  ],
+  "Como": [
+    "Cristiano De Paoli|DR|19|ITA|56|74",
+  ],
+  "Coventry City": [
+    "George Shepherd|MC|17|ENG|57|77",
+  ],
+  "Crystal Palace": [
+    "Joel Drakes-Thomas|ST|17|ENG|61|81",
+    "Dean Benamar|DC|18|ENG|56|74",
+    "Charlie Walker-Smith|DC|19|WAL|56|72",
+    "Asher Agbinone|ST|20|ENG|60|73",
+  ],
+  "Deportivo La Coruña": [
+    "Xabi Campos|DL|18|ESP|56|75",
+  ],
+  "Derby County": [
+    "Sean Corry|AMR|18|NIR|53|68",
+    "Alfie Friars|DC|18|ENG|52|67",
+    "Frankie Jones|DL|19|ENG|53|67",
+  ],
+  "Eintracht Frankfurt": [
+    "Noah Fenyő|MC|20|HUN|60|74",
+  ],
+  "Everton": [
+    "Harrison Armstrong|MC|19|ENG|66|79",
+    "Tyrique George|AML|20|ENG|69|80",
+    "Tyler Dibling|AMR|20|ENG|70|82",
+  ],
+  "FC Köln": [
+    "Assad Kotya-Fofana|DC|18|GER|56|76",
+    "David Fürst|DR|18|GER|55|73",
+    "Luis Stapelmann|DC|18|GER|53|71",
+  ],
+  "Fiorentina": [
+    "Tommaso Martinelli|GK|20|ITA|64|80",
+    "Eddy Kouadio|MC|19|FRA|59|76",
+    "Riccardo Braschi|ST|20|ITA|60|75",
+    "Dennis Beldenti|AMC|16|ITA|52|79",
+  ],
+  "Fulham": [
+    "Josh King|AMC|19|ENG|68|81",
+    "Jonah Kusi-Asare|ST|19|SWE|65|79",
+    "Farhaan Ali-Wahid|AML|19|ENG|58|74",
+  ],
+  "Getafe": [
+    "Davinchi|DL|19|ESP|63|78",
+  ],
+  "Hamburger SV": [
+    "Shafiq Nandja|DC|19|GER|60|76",
+    "Finn Barkowsky|AMC|18|GER|56|75",
+  ],
+  "Hoffenheim": [
+    "Natnael Abraha|DR|18|GER|60|77",
+    "Luca Erlein|DC|18|GER|58|77",
+    "Max Moerstedt|ST|20|GER|63|75",
+  ],
+  "Hull City": [
+    "Calvin Okike|DL|18|ENG|57|74",
+  ],
+  "Inter": [
+    "Mattia Mosconi|AMR|19|ITA|60|78",
+    "Davide Sorino|DL|18|ITA|56|78",
+    "Jamal Iddrissou|ST|19|ITA|58|76",
+    "Matteo Cocchi|DL|19|ITA|58|76",
+    "Mattia Marello|DC|19|ITA|57|75",
+    "Giacomo De Pieri|AMR|20|ITA|60|76",
+    "Aymen Zouin|ST|20|ITA|58|73",
+  ],
+  "Ipswich Town": [
+    "Luca Fletcher|ST|19|ENG|60|76",
+  ],
+  "Juventus": [
+    "Niccolò Rizzo|DR|19|ITA|58|75",
+    "Francesco Verde|DC|19|ITA|57|74",
+    "Destiny Elimoghale|ST|19|ITA|57|75",
+    "Alfonso Montero|DC|19|URU|57|75",
+    "Riccardo Radu|GK|19|ITA|55|73",
+  ],
+  "Le Mans": [
+    "Noa Boissé|MC|19|FRA|54|69",
+    "Izhak Hammoudi|ST|19|FRA|54|69",
+  ],
+  "Lecce": [
+    "Christian Lupo|GK|18|ITA|55|78",
+  ],
+  "Leeds United": [
+    "Alfie Cresswell|DC|20|ENG|60|73",
+    "Jayden Lienou|DC|18|ENG|56|74",
+  ],
+  "Lens": [
+    "Kyllian Antonio|DC|18|FRA|57|75",
+    "Kembo Diliwidi|ST|20|FRA|58|71",
+  ],
+  "Lille": [
+    "Ethan Mbappé|MC|19|FRA|62|76",
+    "Ichem Ferrah|MC|18|FRA|58|77",
+    "Soriba Diaoune|AML|19|GUI|60|76",
+    "Maxima Goffi|DC|18|FRA|56|75",
+    "Kamel Hamidi|DM|20|FRA|57|71",
+  ],
+  "Lincoln City": [
+    "Oisin Gallagher|MC|17|IRL|51|68",
+  ],
+  "Liverpool": [
+    "Rio Ngumoha|AML|17|ENG|70|88",
+    "Trey Nyoni|MC|19|ENG|67|83",
+    "Kieran Morrison|AMC|19|NIR|61|76",
+    "Lewis Koumas|AMR|20|WAL|65|77",
+    "Amara Nallo|DC|19|ENG|62|78",
+  ],
+  "Lorient": [
+    "Isaac Monnier|DC|19|FRA|56|71",
+  ],
+  "Lyon": [
+    "Khalis Merah|AMR|18|FRA|63|81",
+    "Mathys De Carvalho|MC|19|FRA|60|76",
+    "Rémi Himbert|DC|18|FRA|57|78",
+    "Tiago Gonçalves|ST|19|FRA|56|73",
+    "Steeve Kango|DL|18|FRA|55|74",
+  ],
+  "Mainz 05": [
+    "Rael Nakuzola|DL|19|GER|56|72",
+  ],
+  "Manchester City": [
+    "Divine Mukasa|AMC|19|ENG|65|81",
+    "Ryan McAidoo|AML|18|ENG|64|84",
+    "Stephen Mfuni|DC|18|ENG|59|78",
+    "Kaden Braithwaite|DC|17|ENG|57|77",
+  ],
+  "Manchester United": [
+    "Shea Lacey|AMR|19|ENG|66|81",
+    "Harry Amass|DL|19|ENG|67|81",
+    "Ayden Heaven|DC|19|ENG|67|81",
+    "Chido Obi|ST|18|DEN|63|81",
+    "Jack Fletcher|MC|19|SCO|61|77",
+    "Tyler Fletcher|MC|19|SCO|60|75",
+  ],
+  "Marseille": [
+    "Tadjidine Mmadi|MC|19|FRA|58|75",
+    "Keyliane Abdallah|ST|20|FRA|60|74",
+  ],
+  "Middlesbrough": [
+    "George McCormick|DL|20|ENG|57|68",
+    "Layton Campbell|ST|19|ENG|53|67",
+  ],
+  "Millwall": [
+    "Jaydon Thomas-Smith|ST|18|ENG|53|67",
+    "Sacha Tsugita Vieira|MC|18|ENG|52|67",
+    "Jayden Tektas|MC|18|ENG|52|66",
+    "Archie Kirby|DC|18|ENG|52|66",
+    "Freddie Freedman|DC|18|ENG|51|66",
+    "Ronnie Sandford|GK|18|ENG|50|65",
+  ],
+  "Monaco": [
+    "George Ilenikhena|ST|19|NGA|64|79",
+    "Samuel Nibombé|DC|18|FRA|59|77",
+    "Safouane Benzahra|AMC|18|FRA|60|78",
+    "Najd Ajroud|MC|18|FRA|55|75",
+    "Nahël Haddani|MC|18|FRA|55|75",
+    "Melvin Gomes Da Veiga|DC|18|FRA|55|74",
+  ],
+  "Málaga": [
+    "Izan Merino|DM|20|ESP|63|78",
+    "Aarón Ochoa|MC|21|ESP|62|74",
+  ],
+  "Newcastle United": [
+    "Park Seung-soo|AML|19|KOR|62|77",
+    "Lewis Miley|MC|20|ENG|71|82",
+    "Trevan Sanusi|AML|19|ENG|58|73",
+    "Leo Shahar|MC|19|ENG|58|74",
+  ],
+  "Nice": [
+    "Junior Mandza|DC|17|FRA|55|75",
+    "Aboulaye Camara|MC|18|FRA|55|73",
+    "Djelan Morana|AMR|18|FRA|55|73",
+  ],
+  "Norwich City": [
+    "Errol Mundle-Smith|ST|20|ENG|56|68",
+    "Lloyd Ofori-Manteaw|MC|19|ENG|53|66",
+    "Caleb Ansen|GK|18|ENG|50|66",
+  ],
+  "Nottingham Forest": [
+    "Kalum Thompson|AMR|17|NIR|56|76",
+    "Azae Bonnick|ST|16|ENG|52|76",
+  ],
+  "Paris FC": [
+    "Mohamed Dao|ST|19|FRA|56|72",
+  ],
+  "Paris Saint-Germain": [
+    "Quentin Ndjantou|ST|19|FRA|64|80",
+    "Mamadou Meité|ST|17|FRA|58|80",
+    "Noha Kader Tiehi|ST|17|FRA|57|79",
+  ],
+  "Parma": [
+    "Daniel Mikołajewski|ST|20|POL|60|75",
+  ],
+  "Portsmouth": [
+    "Tayo Singerr|ST|18|ENG|56|71",
+    "Michael Ani|MC|18|ENG|52|66",
+    "Nathaniel Chioma|DC|18|ENG|52|66",
+    "Chinedu Agu|ST|18|ENG|52|66",
+  ],
+  "Preston North End": [
+    "Harry Stringfellow|MC|18|ENG|53|67",
+    "Li-Bau Stowell|GK|17|ENG|50|67",
+  ],
+  "Queens Park Rangers": [
+    "Lorent Talla|ST|19|KOS|56|69",
+    "Alfie Tuck|MC|19|WAL|55|68",
+    "Cory Adjetey-Brew|DL|18|GHA|53|68",
+    "Philip Sanyaolu|AMR|18|ENG|53|68",
+  ],
+  "RB Leipzig": [
+    "Samba Konaté|ST|17|FRA|58|80",
+  ],
+  "Real Betis": [
+    "Pablo García|AMR|20|ESP|66|82",
+    "José Antonio Morante|AMR|19|ESP|63|80",
+    "Manu González|GK|19|ESP|55|74",
+  ],
+  "Real Madrid": [
+    "Thiago Pitarch|MC|19|ESP|66|84",
+    "Joan Martínez|DC|18|ESP|61|83",
+    "Diego Aguado|DC|19|ESP|60|79",
+    "Mario Rivas|DC|19|ESP|58|76",
+    "Javi Navarro|GK|19|ESP|57|77",
+    "Daniel Yáñez|AML|19|ESP|58|76",
+  ],
+  "Real Sociedad": [
+    "Jon Martín|DC|20|ESP|68|82",
+    "Luken Beitia|DC|21|ESP|62|75",
+  ],
+  "Rennes": [
+    "Mathys Silistrie|GK|19|FRA|62|79",
+    "Abdelhamid Ait Boudlal|DC|20|MAR|64|77",
+  ],
+  "Roma": [
+    "Antonio Arena|ST|17|ITA|62|85",
+    "Federico Nardin|DC|19|ITA|57|75",
+    "Jacopo Mirra|MC|19|ITA|56|73",
+  ],
+  "SC Paderborn": [
+    "Deniz Zeitler|AMC|19|GER|60|76",
+    "Lasse Eickel|ST|18|GER|54|71",
+  ],
+  "Schalke 04": [
+    "Luca Vozar|DC|18|GER|56|73",
+    "Mika Wallentowitz|AMR|19|GER|59|74",
+    "Taylan Bulut|DR|20|TUR|63|75",
+    "Yusuf Mengenli|DC|17|GER|52|72",
+    "Konrad Alfes|AMC|16|GER|52|76",
+  ],
+  "Sevilla": [
+    "Ramón Martínez|DC|20|ESP|60|75",
+    "Alberto Collado|MC|20|ESP|59|74",
+    "Isra Domínguez|DR|21|ESP|59|72",
+  ],
+  "Sheffield United": [
+    "Jaydon Makhalira|MC|18|MWI|53|70",
+  ],
+  "Southampton": [
+    "Jay Robinson|AML|19|ENG|61|75",
+    "Sufianu Sillah Dibaga|ST|19|ENG|57|71",
+    "Princewill Ehibhatiomhan|ST|20|ENG|58|70",
+    "George Robinson|DL|16|WAL|50|69",
+    "Jude Daniels|MC|17|ENG|51|68",
+  ],
+  "Stoke City": [
+    "Jayden Ogbebor|ST|18|IRL|54|69",
+    "Tyler Martin|AML|18|ENG|54|69",
+    "Favour Fawunmi|AMR|19|ENG|55|68",
+  ],
+  "Sunderland": [
+    "Trey Samuel-Ogunsuyi|ST|19|ENG|58|74",
+    "Timur Tutierov|AMR|20|UKR|61|74",
+    "Matty Young|GK|20|ENG|58|72",
+    "Jenson Jones|DC|20|ENG|56|70",
+    "Ben Kindon|MC|19|ENG|55|71",
+  ],
+  "Swansea City": [
+    "Carter Heywood|MC|17|WAL|52|70",
+    "Caio Ifans|MC|19|WAL|54|67",
+    "Iestyn Jones|DC|20|WAL|54|66",
+  ],
+  "Tottenham Hotspur": [
+    "Luca Williams-Barnett|AMC|17|ENG|64|86",
+    "Mikey Moore|AML|18|ENG|68|84",
+    "Jun'ai Byfield|DC|18|ENG|63|79",
+    "Callum Olusesi|MC|19|ENG|61|77",
+    "Tyrese Hall|MC|20|ENG|62|75",
+    "Malachi Hardy|DC|18|ENG|55|74",
+  ],
+  "Troyes": [
+    "Khays Guimba|ST|18|FRA|55|73",
+    "Yacouba Koné|ST|19|FRA|57|72",
+  ],
+  "Union Berlin": [
+    "Andrik Markgraf|DL|20|GER|59|71",
+  ],
+  "Valencia": [
+    "Aarón Mayol|AMR|18|ESP|62|79",
+    "David Otorbi|AML|18|ESP|57|79",
+    "Pablo Mollà|GK|19|ESP|55|74",
+    "Aimar Blázquez|MC|19|ESP|56|73",
+  ],
+  "VfB Stuttgart": [
+    "Finn Jeltsch|DC|20|GER|68|82",
+    "Noah Darvich|AMC|19|GER|63|79",
+    "Yanik Spalt|DL|19|GER|57|73",
+  ],
+  "Villarreal": [
+    "Carlos Macia|AMC|17|ESP|60|80",
+    "Pau Cabanes|AMR|20|ESP|62|76",
+  ],
+  "Watford": [
+    "Jonathan Lawson|ST|19|ENG|56|69",
+    "Amin Nabizada|AMC|20|ENG|59|70",
+    "Zavier Massiah-Edwards|AMR|19|ENG|56|69",
+    "Albert Eames|DR|19|ENG|55|67",
+    "Kiefer Gorman|MC|16|ENG|50|70",
+  ],
+  "Werder Bremen": [
+    "Luca Höcker|DR|19|GER|57|73",
+    "Paul Erevbenagie|AMR|18|GER|56|75",
+    "Mick Schmetgens|DC|19|GER|59|75",
+  ],
+  "West Bromwich Albion": [
+    "Michael Parker|DC|20|ENG|58|70",
+  ],
+  "West Ham United": [
+    "Ollie Scarles|DL|20|ENG|62|75",
+    "Lewis Orford|MC|20|ENG|60|74",
+    "Ezra Mayers|DM|18|ENG|57|74",
+  ],
+  "Wolves": [
+    "Mateus Mane|AMC|18|POR|64|80",
+    "Wes Okoduwa|DR|19|ENG|55|70",
+    "Ashton Williams|MC|17|WAL|51|69",
+  ],
+  "Wrexham": [
+    "Harry Ashfield|MC|20|WAL|55|65",
+  ],
+};

@@ -181,7 +181,7 @@ export const NATIONS: Record<string, string> = {
   HUN: 'Hungary', CZE: 'Czechia', SVK: 'Slovakia', SVN: 'Slovenia', UKR: 'Ukraine', MLI: 'Mali',
   GUI: 'Guinea', JAM: 'Jamaica', CAN: 'Canada', MEX: 'Mexico', PAR: 'Paraguay', BFA: 'Burkina Faso',
   GAB: 'Gabon', ISL: 'Iceland', COD: 'DR Congo', ALB: 'Albania', ISR: 'Israel', GRE: 'Greece',
-  BIH: 'Bosnia', ROU: 'Romania', BUL: 'Bulgaria', AZE: 'Azerbaijan', KAZ: 'Kazakhstan', LAT: 'Latvia', LTU: 'Lithuania', CYP: 'Cyprus', GIB: 'Gibraltar', AND: 'Andorra', ZAM: 'Zambia', KOS: 'Kosovo', VEN: 'Venezuela', CHI: 'Chile', AUS: 'Australia',
+  BIH: 'Bosnia', MWI: 'Malawi', ROU: 'Romania', BUL: 'Bulgaria', AZE: 'Azerbaijan', KAZ: 'Kazakhstan', LAT: 'Latvia', LTU: 'Lithuania', CYP: 'Cyprus', GIB: 'Gibraltar', AND: 'Andorra', ZAM: 'Zambia', KOS: 'Kosovo', VEN: 'Venezuela', CHI: 'Chile', AUS: 'Australia',
   TUN: 'Tunisia', FIN: 'Finland', ARM: 'Armenia', MNE: 'Montenegro', RUS: 'Russia', NZL: 'New Zealand',
   UZB: 'Uzbekistan', CPV: 'Cape Verde', RSA: 'South Africa', HAI: 'Haiti', ZIM: 'Zimbabwe',
   MOZ: 'Mozambique', GAM: 'Gambia', EQG: 'Equatorial Guinea', MKD: 'North Macedonia', TOG: 'Togo', ANG: 'Angola',

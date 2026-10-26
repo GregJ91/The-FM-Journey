@@ -19,7 +19,8 @@ import type { AttrKey, GameState, Player, TrainingFocus } from './types';
  *   potential gap   × clamp(gap / 10, 0, 1.2)  – far from potential = faster growth, none at potential
  *   training        × 0.75 / 1.0 / 1.25          (low / normal / high intensity)
  *   facilities      × 0.8 + 0.1 × level          (level 1-5 → 0.9 – 1.3)
- *   playing time    × 0.35 + 0.85 × min(1, minutes / 300) (youth squad counts as 0.5 of a month)
+ *   playing time    × 0.35 + 0.85 × min(1, minutes / 300) (youth-team minutes count half; youth
+ *                   squad players count at least 0.2)
  *   match form      × 1 + clamp((avg rating − 6.8) × 0.3, −0.2, +0.25)
  * Decline (negative curve) is softened by playing regularly (×0.9) and good facilities,
  * and is worse with low playing time (×1.1).
@@ -90,7 +91,8 @@ export function monthlyChange(g: GameState, p: Player) {
   const facilities = club ? 0.8 + 0.1 * club.facilities.training : 0.7;
   // Guest clubs' domestic league games aren't simulated: regular starters count as playing
   const mins = club && GUEST_LEAGUES.includes(club.leagueId) ? Math.max(p.monthMins, club.lineup.includes(p.id) ? 300 : 120) : p.monthMins;
-  const minsRatio = p.squad === 'youth' ? 0.5 : Math.min(1, mins / 300);
+  // Youth-team matches count at half weight (see youth.ts); a youth player with no games at all still trains
+  const minsRatio = p.squad === 'youth' ? Math.max(0.2, Math.min(1, mins / 300)) : Math.min(1, mins / 300);
   const playing = club ? 0.35 + 0.85 * minsRatio : 0.3;
   const avg = p.monthRatings.length ? p.monthRatings.reduce((s, x) => s + x, 0) / p.monthRatings.length : 6.8;
   const form = 1 + Math.max(-0.2, Math.min(0.25, (avg - 6.8) * 0.3));

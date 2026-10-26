@@ -97,6 +97,16 @@ export function Board() {
         ) : <div className="empty">The cabinet is empty… for now.</div>}
       </Card>
 
+      {(club.youthTrophies?.length ?? 0) > 0 && (
+        <Card title="Academy honours" tag={`${club.youthTrophies!.length}`} tagColor="var(--grass)">
+          <div className="row wrap" style={{ gap: 8 }}>
+            {club.youthTrophies!.slice().reverse().map((t, i) => (
+              <div key={i} className="trophy"><span className="cup">🏅</span>{t.name}<span className="muted">{seasonLabel(t.season)}</span></div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       <Card title="History" tag="Seasons" tagColor="var(--pink)">
         {g.history.length ? (
           <div className="list">

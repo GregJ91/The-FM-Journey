@@ -96,6 +96,28 @@ The league tables are coloured by European place, and the Competitions screen ha
 
 Older saves pick up the new competitions at the start of the next season.
 
+## Youth football
+
+Every academy has real prospects where they could be found (researched for October 2026), topped up to 7–10 players with generated ones. Youth teams play a full season of their own:
+
+| Competition | Clubs | Age |
+| --- | --- | --- |
+| Premier League 2 | Premier League | U21 |
+| Professional Development League | Championship | U21 |
+| EFL Youth Alliance | League One / League Two (one league each) | U18 |
+| División de Honor Juvenil · Primavera 1 · U19 DFB-Nachwuchsliga · Championnat National U19 | top divisions | U19 |
+| FA Youth Cup | top four English divisions (knockout) | U18 |
+| UEFA Youth League | Champions League clubs: 6-game league phase, top 16 into knockouts | U19 |
+
+- **Schedule**: youth leagues are a single round-robin on Mondays. Cup rounds run from November to the final in April.
+- **Who plays**: youth squad players under the age limit, plus first-team players under the limit who aren't in the starting XI (as at real clubs).
+- **Matches** are simulated from the strength of each youth XI. Players get appearances, goals, assists, ratings and the odd injury.
+- **Development**: youth minutes count at half weight. A prospect who plays every week grows almost as fast as a first-team regular, and one who never plays grows much more slowly.
+- **Trophies** go to the club's *Academy honours* (shown on the Board screen).
+- **Youth screen**: shows your youth league table, fixtures and results, each prospect's youth stats, and the first-teamers getting youth minutes.
+- **National League clubs** don't have a youth league.
+- **Older saves** get the competitions from the next season. The real academy players only appear in new games.
+
 ## Club World Cup
 
 The Club World Cup is held every four years (2029, 2033 …) in June, after the season ends.
@@ -183,7 +205,7 @@ Badges are shrunk to 160px and stored in the browser on that device only. They'r
 
 ## Editing the data
 
-All leagues, clubs and real players are in [`src/game/data/leagues.ts`](src/game/data/leagues.ts). The European competitions, rest-of-Europe clubs and 2026/27 line-ups are in [`src/game/data/europe.ts`](src/game/data/europe.ts). Club World Cup clubs, national teams and tournament schedules are in [`src/game/data/world.ts`](src/game/data/world.ts). League line-ups and squads are for **2026/27, as of 15 October 2026** (after the summer window). They were researched from web reports, so some moves may be wrong or missing, and lower-league squads are only partly covered (generated players fill the gaps). Each line is easy to edit:
+All leagues, clubs and real players are in [`src/game/data/leagues.ts`](src/game/data/leagues.ts). The European competitions, rest-of-Europe clubs and 2026/27 line-ups are in [`src/game/data/europe.ts`](src/game/data/europe.ts). Club World Cup clubs, national teams and tournament schedules are in [`src/game/data/world.ts`](src/game/data/world.ts). Real academy players are in [`src/game/data/youthPlayers.ts`](src/game/data/youthPlayers.ts) and the youth competitions in [`src/game/data/youth.ts`](src/game/data/youth.ts). League line-ups and squads are for **2026/27, as of 15 October 2026** (after the summer window). They were researched from web reports, so some moves may be wrong or missing, and lower-league squads are only partly covered (generated players fill the gaps). Each line is easy to edit:
 
 ```
 Club:   "Name|SHORT|primary|secondary|reputation|level|Stadium|capacity|crestPattern"
@@ -205,6 +227,7 @@ src/game/       pure TypeScript game engine (no UI)
   world.ts        Club World Cup
   intl.ts         international tournaments (national teams)
   guests.ts       clubs outside the playable leagues
+  youth.ts        youth leagues and cups
 src/ui/         React screens and components
 src/store.ts    game state store and IndexedDB saves
 tests/          headless season simulations

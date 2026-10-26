@@ -1,4 +1,5 @@
 import { CUP_DEFS, LEAGUE_DEFS, REAL_PLAYERS } from './data/leagues';
+import { YOUTH_PLAYERS } from './data/youthPlayers';
 import { ensureEurope } from './europe';
 import { NAME_POOLS, NAT_MIX } from './data/names';
 import { addDays, iso, toDate } from './dates';
@@ -321,10 +322,24 @@ export function createWorld(opts: NewGameOptions): GameState {
     }
   }
 
-  // Fill squads + youth
+  // Real academy prospects
+  for (const [clubName, lines] of Object.entries(YOUTH_PLAYERS)) {
+    const club = byName[clubName];
+    if (!club) continue;
+    for (const line of lines) {
+      const p = createPlayer(g, parsePlayer(line), club.id, club.reputation);
+      p.squad = 'youth';
+      p.wage = Math.max(100, Math.round(p.wage * 0.3));
+      p.contractEnd = g.season + 2 + Math.floor(hash(p.id) * 2);
+    }
+  }
+
+  // Fill squads + youth (academies are topped up to 7-10 with generated players)
+  const youthCount: Record<number, number> = {};
+  for (const p of Object.values(g.players)) if (p.squad === 'youth' && p.clubId !== null) youthCount[p.clubId] = (youthCount[p.clubId] ?? 0) + 1;
   for (const club of Object.values(g.clubs)) {
     fillSquad(g, club, levels[club.id]);
-    generateYouth(g, club, club.custom ? 4 : int(5, 8));
+    generateYouth(g, club, club.custom ? 4 : Math.max(2, int(7, 10) - (youthCount[club.id] ?? 0)));
   }
 
   // Free agents

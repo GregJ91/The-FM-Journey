@@ -14,6 +14,7 @@ import { EURO_PLACES } from '../../game/data/europe';
 import { europeFor, europeTable } from '../../game/europe';
 import { guestLeagueName } from '../../game/guests';
 import { CwcView, IntlView, UpcomingCard } from './WorldViews';
+import { YouthCompView } from './YouthViews';
 import { winnerOf } from '../../game/match';
 import { ClubBadgeButton } from '../components/BadgesSheet';
 
@@ -22,11 +23,12 @@ export function Competitions() {
   const ui = useUI();
   const club = g.clubs[g.userClubId];
   const myLeague = leagueOf(g, club.id);
-  const [comp, setComp] = useState<string>(ui.param === 'fixtures' ? 'MY' : typeof ui.param === 'string' && g.cups.some((c) => c.id === ui.param) ? ui.param : myLeague.id);
+  const [comp, setComp] = useState<string>(ui.param === 'fixtures' ? 'MY' : typeof ui.param === 'string' && (g.cups.some((c) => c.id === ui.param) || ui.param.startsWith('YOUTH:')) ? ui.param : myLeague.id);
   const [tab, setTab] = useState<'table' | 'fixtures' | 'scorers'>('table');
   const league = g.leagues.find((l) => l.id === comp);
   const cup = g.cups.find((c) => c.id === comp);
   const intl = comp.startsWith('INTL:') ? g.intl?.find((t) => t.id === comp.slice(5)) : undefined;
+  const youthComp = comp.startsWith('YOUTH:') ? g.youth?.find((c) => c.id === comp.slice(6)) : undefined;
 
   return (
     <div>
@@ -47,6 +49,11 @@ export function Competitions() {
             <optgroup label="World">
               {g.cups.filter((c) => c.type === 'world').map((c) => <option key={c.id} value={c.id}>🌍 {c.name} {c.rounds[0]?.date.slice(0, 4)}</option>)}
               {[...(g.intl ?? [])].reverse().map((t) => <option key={t.id} value={`INTL:${t.id}`}>🌍 {t.name}</option>)}
+            </optgroup>
+          )}
+          {(g.youth ?? []).length > 0 && (
+            <optgroup label="Youth">
+              {g.youth!.map((c) => <option key={c.id} value={`YOUTH:${c.id}`}>🌱 {c.name}{c.clubs.includes(club.id) ? ' (yours)' : ''}</option>)}
             </optgroup>
           )}
           <optgroup label="Domestic cups">
@@ -75,6 +82,7 @@ export function Competitions() {
       {cup && cup.lp !== undefined && <EuropeView key={cup.id} cup={cup} />}
       {cup && cup.type === 'world' && <CwcView key={cup.id} cup={cup} />}
       {intl && <IntlView key={intl.id} t={intl} />}
+      {youthComp && <YouthCompView key={youthComp.id} comp={youthComp} />}
       {(comp === 'MY' || intl) && <UpcomingCard />}
 
       {cup && cup.lp === undefined && cup.type !== 'world' && (

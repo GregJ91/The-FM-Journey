@@ -90,6 +90,38 @@ export interface Player {
   caps?: number; // international appearances
   intGoals?: number;
   away?: string; // on international duty (tournament name) — not available to the club
+  ys?: YouthStats; // this season's youth-team matches
+}
+
+export interface YouthStats { apps: number; mins: number; goals: number; assists: number; rs: number }
+
+export interface YouthFixture {
+  id: number;
+  d: string; // date
+  r: number; // round (1-based)
+  h: number;
+  a: number;
+  hg?: number;
+  ag?: number;
+  p?: [number, number]; // penalties
+  t?: number; // knockout tie index (bracket order)
+}
+
+export interface YouthComp {
+  id: string;
+  name: string;
+  short: string;
+  color: string;
+  kind: 'league' | 'cup' | 'uyl';
+  age: number;
+  clubs: number[];
+  rounds: { name: string; date: string }[];
+  fixtures: YouthFixture[];
+  current: number; // rounds completed
+  alive: number[];
+  lp?: number; // UEFA Youth League: league-phase rounds
+  winner: number | null;
+  runnerUp: number | null;
 }
 
 export interface Tactics {
@@ -137,6 +169,7 @@ export interface Club {
   seasonIncome: number;
   seasonExpense: number;
   trophies: { season: number; name: string }[];
+  youthTrophies?: { season: number; name: string }[];
 }
 
 export type CrestShape = 'shield' | 'circle' | 'diamond' | 'badge';
@@ -338,6 +371,7 @@ export interface GameState {
   ledger: { month: string; income: number; expense: number; balance: number }[];
   continental: number[]; // legacy (pre-Europe saves)
   europe?: Record<string, number[]>;
-  intl?: IntlTournament[]; // international tournaments (current and recent) // qualified clubs for next season's European competitions
+  intl?: IntlTournament[]; // international tournaments (current and recent)
+  youth?: YouthComp[]; // this season's youth competitions // qualified clubs for next season's European competitions
   ledgerMark?: { i: number; e: number };
 }

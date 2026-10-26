@@ -9,7 +9,7 @@ function runUntil(g: ReturnType<typeof createWorld>, date: string) {
   while (g.date < date && guard++ < 5000) {
     const r = advanceDay(g);
     if (!r.ok && r.reason === 'match') quickPlayUserMatch(g);
-    else if (!r.ok) break;
+    else if (!r.ok && r.reason === 'sacked') { g.sacked = false; g.board.confidence = 60; }
   }
 }
 
