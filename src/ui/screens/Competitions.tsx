@@ -12,6 +12,8 @@ import { SquadList } from './Squad';
 import type { Cup, Player } from '../../game/types';
 import { EURO_PLACES } from '../../game/data/europe';
 import { europeFor, europeTable } from '../../game/europe';
+import { guestLeagueName } from '../../game/guests';
+import { CwcView, IntlView, UpcomingCard } from './WorldViews';
 import { winnerOf } from '../../game/match';
 import { ClubBadgeButton } from '../components/BadgesSheet';
 
@@ -24,6 +26,7 @@ export function Competitions() {
   const [tab, setTab] = useState<'table' | 'fixtures' | 'scorers'>('table');
   const league = g.leagues.find((l) => l.id === comp);
   const cup = g.cups.find((c) => c.id === comp);
+  const intl = comp.startsWith('INTL:') ? g.intl?.find((t) => t.id === comp.slice(5)) : undefined;
 
   return (
     <div>
@@ -40,6 +43,12 @@ export function Competitions() {
           <optgroup label="Europe">
             {g.cups.filter((c) => c.type === 'continental').map((c) => <option key={c.id} value={c.id}>⭐ {c.name}{europeFor(g, club.id).includes(c) ? ' (yours)' : ''}</option>)}
           </optgroup>
+          {(g.cups.some((c) => c.type === 'world') || (g.intl ?? []).length > 0) && (
+            <optgroup label="World">
+              {g.cups.filter((c) => c.type === 'world').map((c) => <option key={c.id} value={c.id}>🌍 {c.name} {c.rounds[0]?.date.slice(0, 4)}</option>)}
+              {[...(g.intl ?? [])].reverse().map((t) => <option key={t.id} value={`INTL:${t.id}`}>🌍 {t.name}</option>)}
+            </optgroup>
+          )}
           <optgroup label="Domestic cups">
             {g.cups.filter((c) => c.type === 'domestic').map((c) => <option key={c.id} value={c.id}>🏆 {c.name}</option>)}
           </optgroup>
@@ -64,8 +73,11 @@ export function Competitions() {
       )}
 
       {cup && cup.lp !== undefined && <EuropeView key={cup.id} cup={cup} />}
+      {cup && cup.type === 'world' && <CwcView key={cup.id} cup={cup} />}
+      {intl && <IntlView key={intl.id} t={intl} />}
+      {(comp === 'MY' || intl) && <UpcomingCard />}
 
-      {cup && cup.lp === undefined && (
+      {cup && cup.lp === undefined && cup.type !== 'world' && (
         <>
           {cup.winner !== null && (
             <div className="card" style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.22), var(--surface))', borderColor: 'rgba(251,191,36,0.35)' }}>
@@ -301,7 +313,7 @@ export function ClubView() {
           <div style={{ minWidth: 0 }}><h1>{club.name}</h1></div>
         </div>
         <div className="pills">
-          <span className="pill">{league?.name ?? 'Rest of Europe'}</span>
+          <span className="pill">{league?.name ?? guestLeagueName(club.leagueId)}</span>
           {europeFor(g, id).map((c) => <span key={c.id} className="pill">⭐ {c.name}</span>)}
           <span className="pill">🏟️ {club.stadium}</span>
           <span className="pill">⭐ Rep {club.reputation}</span>

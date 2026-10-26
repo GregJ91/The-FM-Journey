@@ -1,4 +1,4 @@
-import { EURO_GUEST_LEAGUE } from './data/europe';
+import { GUEST_LEAGUES } from './guests';
 import { ATTR_GROUPS, POS_WEIGHTS, age, clampAttr, overall, rawOverallAt } from './ratings';
 import { normal } from './rng';
 import type { AttrKey, GameState, Player, TrainingFocus } from './types';
@@ -19,11 +19,12 @@ import type { AttrKey, GameState, Player, TrainingFocus } from './types';
  *   potential gap   × clamp(gap / 10, 0, 1.2)  – far from potential = faster growth, none at potential
  *   training        × 0.75 / 1.0 / 1.25          (low / normal / high intensity)
  *   facilities      × 0.8 + 0.1 × level          (level 1-5 → 0.9 – 1.3)
- *   playing time    × 0.6 + 0.6 × min(1, minutes / 300)   (youth squad counts as 0.5 of a month)
+ *   playing time    × 0.35 + 0.85 × min(1, minutes / 300) (youth squad counts as 0.5 of a month)
  *   match form      × 1 + clamp((avg rating − 6.8) × 0.3, −0.2, +0.25)
  * Decline (negative curve) is softened by playing regularly (×0.9) and good facilities,
  * and is worse with low playing time (×1.1).
- * Noise: normal(0, 0.25) OVR per month. Growth never pushes a player past their potential.
+ * Noise: normal(0, 0.25) OVR per month. Growth never pushes a player past their potential, and
+ * players at their potential in their prime (27 or under) stay within about a point of it.
  *
  * The OVR change is then spread across attributes: training focus attributes get 2×,
  * position-relevant attributes 1.5×. Ageing players lose physical attributes first, while
@@ -88,9 +89,9 @@ export function monthlyChange(g: GameState, p: Player) {
   const intensity = isUser ? intensityFactor(g.training.intensity) : 1;
   const facilities = club ? 0.8 + 0.1 * club.facilities.training : 0.7;
   // Guest clubs' domestic league games aren't simulated: regular starters count as playing
-  const mins = club?.leagueId === EURO_GUEST_LEAGUE ? Math.max(p.monthMins, club.lineup.includes(p.id) ? 300 : 120) : p.monthMins;
+  const mins = club && GUEST_LEAGUES.includes(club.leagueId) ? Math.max(p.monthMins, club.lineup.includes(p.id) ? 300 : 120) : p.monthMins;
   const minsRatio = p.squad === 'youth' ? 0.5 : Math.min(1, mins / 300);
-  const playing = club ? 0.6 + 0.6 * minsRatio : 0.45;
+  const playing = club ? 0.35 + 0.85 * minsRatio : 0.3;
   const avg = p.monthRatings.length ? p.monthRatings.reduce((s, x) => s + x, 0) / p.monthRatings.length : 6.8;
   const form = 1 + Math.max(-0.2, Math.min(0.25, (avg - 6.8) * 0.3));
   let change: number;
@@ -102,8 +103,13 @@ export function monthlyChange(g: GameState, p: Player) {
     const soften = (minsRatio > 0.6 ? 0.9 : minsRatio < 0.2 ? 1.1 : 1) * (1.15 - 0.06 * (club?.facilities.training ?? 1));
     change = (curve / 12) * soften;
   }
-  change += normal(0, 0.25);
-  if (curve > 0 && change > 0 && ovr + change > p.pa) change = Math.max(0, p.pa - ovr);
+  if (curve >= 0 && gap < 2) {
+    // At their ceiling in their prime: small ups and downs around their potential, no drift
+    change += normal(0, 0.12) + (p.pa - 0.6 - ovr) * 0.15;
+  } else {
+    change += normal(0, 0.25);
+  }
+  if (curve >= 0 && change > 0 && ovr + change > p.pa) change = Math.max(0, p.pa - ovr);
   return change;
 }
 

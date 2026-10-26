@@ -130,12 +130,13 @@ function avgAttr(g: GameState, list: LivePlayer[], k: keyof Player['attrs']) {
   return list.reduce((s, lp) => s + g.players[lp.id].attrs[k], 0) / list.length;
 }
 
-function buildSide(g: GameState, club: Club, isUser: boolean): Side {
+function buildSide(g: GameState, club: Club, isUser: boolean, cupTie = false): Side {
   const squad = Object.values(g.players).filter((p) => p.clubId === club.id && p.squad === 'first');
   if (isUser) {
     validateLineup(club, squad);
   } else {
-    const { lineup, subs } = pickLineup(club, squad);
+    // AI clubs blood young prospects, more so in domestic cup ties
+    const { lineup, subs } = pickLineup(club, squad, true, { date: g.date, bonus: cupTie ? 6 : 2 });
     club.lineup = lineup;
     club.subs = subs;
   }
@@ -178,13 +179,14 @@ export function aggGoals(m: LiveMatch, side: 0 | 1) {
 }
 
 export function createMatch(g: GameState, f: Fixture): LiveMatch {
+  const cupTie = g.cups.some((c) => c.id === f.comp && c.type === 'domestic');
   const home = g.clubs[f.home];
   const away = g.clubs[f.away];
   const m: LiveMatch = {
     fixtureId: f.id,
     knockout: !!f.knockout,
     agg0: firstLeg(g, f),
-    sides: [buildSide(g, home, home.isUser), buildSide(g, away, away.isUser)],
+    sides: [buildSide(g, home, home.isUser, cupTie), buildSide(g, away, away.isUser, cupTie)],
     minute: 0,
     score: [0, 0],
     events: [],

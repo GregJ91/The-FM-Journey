@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { LEAGUE_DEFS } from '../../game/data/leagues';
-import { EURO_CLUBS, EURO_GUEST_LEAGUE } from '../../game/data/europe';
+import { EURO_CLUBS } from '../../game/data/europe';
+import { WORLD_CLUBS } from '../../game/data/world';
+import { guestLeagueName, isGuest } from '../../game/guests';
 import type { Club } from '../../game/types';
 import { getGame } from '../../store';
 import { assignFromTray, badgeCount, badgeFor, clearBadges, clearTray, discardTray, importBadgeFiles, removeBadge, setBadge, slug, trayItems, useBadgesVersion } from '../badges';
@@ -18,7 +20,7 @@ function allClubs(): ClubOpt[] {
   if (g) {
     const mine = g.leagues.find((l) => l.clubIds.includes(g.userClubId))?.id;
     const out = g.leagues.flatMap((l) => l.clubIds.map((id) => ({ name: g.clubs[id].name, short: g.clubs[id].short, league: l.name, mineFirst: l.id === mine ? 0 : 1 })));
-    for (const c of Object.values(g.clubs)) if (c.leagueId === EURO_GUEST_LEAGUE) out.push({ name: c.name, short: c.short, league: 'Rest of Europe', mineFirst: 1 });
+    for (const c of Object.values(g.clubs)) if (isGuest(c)) out.push({ name: c.name, short: c.short, league: guestLeagueName(c.leagueId), mineFirst: 1 });
     return out.sort((a, b) => a.mineFirst - b.mineFirst).map(({ name, short, league }) => ({ name, short, league }));
   }
   return [
@@ -29,6 +31,10 @@ function allClubs(): ClubOpt[] {
     ...EURO_CLUBS.map((line) => {
       const [name, short] = line.split('|');
       return { name, short, league: 'Rest of Europe' };
+    }),
+    ...WORLD_CLUBS.map((line) => {
+      const [name, short] = line.split('|');
+      return { name, short, league: 'Rest of the world' };
     }),
   ];
 }

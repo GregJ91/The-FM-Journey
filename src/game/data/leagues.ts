@@ -269,7 +269,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Cristhian Mosquera|DC|22|ESP|77|84', 'Myles Lewis-Skelly|DL|19|ENG|75|87', 'Declan Rice|MC|27|ENG|87||w', 'Martín Zubimendi|DM|27|ESP|85',
     'Martin Ødegaard|AMC|27|NOR|87||v', 'Mikel Merino|MC|30|ESP|81', 'Eberechi Eze|AMC|28|ENG|83||t', 'Bukayo Saka|AMR|24|ENG|88|90|t',
     'Noni Madueke|AMR|24|ENG|79|83|p', 'Viktor Gyökeres|ST|28|SWE|85||s', 'Kai Havertz|ST|27|GER|83', 'Bruno Guimarães|MC|28|BRA|86',
-    'Ezri Konsa|DC|28|ENG|82', 'Christos Tzolis|AML|24|GRE|80', 'Illan Meslier|GK|26|FRA|74',
+    'Ezri Konsa|DC|28|ENG|82', 'Christos Tzolis|AML|24|GRE|80', 'Illan Meslier|GK|26|FRA|74', 'Max Dowman|AMR|16|ENG|71|91|tp',
   ],
   'Aston Villa': [
     'Marco Bizot|GK|35|NED|75', 'Pau Torres|DC|29|ESP|82', 'Tyrone Mings|DC|33|ENG|76', 'Matty Cash|DR|28|POL|79',

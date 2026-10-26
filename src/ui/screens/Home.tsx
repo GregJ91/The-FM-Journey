@@ -32,7 +32,7 @@ export function Home() {
   const avgOvr = Math.round(squad.map(overall).sort((a, b) => b - a).slice(0, 11).reduce((s, x) => s + x, 0) / Math.max(1, Math.min(11, squad.length)));
 
   // keep the shown lineup valid (injuries, sales, formation changes)
-  const needsFix = club.lineup.length !== FORMATIONS[club.tactics.formation].length || club.lineup.some((id) => id === null || !g.players[id] || g.players[id].clubId !== club.id || !!g.players[id].injury);
+  const needsFix = club.lineup.length !== FORMATIONS[club.tactics.formation].length || club.lineup.some((id) => id === null || !g.players[id] || g.players[id].clubId !== club.id || !!g.players[id].injury || !!g.players[id].away);
   useEffect(() => {
     if (needsFix) mutate(() => validateLineup(club, squadOf(g, club.id)));
   }, [needsFix, club, g]);

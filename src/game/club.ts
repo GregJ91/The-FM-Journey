@@ -1,7 +1,7 @@
 // Finances and board logic
 import { leaguePosition, leagueTable } from './competitions';
 import { month, monthName } from './dates';
-import { EURO_GUEST_LEAGUE } from './data/europe';
+import { GUEST_LEAGUES } from './guests';
 import { leagueOf, squadOf, wageBill } from './generate';
 import { sendMessage } from './inbox';
 import { fmtMoney, overall } from './ratings';
@@ -12,7 +12,7 @@ const TV_MONTHLY: Record<number, number> = { 1: 9_000_000, 2: 1_400_000, 3: 330_
 
 export function tierOf(g: GameState, club: Club) {
   // Guest clubs from the rest of Europe are financed like a strong second tier
-  return g.leagues.find((l) => l.id === club.leagueId)?.tier ?? (club.leagueId === EURO_GUEST_LEAGUE ? 2 : 5);
+  return g.leagues.find((l) => l.id === club.leagueId)?.tier ?? (GUEST_LEAGUES.includes(club.leagueId) ? 2 : 5);
 }
 
 function countryMult(club: Club) {

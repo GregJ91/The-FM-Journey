@@ -165,7 +165,7 @@ function Tactics({ g, club, squad }: { g: GameState; club: Club; squad: Player[]
           <div className="sheet-b list">
             {[...squad].sort((a, b) => ratingAt(b, slots[sel].pos) - ratingAt(a, slots[sel].pos)).map((p) => {
               const fam = familiarity(p, slots[sel].pos);
-              const out = !!p.injury || p.suspended > 0;
+              const out = !!p.injury || p.suspended > 0 || !!p.away;
               return (
                 <div key={p.id} style={{ opacity: out ? 0.45 : 1 }}>
                   <PlayerRow p={p} ovr={Math.round(ratingAt(p, slots[sel].pos))}
@@ -182,7 +182,7 @@ function Tactics({ g, club, squad }: { g: GameState; club: Club; squad: Player[]
         <Sheet title="Add to bench" onClose={() => setBenchPick(false)}>
           <div className="sheet-b list">
             {squad.filter((p) => !inXI.has(p.id) && !subs.includes(p.id)).sort((a, b) => overall(b) - overall(a)).map((p) => {
-              const out = !!p.injury || p.suspended > 0;
+              const out = !!p.injury || p.suspended > 0 || !!p.away;
               return (
                 <div key={p.id} style={{ opacity: out ? 0.45 : 1 }}>
                   <PlayerRow p={p} sub={shortName(p)} end={<CondBar v={p.condition} />} onClick={() => { if (out) return; mutate(() => { club.subs.push(p.id); }); if (subs.length + 1 >= 9) setBenchPick(false); }} />

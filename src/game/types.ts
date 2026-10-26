@@ -87,6 +87,9 @@ export interface Player {
   monthRatings: number[];
   lastChange: number; // overall change last month
   joined: string; // date joined current club
+  caps?: number; // international appearances
+  intGoals?: number;
+  away?: string; // on international duty (tournament name) — not available to the club
 }
 
 export interface Tactics {
@@ -192,7 +195,7 @@ export interface Cup {
   id: string;
   name: string;
   short: string;
-  type: 'domestic' | 'continental';
+  type: 'domestic' | 'continental' | 'world';
   country: string | null;
   color: string;
   alive: number[];
@@ -203,6 +206,43 @@ export interface Cup {
   /** European format: league phase (one round per matchday) then two-legged knockouts */
   teams?: number[]; // league-phase entrants
   lp?: number; // number of league-phase matchdays
+  groups?: number[][]; // Club World Cup groups
+}
+
+export interface IntlMatch {
+  id: number;
+  date: string;
+  stage: number; // index into IntlTournament.stages
+  group?: number;
+  tie?: number;
+  a: string; // nation codes
+  b: string;
+  ga?: number;
+  gb?: number;
+  et?: boolean;
+  pens?: [number, number];
+  scorers?: { nat: string; pid: number | null; min: number }[];
+}
+
+export interface IntlTournament {
+  id: string;
+  comp: string;
+  name: string;
+  short: string;
+  color: string;
+  year: number;
+  hosts: string[];
+  teams: string[];
+  groups: string[][];
+  stages: { name: string; date: string }[];
+  stage: number;
+  matches: IntlMatch[];
+  squads: Record<string, number[]>;
+  xi: Record<string, number[]>;
+  strength: Record<string, number>;
+  out: string[];
+  winner?: string;
+  runnerUp?: string;
 }
 
 export interface MatchStats {
@@ -297,6 +337,7 @@ export interface GameState {
   shortlist: number[];
   ledger: { month: string; income: number; expense: number; balance: number }[];
   continental: number[]; // legacy (pre-Europe saves)
-  europe?: Record<string, number[]>; // qualified clubs for next season's European competitions
+  europe?: Record<string, number[]>;
+  intl?: IntlTournament[]; // international tournaments (current and recent) // qualified clubs for next season's European competitions
   ledgerMark?: { i: number; e: number };
 }

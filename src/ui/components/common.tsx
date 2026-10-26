@@ -59,6 +59,7 @@ export function StatusIcons({ p }: { p: Player }) {
     <>
       {p.injury && <span className="status-ico" title={`${p.injury.name} (${p.injury.days}d)`}>🩹</span>}
       {p.suspended > 0 && <span className="status-ico" title={`Suspended ${p.suspended} match(es)`}>🟥</span>}
+      {p.away && <span className="status-ico" title={`Away at the ${p.away}`}>✈️</span>}
       {p.listed && <span className="status-ico" title="Transfer listed">🏷️</span>}
     </>
   );

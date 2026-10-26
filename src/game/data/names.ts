@@ -102,6 +102,14 @@ export const NAME_POOLS: Record<string, { first: string[]; last: string[] }> = {
   KAZ: { first: ['Baktiyar', 'Islambek', 'Askhat', 'Dastan', 'Yerkebulan'], last: ['Zhaksybekov', 'Tagybergen', 'Satpaev', 'Abiken', 'Seidakhmet'] },
   LAT: { first: ['Kristers', 'Roberts', 'Dāvis', 'Artūrs', 'Jānis'], last: ['Bērziņš', 'Kalniņš', 'Ozoliņš', 'Jansons', 'Krūmiņš'] },
   LTU: { first: ['Justas', 'Lukas', 'Mantas', 'Gvidas', 'Domantas'], last: ['Kazlauskas', 'Petrauskas', 'Jankauskas', 'Žukauskas', 'Butkus'] },
+  KSA: { first: ['Salem', 'Fahad', 'Abdullah', 'Saud', 'Mohammed', 'Nawaf', 'Yasser'], last: ['Al-Dawsari', 'Al-Shahrani', 'Al-Ghannam', 'Al-Buraikan', 'Al-Owais', 'Kanno', 'Al-Faraj'] },
+  KOR: { first: ['Min-jae', 'Hee-chan', 'Jae-sung', 'Kang-in', 'Seung-ho', 'Gue-sung'], last: ['Kim', 'Lee', 'Park', 'Hwang', 'Cho', 'Jeong'] },
+  EGY: { first: ['Mohamed', 'Ahmed', 'Mostafa', 'Omar', 'Mahmoud', 'Karim'], last: ['Hamdy', 'Fathy', 'Zizo', 'Abdelmonem', 'Hany', 'Shoubeir'] },
+  MEX: { first: ['Santiago', 'Diego', 'Luis', 'Edson', 'Hirving', 'César'], last: ['Hernández', 'Álvarez', 'Martínez', 'Gutiérrez', 'Montes', 'Romo'] },
+  RSA: { first: ['Themba', 'Teboho', 'Percy', 'Lyle', 'Ronwen', 'Siyabonga'], last: ['Zwane', 'Mokoena', 'Tau', 'Foster', 'Williams', 'Ngezana'] },
+  TUN: { first: ['Hannibal', 'Youssef', 'Ellyes', 'Montassar', 'Aïssa'], last: ['Msakni', 'Skhiri', 'Talbi', 'Laïdouni', 'Ben Romdhane'] },
+  NZL: { first: ['Chris', 'Liberato', 'Tim', 'Bill', 'Matt'], last: ['Wood', 'Cacace', 'Payne', 'Tuiloma', 'Garbett'] },
+  UAE: { first: ['Ali', 'Khalid', 'Harib', 'Yahya', 'Abdulla'], last: ['Mabkhout', 'Al-Hammadi', 'Abdalla', 'Ramadan', 'Al-Menhali'] },
 };
 
 // Weighting of nationalities per league country when generating players.
@@ -146,6 +154,21 @@ export const NAT_MIX: Record<string, [string, number][]> = {
   FIN: [['FIN', 75], ['SWE', 6], ['NGA', 5], ['GHA', 5], ['BRA', 4], ['NOR', 5]],
   GIB: [['ESP', 60], ['ENG', 20], ['POR', 8], ['ARG', 6], ['MAR', 6]],
   AND: [['ESP', 60], ['POR', 15], ['FRA', 10], ['ARG', 8], ['MAR', 7]],
+  // Rest of the world (Club World Cup clubs)
+  BRA: [['BRA', 85], ['ARG', 5], ['URU', 4], ['COL', 3], ['POR', 3]],
+  ARG: [['ARG', 85], ['URU', 6], ['COL', 4], ['BRA', 3], ['ESP', 2]],
+  URU: [['URU', 80], ['ARG', 10], ['BRA', 5], ['COL', 5]],
+  KSA: [['KSA', 60], ['BRA', 10], ['POR', 6], ['FRA', 5], ['ESP', 4], ['SEN', 4], ['MAR', 4], ['COL', 4], ['ARG', 3]],
+  JPN: [['JPN', 92], ['BRA', 5], ['KOR', 3]],
+  KOR: [['KOR', 90], ['BRA', 6], ['JPN', 4]],
+  UAE: [['UAE', 65], ['BRA', 12], ['ARG', 6], ['MAR', 6], ['POR', 5], ['COL', 6]],
+  EGY: [['EGY', 85], ['MAR', 4], ['TUN', 4], ['NGA', 4], ['GHA', 3]],
+  TUN: [['TUN', 80], ['MAR', 6], ['NGA', 5], ['CIV', 5], ['SEN', 4]],
+  MAR: [['MAR', 85], ['SEN', 4], ['CIV', 4], ['NGA', 4], ['TUN', 3]],
+  RSA: [['RSA', 85], ['NGA', 5], ['GHA', 5], ['BRA', 3], ['COL', 2]],
+  MEX: [['MEX', 70], ['ARG', 10], ['URU', 6], ['COL', 8], ['USA', 3], ['BRA', 3]],
+  USA: [['USA', 55], ['ARG', 8], ['COL', 6], ['MEX', 6], ['BRA', 5], ['ENG', 5], ['GHA', 4], ['JPN', 3], ['URU', 4], ['ESP', 4]],
+  NZL: [['NZL', 75], ['ENG', 12], ['SCO', 5], ['IRL', 4], ['JPN', 4]],
 };
 
 export const NATIONS: Record<string, string> = {

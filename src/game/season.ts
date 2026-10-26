@@ -1,7 +1,10 @@
 import { boardMonthly, checkFacilityUpgrade, clampConf, monthlyFinances, prizeMoney, recordLedger, setBoardObjective, setSeasonBudgets, weeklyWages } from './club';
 import { compName, leagueTable, progressCup, scheduleLeague, setupCups } from './competitions';
-import { computeEntrants, ensureEurope, europeFor, guestLevel, initialEntrants, isGuest, progressEurope, setupEurope } from './europe';
-import { addDays, dayOfMonth, month, weekday } from './dates';
+import { computeEntrants, ensureEurope, europeFor, initialEntrants, progressEurope, setupEurope } from './europe';
+import { guestLevel, isGuest } from './guests';
+import { intlDay } from './intl';
+import { CWC_ID, progressClubWorldCup, setupClubWorldCup } from './world';
+import { addDays, dayOfMonth, diffDays, month, weekday } from './dates';
 import { LEAGUE_DEFS } from './data/leagues';
 import { START_SEASON, emptyStats, fillSquad, generatePlayer, generateYouth, leagueOf, squadOf } from './generate';
 import { sendMessage } from './inbox';
@@ -20,7 +23,8 @@ export function seasonLabel(season: number) {
 }
 
 export function startSeason(g: GameState) {
-  g.fixtures = [];
+  // Keep this summer's Club World Cup results; everything else starts afresh
+  g.fixtures = g.fixtures.filter((f) => f.comp === CWC_ID && diffDays(g.date, f.date) < 60);
   for (const league of g.leagues) scheduleLeague(g, league);
   ensureEurope(g);
   setupCups(g);
@@ -66,9 +70,10 @@ export function playDayFixtures(g: GameState) {
     if (cup.winner) continue;
     const before = cup.current;
     const round = g.fixtures.filter((f) => f.comp === cup.id && f.round === cup.current + 1);
-    if (cup.lp !== undefined) {
-      // European competitions send their own draw / elimination news
-      if (round.length && round.every((f) => f.result) && progressEurope(g, cup) && cup.winner !== null) cupWon(g, cup, round.some((f) => f.home === g.userClubId || f.away === g.userClubId));
+    if (cup.lp !== undefined || cup.type === 'world') {
+      // European competitions and the Club World Cup send their own draw / elimination news
+      const progress = cup.type === 'world' ? progressClubWorldCup : progressEurope;
+      if (round.length && round.every((f) => f.result) && progress(g, cup) && cup.winner !== null) cupWon(g, cup, round.some((f) => f.home === g.userClubId || f.away === g.userClubId));
       continue;
     }
     if (round.length && round.every((f) => f.result) && round[0].date <= g.date) {
@@ -94,6 +99,8 @@ function cupWon(g: GameState, cup: Cup, userWasIn: boolean) {
   const club = g.clubs[g.userClubId];
   const w = g.clubs[cup.winner!];
   w.trophies.push({ season: g.season, name: cup.name });
+  // Played in June after the season review: add it to that season's honours
+  if (cup.type === 'world') g.history[g.history.length - 1]?.winners.push({ comp: `${cup.name} ${g.date.slice(0, 4)}`, name: w.name, clubId: w.id });
   w.reputation = Math.min(100, w.reputation + (cup.type === 'continental' ? 3 : 2));
   if (cup.winner === club.id) {
     g.board.confidence = clampConf(g.board.confidence + (cup.id === 'UCL' ? 25 : 15));
@@ -247,7 +254,7 @@ export function endSeason(g: GameState) {
       if (scorers[0]) hist.topScorer = { playerId: scorers[0].id, name: fullName(scorers[0]), goals: scorers[0].stats.goals, clubId: scorers[0].clubId! };
     }
   }
-  for (const cup of g.cups) if (cup.winner !== null) hist.winners.push({ comp: cup.name, name: g.clubs[cup.winner].name, clubId: cup.winner });
+  for (const cup of g.cups) if (cup.winner !== null && cup.type !== 'world') hist.winners.push({ comp: cup.name, name: g.clubs[cup.winner].name, clubId: cup.winner });
   g.history.push(hist);
 
   // European places for next season (before promotion and relegation)
@@ -304,7 +311,8 @@ export function endSeason(g: GameState) {
         expiredUser.push(fullName(p));
         p.clubId = null;
         p.squad = 'first';
-      } else if (a < 33 && chance(0.7)) {
+      } else if (a < 33 && (chance(0.7) || (a <= 23 && p.pa >= overall(p) + 6) || overall(p) >= leagueLevel(club.leagueId) + 4)) {
+        // AI clubs keep most players, and always tie down their best players and top prospects
         p.contractEnd = g.season + 1 + int(1, 3);
         p.wage = wageFor(overall(p), club.reputation);
       } else {
@@ -352,6 +360,7 @@ export function endSeason(g: GameState) {
     body: `${user.name} finished ${pos ? ordinal(pos) : '—'} in the ${hist.userFinish?.comp ?? 'league'} (target: ${g.board.objective}).\nBoard confidence is now ${g.board.confidence}%.\n\nChampions:\n${hist.winners.map((w) => `• ${w.comp}: ${w.name}`).join('\n')}${hist.topScorer ? `\n\nGolden Boot: ${hist.topScorer.name} (${hist.topScorer.goals})` : ''}`,
   });
   g.season++;
+  setupClubWorldCup(g);
   // New contracts for the custom club's squad are cheap; keep going
 }
 
@@ -368,6 +377,7 @@ export function advanceDay(g: GameState): AdvanceResult {
   if (g.sacked) return { ok: false, reason: 'sacked' };
   if (pendingUserFixture(g)) return { ok: false, reason: 'match' };
   playDayFixtures(g);
+  intlDay(g);
   daily(g);
   g.date = addDays(g.date, 1);
   newDay(g);

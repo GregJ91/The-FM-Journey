@@ -1,14 +1,18 @@
 import { FORMATIONS } from './formations';
-import { ratingAt } from './ratings';
+import { age, overall, ratingAt } from './ratings';
 import type { Club, Player } from './types';
 
 export function available(p: Player) {
-  return !p.injury && p.suspended <= 0;
+  return !p.injury && p.suspended <= 0 && !p.away;
 }
 
+/** AI clubs give young prospects minutes: a selection bonus for players aged 21 or under with room to grow. */
+export interface YouthPolicy { date: string; bonus: number }
+
 /** Effective selection score: ability at position, nudged down by low condition. */
-function selectionScore(p: Player, pos: Player['pos'], rotate: boolean) {
+function selectionScore(p: Player, pos: Player['pos'], rotate: boolean, youth?: YouthPolicy) {
   let s = ratingAt(p, pos);
+  if (youth && p.pa >= overall(p) + 4 && age(p, youth.date) <= 21) s += youth.bonus;
   if (rotate) {
     if (p.condition < 60) s *= 0.8;
     else if (p.condition < 75) s *= 0.93;
@@ -17,12 +21,12 @@ function selectionScore(p: Player, pos: Player['pos'], rotate: boolean) {
 }
 
 /** Greedy best-XI for the club's formation from the given squad. */
-export function pickLineup(club: Club, squad: Player[], rotate = true) {
+export function pickLineup(club: Club, squad: Player[], rotate = true, youth?: YouthPolicy) {
   const slots = FORMATIONS[club.tactics.formation] ?? FORMATIONS['4-4-2'];
   const pool = squad.filter(available);
   const pairs: { s: number; slot: number; p: Player }[] = [];
   slots.forEach((slot, i) => {
-    for (const p of pool) pairs.push({ s: selectionScore(p, slot.pos, rotate), slot: i, p });
+    for (const p of pool) pairs.push({ s: selectionScore(p, slot.pos, rotate, youth), slot: i, p });
   });
   pairs.sort((a, b) => b.s - a.s);
   const lineup: (number | null)[] = new Array(slots.length).fill(null);

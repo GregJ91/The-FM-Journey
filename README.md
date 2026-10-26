@@ -3,6 +3,7 @@
 A fast, modern football management game for mobile: a hybrid of Football Manager / Championship Manager depth and EA FC-style accessibility.
 
 - **Real leagues and players**: the full English pyramid (Premier League → National League) plus La Liga, Serie A, Bundesliga and Ligue 1, with 1,100+ real players and generated depth players.
+- **World football**: the Club World Cup every four years (from 2029), plus the World Cup, Euros, Copa América, Africa Cup of Nations and Asian Cup. Your players get called up, win caps and can come back injured.
 - **European competitions**: the Champions League, Europa League and Conference League in the current UEFA format, with the real 2026/27 line-ups and 70 clubs from the rest of Europe (Benfica, Porto, PSV, Celtic, Galatasaray and more).
 - **One-minute matches**: watch a live 2D match with commentary, change formation, roles and instructions mid-match, and make subs. Or take the instant result.
 - **Deep tactics**: 6 quick presets, 30+ player roles and a full set of team instructions, each with real trade-offs in the match engine.
@@ -95,6 +96,37 @@ The league tables are coloured by European place, and the Competitions screen ha
 
 Older saves pick up the new competitions at the start of the next season.
 
+## Club World Cup
+
+The Club World Cup is held every four years (2029, 2033 …) in June, after the season ends.
+
+- **Teams**: 32 clubs. Europe sends 12: the last four Champions League winners, then the strongest clubs, with at most two per country. The others are 6 from South America, 4 from Asia, 4 from Africa, 4 from North and Central America, 1 from Oceania and 1 for the host.
+- **Format**: eight groups of four, then single-match knockouts from the round of 16. Every match is at a neutral venue, and there's big prize money.
+- **Clubs from outside Europe**: 35 of them, including Flamengo, Palmeiras, River Plate, Boca Juniors, Al Hilal, Al Nassr, Inter Miami, Club América, Al Ahly and Auckland City. They have generated squads plus a few well-known players (Messi, Ronaldo, Son, Watkins, Martinelli …). Their squads are as of 2025/26 and may be out of date.
+
+## International tournaments
+
+| Tournament | Editions in the game | Nations | When |
+| --- | --- | --- | --- |
+| World Cup | 2030 (Spain/Portugal/Morocco), 2034 (Saudi Arabia, Nov–Dec), then every 4 years | 48 | June–July |
+| European Championship | 2028 (UK & Ireland), 2032 (Italy/Turkey), every 4 years | 24 | June–July |
+| Copa América | 2028, every 4 years (CONMEBOL + 6 guests) | 16 | June–July |
+| Africa Cup of Nations | 2027 (Kenya/Uganda/Tanzania), every 2 years | 24 | June–July |
+| Asian Cup | 2027 (Saudi Arabia), every 4 years | 24 | January |
+
+- **Hosts**: where none has been announced, the strongest nation hosts.
+- **Squads**: 26 per nation, picked ten days before the start from the best players of that nationality at clubs. Any places the game has no player for are filled at the nation's usual level.
+- **Qualifying**: not played. The strongest teams in each confederation qualify, with a little luck.
+- **Matches**: simulated from team strength, so tournaments don't slow the game down.
+- **Effects on players**: they earn caps and international goals, can get injured, and the winners get a morale boost.
+- **Mid-season tournaments** (the Asian Cup, and the 2034 World Cup): called-up players miss club matches until their country is knocked out. They show a ✈️ in the squad list.
+
+## Fixtures
+
+- **League fixtures** are a new random double round-robin every season. The order is random, but every club plays every other club home and away. They aren't the real 2026/27 fixture lists.
+- **Cup and European draws** are also random. European draws avoid same-country ties in the league phase, and tournament draws are seeded with pots.
+- **Repeatability**: every save has its own seeded random generator, so the same save always plays out the same way from the same point.
+
 ## Season calendar
 
 - **1 Jul**: the season starts. Fixtures are drawn, budgets and board objectives are set, and the summer window opens.
@@ -124,14 +156,18 @@ change = (yearly age curve / 12) × modifiers + noise(σ = 0.25)
 | Potential gap | × clamp(gap / 10, 0, 1.2). No growth once a player reaches potential |
 | Training intensity | Low ×0.75 · Normal ×1.0 · High ×1.25 (high also gives 1.8× training injuries) |
 | Training facilities | × (0.8 + 0.1 × level), so level 1 = ×0.9 and level 5 = ×1.3 |
-| Playing time | × (0.6 + 0.6 × min(1, minutes / 300)). Youth squad players count as half a month |
+| Playing time | × (0.35 + 0.85 × min(1, minutes / 300)), so a prospect who doesn't play grows at well under half speed. Youth squad players count as half a month |
 | Form | × (1 + clamp((avg rating − 6.8) × 0.3, −0.2, +0.25)) |
 
 **Decline** (negative curve) is softened by regular football (×0.9) and better facilities, and is worse without minutes (×1.1). Physical attributes drop first; experienced players can still gain decisions, composure and positioning.
 
 The OVR change is spread across attributes: training-focus attributes get 2× weight and position-relevant attributes 1.5×.
 
-In a full simulated season, players aged 20 or under gain about +5 OVR on average, and players aged 33+ lose about −3.
+Players who reach their potential while 27 or younger stay within about a point of it until the decline starts. Growth never pushes a player past their potential.
+
+AI clubs give young prospects minutes: players aged 21 or under with room to grow get a selection bonus, which is bigger in domestic cup ties.
+
+In a full simulated season, players aged 20 or under gain about +4.5 OVR on average, and players aged 33+ lose about −3.
 
 ## Club badges (logo packs)
 
@@ -147,7 +183,7 @@ Badges are shrunk to 160px and stored in the browser on that device only. They'r
 
 ## Editing the data
 
-All leagues, clubs and real players are in [`src/game/data/leagues.ts`](src/game/data/leagues.ts). The European competitions, rest-of-Europe clubs and 2026/27 line-ups are in [`src/game/data/europe.ts`](src/game/data/europe.ts). League line-ups and squads are for **2026/27, as of 15 October 2026** (after the summer window). They were researched from web reports, so some moves may be wrong or missing, and lower-league squads are only partly covered (generated players fill the gaps). Each line is easy to edit:
+All leagues, clubs and real players are in [`src/game/data/leagues.ts`](src/game/data/leagues.ts). The European competitions, rest-of-Europe clubs and 2026/27 line-ups are in [`src/game/data/europe.ts`](src/game/data/europe.ts). Club World Cup clubs, national teams and tournament schedules are in [`src/game/data/world.ts`](src/game/data/world.ts). League line-ups and squads are for **2026/27, as of 15 October 2026** (after the summer window). They were researched from web reports, so some moves may be wrong or missing, and lower-league squads are only partly covered (generated players fill the gaps). Each line is easy to edit:
 
 ```
 Club:   "Name|SHORT|primary|secondary|reputation|level|Stadium|capacity|crestPattern"
@@ -166,6 +202,9 @@ src/game/       pure TypeScript game engine (no UI)
   club.ts         finances and board
   competitions.ts fixtures, tables, cups
   europe.ts       Champions League / Europa League / Conference League
+  world.ts        Club World Cup
+  intl.ts         international tournaments (national teams)
+  guests.ts       clubs outside the playable leagues
 src/ui/         React screens and components
 src/store.ts    game state store and IndexedDB saves
 tests/          headless season simulations

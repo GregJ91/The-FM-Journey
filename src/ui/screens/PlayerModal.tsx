@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NATIONS } from '../../game/data/names';
+import { nationName } from '../../game/intl';
 import { squadOf } from '../../game/generate';
 import { ATTR_GROUPS, ATTR_LABEL, age, fmtMoney, fullName, marketValue, overall, scoutedPotential } from '../../game/ratings';
 import { seasonLabel } from '../../game/season';
@@ -61,9 +62,11 @@ export function PlayerModal() {
       </div>
       <div className="sheet-b">
         <div className="small bold muted" style={{ marginBottom: 10 }}>
-          {NATIONS[p.nat] ?? p.nat} · {p.foot === 'L' ? 'Left' : p.foot === 'R' ? 'Right' : 'Both'} footed · {club?.name ?? 'Free agent'}
+          {NATIONS[p.nat] ?? nationName(p.nat)} · {p.foot === 'L' ? 'Left' : p.foot === 'R' ? 'Right' : 'Both'} footed · {club?.name ?? 'Free agent'}
           {p.injury && <span style={{ color: 'var(--bad)' }}> · 🩹 {p.injury.name} ({p.injury.days}d)</span>}
           {p.suspended > 0 && <span style={{ color: 'var(--bad)' }}> · Suspended {p.suspended}</span>}
+          {p.away && <span style={{ color: 'var(--sky)' }}> · ✈️ Away at the {p.away}</span>}
+          {(p.caps ?? 0) > 0 && <span> · {p.caps} caps, {p.intGoals ?? 0} intl goals</span>}
         </div>
         <div className="kv">
           <div><div className="k">Potential</div><div className="v"><Stars ovr={scoutedPotential(p, own)} /></div></div>

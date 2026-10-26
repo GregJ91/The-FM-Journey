@@ -5,13 +5,12 @@
 import { EURO_CLUBS, EURO_COMPS, EURO_ENTRANTS_2026, EURO_GUEST_LEAGUE, EURO_PLACES, EURO_PLAYERS, type EuroCompDef } from './data/europe';
 import { leagueTable, type TableRow } from './competitions';
 import { addDays, nextWeekday } from './dates';
-import { createPlayer, fillSquad, nextId, parseClub, parsePlayer, setClubFinances, squadOf, wageBill } from './generate';
+import { nextId } from './generate';
+import { addGuestClubs } from './guests';
 import { sendMessage } from './inbox';
 import { winnerOf } from './match';
 import { hash, normal, shuffle } from './rng';
-import { bestFormation, pickLineup } from './selection';
-import { normaliseTactics } from './tactics';
-import type { Club, Cup, Fixture, GameState } from './types';
+import type { Cup, Fixture, GameState } from './types';
 
 export const KO_NAMES = ['Knockout play-offs', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Final'];
 
@@ -19,39 +18,9 @@ export function euroDef(id: string) {
   return EURO_COMPS.find((c) => c.id === id);
 }
 
-export function isGuest(club: Club) {
-  return club.leagueId === EURO_GUEST_LEAGUE;
-}
-
-/** Generated-player level for a guest club. */
-export function guestLevel(club: Club) {
-  const line = EURO_CLUBS.find((l) => l.split('|')[0] === club.name);
-  return line ? Number(line.split('|')[5]) : 60 + (club.reputation - 50) * 0.2;
-}
-
-/** Add the guest clubs and the three competitions if they're missing (new games and older saves). */
+/** Add the rest-of-Europe clubs and the three competitions if they're missing (new games and older saves). */
 export function ensureEurope(g: GameState) {
-  const byName = new Set(Object.values(g.clubs).map((c) => c.name));
-  for (const line of EURO_CLUBS) {
-    const name = line.split('|')[0];
-    if (byName.has(name)) continue;
-    const country = line.split('|')[9];
-    const id = nextId(g);
-    const { level, ...club } = parseClub(line, EURO_GUEST_LEAGUE, country, id);
-    g.clubs[id] = club;
-    setClubFinances(club, 2);
-    for (const pl of EURO_PLAYERS[name] ?? []) {
-      const p = createPlayer(g, parsePlayer(pl), id, club.reputation);
-      p.contractEnd = g.season + 1 + Math.floor(hash(p.id) * 3);
-    }
-    fillSquad(g, club, level, 22);
-    const squad = squadOf(g, id);
-    club.wageBudget = Math.round(wageBill(g, id) * 1.12);
-    club.tactics = normaliseTactics({ ...club.tactics, formation: bestFormation(club, squad), roles: [] });
-    const { lineup, subs } = pickLineup(club, squad);
-    club.lineup = lineup;
-    club.subs = subs;
-  }
+  addGuestClubs(g, EURO_CLUBS, EURO_PLAYERS, EURO_GUEST_LEAGUE);
   // Replace the old single knockout cup from earlier versions
   g.cups = g.cups.filter((c) => c.type !== 'continental' || c.lp !== undefined);
   for (const def of EURO_COMPS) {
@@ -74,7 +43,7 @@ export function initialEntrants(g: GameState): Record<string, number[]> {
 function topUp(g: GameState, out: Record<string, number[]>) {
   const taken = new Set(Object.values(out).flat());
   const guests = Object.values(g.clubs)
-    .filter((c) => isGuest(c) && !taken.has(c.id))
+    .filter((c) => c.leagueId === EURO_GUEST_LEAGUE && !taken.has(c.id))
     .map((c) => ({ id: c.id, score: c.reputation + normal(0, 3) }))
     .sort((a, b) => b.score - a.score);
   for (const def of EURO_COMPS) {
