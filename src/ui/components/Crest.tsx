@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { badgeFor, useBadgesVersion } from '../badges';
 import type { Club, CrestPattern, CrestShape } from '../../game/types';
 
 const SHAPE_PATHS: Record<CrestShape, string> = {
@@ -40,6 +41,11 @@ export function textOn(hex: string) {
 
 export function CrestSvg({ name, short, colors, crest, size = 40 }: { name: string; short: string; colors: [string, string]; crest: Club['crest']; size?: number }) {
   const id = `cr${useId().replace(/:/g, '')}`;
+  useBadgesVersion();
+  const badge = badgeFor(name);
+  if (badge) {
+    return <img src={badge} width={size} height={size} alt={`${name} badge`} style={{ flex: 'none', objectFit: 'contain', display: 'block' }} draggable={false} />;
+  }
   const [c1, c2] = colors;
   const letters = short.slice(0, 3);
   // initials badge colour contrasts with primary

@@ -7,6 +7,7 @@ import { startSeason } from '../../game/season';
 import type { CrestPattern, CrestShape } from '../../game/types';
 import { deleteSave, listSaves, loadGame, saveGame, setGame, type SaveMeta } from '../../store';
 import { CrestSvg } from '../components/Crest';
+import { BadgesSheet } from '../components/BadgesSheet';
 
 type Step = 'menu' | 'classic' | 'create' | 'load';
 
@@ -17,6 +18,7 @@ const PATTERNS: CrestPattern[] = ['plain', 'stripes', 'halves', 'sash', 'hoops',
 export function Title() {
   const [step, setStep] = useState<Step>('menu');
   const [saves, setSaves] = useState<SaveMeta[]>([]);
+  const [badgesOpen, setBadgesOpen] = useState(false);
   useEffect(() => { listSaves().then(setSaves); }, [step]);
 
   return (
@@ -43,6 +45,8 @@ export function Title() {
             <p>Manage any club in England, Spain, Italy, Germany or France.</p>
           </button>
           {saves.length > 0 && <button className="btn block" onClick={() => setStep('load')}>💾 All saves ({saves.length})</button>}
+          <button className="btn block" style={{ marginTop: 10 }} onClick={() => setBadgesOpen(true)}>🛡️ Club badges</button>
+          {badgesOpen && <BadgesSheet onClose={() => setBadgesOpen(false)} />}
         </div>
       )}
       {step === 'classic' && <ClassicSetup onBack={() => setStep('menu')} />}

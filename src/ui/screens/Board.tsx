@@ -4,6 +4,7 @@ import { ordinal, seasonLabel } from '../../game/season';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { Card, Meter } from '../components/common';
+import { ClubBadgeButton } from '../components/BadgesSheet';
 
 export function Board() {
   const g = useGame();
@@ -82,6 +83,7 @@ export function Board() {
           <div className="row"><span>🌱 Youth</span><span className="right">{stars(club.facilities.youth)}</span></div>
           <div className="row"><span className="ellipsis">🏟️ {club.stadium}</span><b className="right">{club.capacity.toLocaleString()}</b></div>
           <div className="row"><span>⭐ Reputation</span><b className="right">{club.reputation}/100</b></div>
+          <ClubBadgeButton club={club} />
         </div>
       </Card>
 

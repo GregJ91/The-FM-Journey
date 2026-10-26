@@ -77,6 +77,16 @@ The OVR change is spread across attributes: training-focus attributes get 2× we
 
 In a full simulated season, players aged 20 or under gain about +5 OVR on average, and players aged 33+ lose about −3.
 
+## Club badges (logo packs)
+
+Real club badges are trademarks, so none ship with the game, and each club gets a generated crest in its colours. As with Football Manager logo packs, you can add your own:
+
+1. Collect badge images (PNG, JPG, SVG or WebP) named after the clubs, e.g. `Arsenal.png`, `manchester-united.png`, `Man Utd.png`, `FC Barcelona.svg`. Matching ignores case, accents and words like "FC", and knows common nicknames (Spurs, PSG, Man City…).
+2. Open **☰ Menu → Club badges** (or **Club badges** on the title screen) and import all the files at once.
+3. To set a single badge, use **Set badge** on a club's page, or on the Board screen for your own club.
+
+Badges are shrunk to 160px and stored in the browser on that device only. They're never uploaded or committed.
+
 ## Editing the data
 
 All leagues, clubs and real players are in [`src/game/data/leagues.ts`](src/game/data/leagues.ts). Squads are based on the 2025/26 season, so some transfers may be out of date. Each line is easy to edit:

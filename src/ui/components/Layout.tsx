@@ -8,6 +8,7 @@ import { windowOpen } from '../../game/transfers';
 import { mutate, saveGame, setGame, useGame } from '../../store';
 import { useUI, type Screen } from '../context';
 import { Sheet } from './common';
+import { BadgesSheet } from './BadgesSheet';
 import { Crest } from './Crest';
 
 const TABS: { id: Screen; label: string; ico: string }[] = [
@@ -23,6 +24,7 @@ export function Header() {
   const g = useGame();
   const ui = useUI();
   const [menu, setMenu] = useState(false);
+  const [badges, setBadges] = useState(false);
   const club = g.clubs[g.userClubId];
   const league = leagueOf(g, club.id);
   const pos = leaguePosition(g, club.id);
@@ -48,10 +50,12 @@ export function Header() {
             <button className="btn block" onClick={async () => { try { await saveGame(); ui.toast('Game saved 💾'); } catch { ui.toast('Save failed', true); } setMenu(false); }}>💾 Save game</button>
             <button className="btn block" onClick={() => { setMenu(false); ui.go('competitions'); }}>🏆 Competitions</button>
             <button className="btn block" onClick={() => { setMenu(false); ui.go('inbox'); }}>✉️ Inbox</button>
+            <button className="btn block" onClick={() => { setMenu(false); setBadges(true); }}>🛡️ Club badges</button>
             <button className="btn block coral" onClick={async () => { await saveGame(); setMenu(false); setGame(null); }}>Save & exit to menu</button>
           </div>
         </Sheet>
       )}
+      {badges && <BadgesSheet onClose={() => setBadges(false)} />}
     </header>
   );
 }

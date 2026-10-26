@@ -8,6 +8,7 @@ import { useUI } from '../context';
 import { Card, FixtureRow, PlayerRow } from '../components/common';
 import { Crest, textOn } from '../components/Crest';
 import { SquadList } from './Squad';
+import { ClubBadgeButton } from '../components/BadgesSheet';
 
 export function Competitions() {
   const g = useGame();
@@ -186,6 +187,7 @@ export function ClubView() {
           <span className="pill">🏆 {club.trophies.length}</span>
           {best && <span className="pill">Star: {fullName(best)} ({overall(best)})</span>}
         </div>
+        <div style={{ marginTop: 12 }}><ClubBadgeButton club={club} /></div>
       </div>
       <div className="seg" style={{ marginBottom: 12 }}>
         <button className={tab === 'squad' ? 'on' : ''} onClick={() => setTab('squad')}>Squad ({squad.length})</button>
