@@ -1,5 +1,5 @@
 import { FORMATIONS } from '../../game/formations';
-import { familiarity, ratingAt, shortName } from '../../game/ratings';
+import { familiarity, ratingAt } from '../../game/ratings';
 import type { Club, GameState } from '../../game/types';
 import { textOn } from './Crest';
 
@@ -38,41 +38,37 @@ export function PitchLines({ vertical }: { vertical?: boolean }) {
 }
 
 export function FormationPitch({
-  g, club, lineup, selected, onSlot, height = 420, compact,
+  g, club, lineup, selected, onSlot, small,
 }: {
   g: GameState;
   club: Club;
   lineup: (number | null)[];
   selected?: number | null;
   onSlot?: (i: number) => void;
-  height?: number;
-  compact?: boolean;
+  small?: boolean;
 }) {
   const slots = FORMATIONS[club.tactics.formation];
   const [c1, c2] = club.colors;
   return (
-    <div className="pitch vertical" style={{ height, width: '100%', maxWidth: height * 0.72, margin: '0 auto' }}>
+    <div className={`pitch ${small ? 'sm' : ''}`}>
       <PitchLines vertical />
       {slots.map((s, i) => {
         const id = lineup[i];
         const p = id !== null && id !== undefined ? g.players[id] : null;
         const fam = p ? familiarity(p, s.pos) : 1;
         const top = 91 - (s.x - 5) * (80 / 79);
-        const left = s.y;
+        const left = 8 + s.y * 0.84;
         return (
           <div
             key={i}
             className={`slot ${p ? '' : 'empty'} ${selected === i ? 'sel' : ''} ${p && fam < 0.9 ? 'warn' : ''}`}
             style={{ top: `${top}%`, left: `${left}%` }}
             onClick={() => onSlot?.(i)}
-            title={p ? `${shortName(p)} — ${s.pos} rating ${Math.round(ratingAt(p, s.pos))}${fam < 0.9 ? ' (out of position)' : ''}` : `Empty ${s.pos} slot`}
           >
-            <div className="dot" style={{ background: p ? c1 : undefined, color: textOn(c1), borderColor: '#15120f', boxShadow: `inset 0 0 0 3px ${c2}, 2px 2px 0 rgba(0,0,0,.35)` }}>
-              {p ? Math.round(ratingAt(p, s.pos)) : '+'}
+            <div className="dot" style={{ background: p ? c1 : undefined, color: textOn(c1), boxShadow: `inset 0 0 0 3px ${c2}, 2px 2px 0 rgba(0,0,0,.35)` }}>
+              {p ? Math.round(ratingAt(p, s.pos)) : s.pos}
             </div>
-            {!compact && <div className="nm">{p ? shortName(p) : s.pos}</div>}
-            {compact && p && <div className="nm">{p.last}</div>}
-            {!compact && <div className="pp">{s.pos}</div>}
+            <div className="nm">{p ? p.last : s.pos}</div>
           </div>
         );
       })}

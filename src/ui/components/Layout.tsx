@@ -1,76 +1,66 @@
 import { useState } from 'react';
 import { leaguePosition } from '../../game/competitions';
-import { fmtDate } from '../../game/dates';
+import { fmtShort } from '../../game/dates';
 import { leagueOf } from '../../game/generate';
 import { unreadCount } from '../../game/inbox';
 import { continueGame, ordinal, pendingUserFixture, seasonLabel } from '../../game/season';
 import { windowOpen } from '../../game/transfers';
 import { mutate, saveGame, setGame, useGame } from '../../store';
 import { useUI, type Screen } from '../context';
+import { Sheet } from './common';
 import { Crest } from './Crest';
 
-const NAV: { id: Screen; label: string; ico: string }[] = [
+const TABS: { id: Screen; label: string; ico: string }[] = [
   { id: 'home', label: 'Home', ico: '🏟️' },
   { id: 'squad', label: 'First Team', ico: '👕' },
-  { id: 'youth', label: 'Youth Team', ico: '🌱' },
+  { id: 'youth', label: 'Youth', ico: '🌱' },
   { id: 'training', label: 'Training', ico: '🏋️' },
   { id: 'transfers', label: 'Transfers', ico: '🔁' },
   { id: 'board', label: 'Board', ico: '💼' },
 ];
-const NAV2: { id: Screen; label: string; ico: string }[] = [
-  { id: 'competitions', label: 'Competitions', ico: '🏆' },
-  { id: 'inbox', label: 'Inbox', ico: '✉️' },
-];
 
-export function Sidebar() {
+export function Header() {
   const g = useGame();
   const ui = useUI();
-  const unread = unreadCount(g);
-  const [saving, setSaving] = useState(false);
-  const btn = (n: (typeof NAV)[number]) => (
-    <button key={n.id} className={`nav-btn ${ui.screen === n.id ? 'active' : ''}`} onClick={() => ui.go(n.id)}>
-      <span className="ico">{n.ico}</span>
-      <span>{n.label}</span>
-      {n.id === 'inbox' && unread > 0 && <span className="badge">{unread}</span>}
-    </button>
-  );
-  return (
-    <nav className="sidebar">
-      <div className="logo">
-        <div className="logo-mark">FM</div>
-        <div className="logo-text">The FM Journey<small>{g.mode === 'create' ? 'Create-a-club' : 'Manager mode'}</small></div>
-      </div>
-      {NAV.map(btn)}
-      <div className="nav-sep" />
-      {NAV2.map(btn)}
-      <div className="sidebar-foot">
-        <div>Manager: <b style={{ color: '#fff' }}>{g.manager}</b></div>
-        <div>Season {seasonLabel(g.season)}</div>
-        <button
-          disabled={saving}
-          onClick={async () => {
-            setSaving(true);
-            try { await saveGame(); ui.toast('Game saved 💾'); } catch { ui.toast('Save failed', true); }
-            setSaving(false);
-          }}
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-        <button onClick={async () => { await saveGame(); setGame(null); }}>Save & Exit</button>
-      </div>
-    </nav>
-  );
-}
-
-export function TopBar() {
-  const g = useGame();
-  const ui = useUI();
-  const [busy, setBusy] = useState(false);
+  const [menu, setMenu] = useState(false);
   const club = g.clubs[g.userClubId];
   const league = leagueOf(g, club.id);
   const pos = leaguePosition(g, club.id);
-  const matchToday = pendingUserFixture(g);
+  const unread = unreadCount(g);
+  return (
+    <header className="header">
+      <div className="club" onClick={() => ui.go('home')}>
+        <Crest club={club} size={38} />
+        <div style={{ minWidth: 0 }}>
+          <b>{club.name}</b>
+          <span>{league.short} · {pos ? ordinal(pos) : '—'} · {windowOpen(g) ? '🟢 Window' : '🔴 Window'}</span>
+        </div>
+      </div>
+      <button className={`icon-btn ${ui.screen === 'competitions' ? 'on' : ''}`} aria-label="Competitions" onClick={() => ui.go('competitions')}>🏆</button>
+      <button className={`icon-btn ${ui.screen === 'inbox' ? 'on' : ''}`} aria-label="Inbox" onClick={() => ui.go('inbox')}>
+        ✉️{unread > 0 && <span className="dot">{unread > 99 ? '99+' : unread}</span>}
+      </button>
+      <button className="icon-btn" aria-label="Menu" onClick={() => setMenu(true)}>☰</button>
+      {menu && (
+        <Sheet title="Menu" onClose={() => setMenu(false)}>
+          <div className="sheet-b col">
+            <div className="small muted bold">Manager {g.manager} · Season {seasonLabel(g.season)} · {g.mode === 'create' ? 'Create-a-club' : 'Classic'}</div>
+            <button className="btn block" onClick={async () => { try { await saveGame(); ui.toast('Game saved 💾'); } catch { ui.toast('Save failed', true); } setMenu(false); }}>💾 Save game</button>
+            <button className="btn block" onClick={() => { setMenu(false); ui.go('competitions'); }}>🏆 Competitions</button>
+            <button className="btn block" onClick={() => { setMenu(false); ui.go('inbox'); }}>✉️ Inbox</button>
+            <button className="btn block coral" onClick={async () => { await saveGame(); setMenu(false); setGame(null); }}>Save & exit to menu</button>
+          </div>
+        </Sheet>
+      )}
+    </header>
+  );
+}
 
+export function ContinueBar() {
+  const g = useGame();
+  const ui = useUI();
+  const [busy, setBusy] = useState(false);
+  const matchToday = pendingUserFixture(g);
   const onContinue = async () => {
     if (matchToday) { ui.setMatchOpen(true); return; }
     setBusy(true);
@@ -81,23 +71,29 @@ export function TopBar() {
     if (!r.ok && r.reason === 'match') ui.setMatchOpen(true);
     saveGame().catch(() => {});
   };
-
   return (
-    <header className="topbar">
-      <div className="club-chip">
-        <Crest club={club} size={42} />
-        <div style={{ minWidth: 0 }}>
-          <h2>{club.name}</h2>
-          <div className="sub">{league.name} · {pos ? ordinal(pos) : '—'} · {windowOpen(g) ? '🟢 Window open' : '🔴 Window closed'}</div>
-        </div>
-      </div>
-      <div className="date">
-        <div className="d">{fmtDate(g.date)}</div>
-        <div className="s">{matchToday ? 'MATCH DAY' : `Season ${seasonLabel(g.season)}`}</div>
+    <div className="continue-bar">
+      <div className="when">
+        <b>{fmtShort(g.date)}</b>
+        <span>{matchToday ? 'MATCH DAY' : g.date.slice(0, 4)}</span>
       </div>
       <button className={`continue-btn ${matchToday ? 'match' : ''}`} onClick={onContinue} disabled={busy}>
         {busy ? 'Processing…' : matchToday ? <>Play Match ⚽</> : <>Continue ▶</>}
       </button>
-    </header>
+    </div>
+  );
+}
+
+export function TabBar() {
+  const ui = useUI();
+  return (
+    <nav className="tabbar">
+      {TABS.map((t) => (
+        <button key={t.id} className={ui.screen === t.id ? 'on' : ''} onClick={() => ui.go(t.id)}>
+          <span className="i">{t.ico}</span>
+          <span>{t.label}</span>
+        </button>
+      ))}
+    </nav>
   );
 }

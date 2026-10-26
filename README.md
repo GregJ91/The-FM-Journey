@@ -15,9 +15,16 @@ A fast, bright football management game: a hybrid of Football Manager / Champion
 | **Create a Club** | Design a club (name, colours, crest, stadium) and start in the National League with a squad of journeymen and a £150k budget. Win promotion through five divisions. You are owner-manager, so you can't be sacked. |
 | **Choose a Club** | Take over any of the 192 clubs. The board sets an objective based on your squad's strength, and you'll be sacked if their confidence hits 5%. |
 
-## Screens
+## Screens (mobile-first)
 
-The left-hand menu has **Home** (club overview: tactics, fixtures, top players, table, news), **First Team** (squad, tactics and lineup, stats), **Youth Team**, **Training**, **Transfers**, **Board**, plus **Competitions** and **Inbox**.
+The game is designed for phones in portrait. On a desktop it runs in a centred phone-width column.
+
+- **Bottom tab bar**: Home (club overview: tactics, fixtures, top players, table, news), First Team (squad and tactics), Youth, Training, Transfers, Board.
+- **Header**: Competitions 🏆, Inbox ✉️ and the menu (save, exit).
+- **Continue bar**: sits just above the tabs, within thumb reach. It turns into **Play Match** on match days.
+- Player profiles, position pickers and menus open as bottom sheets. The match screen uses a portrait pitch, with the controls at the bottom.
+
+Tip: open it on your phone and use "Add to Home Screen" to get it full-screen.
 
 ## Running it
 

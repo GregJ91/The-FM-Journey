@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { compColor, compName } from '../../game/competitions';
 import { fmtShort } from '../../game/dates';
-import { POS_GROUP, stars } from '../../game/ratings';
+import { POS_GROUP, overall, stars } from '../../game/ratings';
 import type { Fixture, GameState, Player, Pos } from '../../game/types';
 import { useUI } from '../context';
 import { Crest } from './Crest';
@@ -114,18 +114,18 @@ export function FixtureRow({ g, f, showComp = true, compact }: { g: GameState; f
         {showComp && (
           <div className="row" style={{ gap: 4, marginTop: 2 }}>
             <span className="comp-dot" style={{ background: compColor(g, f.comp) }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 56 }} title={`${compName(g, f.comp)}${f.roundName ? ' · ' + f.roundName : ''}`}>{f.roundName ?? compName(g, f.comp)}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 48 }} title={`${compName(g, f.comp)}${f.roundName ? ' · ' + f.roundName : ''}`}>{f.roundName ?? compName(g, f.comp)}</span>
           </div>
         )}
       </div>
       <div className={`h ${f.home === me ? 'me' : ''}`} onClick={() => ui.go('club', h.id)} style={{ cursor: 'pointer' }}>
-        <span title={h.name}>{compact ? h.short : h.name}</span>
+        <span title={h.name}>{compact || h.name.length > 13 ? h.short : h.name}</span>
         <Crest club={h} size={20} />
       </div>
       <div className={`score ${r ? '' : 'tbd'}`}>{r ? `${r.hg} - ${r.ag}` : 'v'}</div>
       <div className={`a ${f.away === me ? 'me' : ''}`} onClick={() => ui.go('club', a.id)} style={{ cursor: 'pointer' }}>
         <Crest club={a} size={20} />
-        <span title={a.name}>{compact ? a.short : a.name}</span>
+        <span title={a.name}>{compact || a.name.length > 13 ? a.short : a.name}</span>
       </div>
       <div>{res && <span className={`res ${res}`}>{res}</span>}{r?.pens && <span className="small muted" title="penalties"> p</span>}</div>
     </div>
@@ -159,4 +159,43 @@ export function useSort<K extends string>(initial: K, dir: 1 | -1 = -1) {
     });
   }
   return { Th, sort, state };
+}
+
+/** Bottom sheet used for pickers, player profiles and detail views. */
+export function Sheet({ title, onClose, right, children }: { title?: ReactNode; onClose: () => void; right?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="sheet-wrap" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="grab" />
+        {title !== undefined && (
+          <div className="sheet-h">
+            <h3 className="ellipsis">{title}</h3>
+            <div className="right row">{right}<button className="btn sm" onClick={onClose}>Close</button></div>
+          </div>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Tappable player row: OVR, position, name with a sub line, and a right-hand value. */
+export function PlayerRow({ p, sub, end, endSub, ovr, onClick, me }: { p: Player; sub?: ReactNode; end?: ReactNode; endSub?: ReactNode; ovr?: number; onClick?: () => void; me?: boolean }) {
+  const ui = useUI();
+  return (
+    <div className={`li ${me ? 'me' : ''}`} onClick={onClick ?? (() => ui.openPlayer(p.id))}>
+      <Ovr value={ovr ?? overall(p)} />
+      <PosTag pos={p.pos} />
+      <div className="main">
+        <div className="t">{p.first ? `${p.first[0]}. ${p.last}` : p.last}<StatusIcons p={p} /></div>
+        {sub !== undefined && <div className="s">{sub}</div>}
+      </div>
+      {(end !== undefined || endSub !== undefined) && (
+        <div className="end">
+          {end !== undefined && <div className="v">{end}</div>}
+          {endSub !== undefined && <div className="s">{endSub}</div>}
+        </div>
+      )}
+    </div>
+  );
 }

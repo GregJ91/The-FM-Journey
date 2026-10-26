@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { setGame, useGame, useVersion } from './store';
 import { UIProvider, useUI } from './ui/context';
-import { Sidebar, TopBar } from './ui/components/Layout';
+import { ContinueBar, Header, TabBar } from './ui/components/Layout';
 import { Home } from './ui/screens/Home';
 import { Squad } from './ui/screens/Squad';
 import { Youth } from './ui/screens/Youth';
@@ -24,14 +24,14 @@ function Game() {
 
   if (g.sacked) {
     return (
-      <div className="sacked">
+      <div className="phone"><div className="sacked">
         <div className="card" style={{ maxWidth: 520, textAlign: 'center', padding: 30 }}>
           <div style={{ fontSize: 60 }}>📦</div>
           <h1 style={{ fontSize: 40 }}>You're sacked!</h1>
           <p>The board of {g.clubs[g.userClubId].name} has lost confidence in you. Clear your desk, gaffer.</p>
           <button className="btn primary" onClick={() => setGame(null)}>Back to main menu</button>
         </div>
-      </div>
+      </div></div>
     );
   }
 
@@ -50,12 +50,11 @@ function Game() {
   })();
 
   return (
-    <div className="app">
-      <Sidebar />
-      <div className="main">
-        <TopBar />
-        <main className="content">{screen}</main>
-      </div>
+    <div className="phone">
+      <Header />
+      <main className="content">{screen}</main>
+      <ContinueBar />
+      <TabBar />
       <PlayerModal />
       {ui.matchOpen && <MatchScreen />}
     </div>
@@ -65,7 +64,7 @@ function Game() {
 function Root() {
   useVersion();
   const g = useGame();
-  return g ? <Game /> : <Title />;
+  return g ? <Game /> : <div className="phone"><Title /></div>;
 }
 
 export default function App() {
