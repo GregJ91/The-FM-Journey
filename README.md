@@ -85,6 +85,8 @@ Real club badges are trademarks, so none ship with the game, and each club gets 
 2. Open **☰ Menu → Club badges** (or **Club badges** on the title screen) and import all the files at once.
 3. To set a single badge, use **Set badge** on a club's page, or on the Board screen for your own club.
 
+**Football Manager logo packs** (e.g. sortitoutsi's Standard Logos) name every file by FM's internal club ID (`1234.png`) and don't include club names, so they can't be matched automatically. Import the images you want (your phone's file picker shows thumbnails), and anything the game can't match by name goes to **Match badges**. That screen shows one image at a time; search for the club and tap it. The badges inside the FM game itself are packed in FM's own archive format and can't be imported.
+
 Badges are shrunk to 160px and stored in the browser on that device only. They're never uploaded or committed.
 
 ## Editing the data

@@ -5,9 +5,19 @@ import { useSyncExternalStore } from 'react';
 import { get, set } from 'idb-keyval';
 
 const KEY = 'fmj-badges';
+const TRAY_KEY = 'fmj-badge-tray';
 const SIZE = 160;
+const TRAY_MAX = 400;
 
 let badges: Record<string, string> = {}; // club name -> data URL
+
+/** Images that couldn't be matched by file name (e.g. FM logo packs, which use numeric club IDs). */
+export interface TrayItem {
+  id: string;
+  file: string;
+  data: string;
+}
+let tray: TrayItem[] = [];
 let version = 0;
 const listeners = new Set<() => void>();
 
@@ -31,18 +41,45 @@ export function badgeCount() {
   return Object.keys(badges).length;
 }
 
+export function trayItems() {
+  return tray;
+}
+
 export async function loadBadges() {
   try {
     badges = ((await get(KEY)) as Record<string, string> | undefined) ?? {};
+    tray = ((await get(TRAY_KEY)) as TrayItem[] | undefined) ?? [];
   } catch {
     badges = {};
+    tray = [];
   }
   emit();
 }
 
 async function persist() {
-  try { await set(KEY, badges); } catch { /* storage unavailable: badges last for this session */ }
+  try {
+    await set(KEY, badges);
+    await set(TRAY_KEY, tray);
+  } catch { /* storage unavailable: badges last for this session */ }
   emit();
+}
+
+export async function assignFromTray(itemId: string, clubName: string) {
+  const item = tray.find((t) => t.id === itemId);
+  if (!item) return;
+  badges[clubName] = item.data;
+  tray = tray.filter((t) => t.id !== itemId);
+  await persist();
+}
+
+export async function discardTray(itemId: string) {
+  tray = tray.filter((t) => t.id !== itemId);
+  await persist();
+}
+
+export async function clearTray() {
+  tray = [];
+  await persist();
 }
 
 // ---------------- Matching ----------------
@@ -140,22 +177,34 @@ async function shrink(file: File): Promise<string> {
   }
 }
 
+function isImage(f: File) {
+  return f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(f.name);
+}
+
+/** Import badge files. Name matches are applied straight away; anything else goes to the tray for manual matching. */
 export async function importBadgeFiles(files: File[], clubs: ClubRef[]) {
   const matched: string[] = [];
   const unmatched: string[] = [];
+  const skipped: string[] = [];
   for (const f of files) {
-    if (!f.type.startsWith('image/')) { unmatched.push(f.name); continue; }
+    if (!isImage(f)) { skipped.push(f.name); continue; }
     const club = matchFile(f.name, clubs);
-    if (!club) { unmatched.push(f.name); continue; }
     try {
-      badges[club.name] = await shrink(f);
-      matched.push(club.name);
+      if (club) {
+        badges[club.name] = await shrink(f);
+        matched.push(club.name);
+      } else if (tray.length < TRAY_MAX) {
+        tray.push({ id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`, file: f.name, data: await shrink(f) });
+        unmatched.push(f.name);
+      } else {
+        skipped.push(f.name);
+      }
     } catch {
-      unmatched.push(f.name);
+      skipped.push(f.name);
     }
   }
   await persist();
-  return { matched, unmatched };
+  return { matched, unmatched, skipped };
 }
 
 export async function setBadge(clubName: string, file: File) {
