@@ -9,7 +9,8 @@ import { validateLineup } from '../../game/selection';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { Card, FixtureRow, Meter, PlayerRow, Spark } from '../components/common';
-import { Crest, textOn } from '../components/Crest';
+import { Crest } from '../components/Crest';
+import { ChevronRight, Target } from 'lucide-react';
 import { FormationPitch } from '../components/Pitch';
 
 export function Home() {
@@ -25,7 +26,6 @@ export function Home() {
   const next = upcoming[0];
   const squad = squadOf(g, club.id);
   const top = [...squad].sort((a, b) => overall(b) - overall(a)).slice(0, 5);
-  const fg = textOn(club.colors[0]);
   const lo = Math.max(0, Math.min(table.length - 5, myIdx - 2));
   const mini = table.slice(lo, lo + 5);
   const avgOvr = Math.round(squad.map(overall).sort((a, b) => b - a).slice(0, 11).reduce((s, x) => s + x, 0) / Math.max(1, Math.min(11, squad.length)));
@@ -38,18 +38,18 @@ export function Home() {
 
   return (
     <div>
-      <div className="hero" style={{ background: `linear-gradient(125deg, ${club.colors[0]} 0 62%, ${club.colors[1]} 62% 70%, ${club.colors[0]} 70%)`, color: fg }}>
+      <div className="hero">
         <div className="top">
           <Crest club={club} size={72} />
           <div style={{ minWidth: 0 }}>
-            <div className="small bold" style={{ letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.85 }}>Club overview</div>
+            <div className="kick">Club overview</div>
             <h1>{club.name}</h1>
           </div>
         </div>
         <div className="pills">
           <span className="pill">{league.name}: {myIdx >= 0 ? ordinal(myIdx + 1) : '—'}</span>
-          <span className="pill">⭐ Rep {club.reputation}</span>
-          <span className="pill">🎯 {g.board.objective}</span>
+          <span className="pill">Reputation {club.reputation}</span>
+          <span className="pill"><Target size={12} className="icon-inline" /> {g.board.objective}</span>
         </div>
         {next ? (
           <div className="next-match">
@@ -82,9 +82,9 @@ export function Home() {
           <FormationPitch g={g} club={club} lineup={club.lineup} small onSlot={() => ui.go('squad', 'tactics')} />
         </div>
         <div className="row wrap" style={{ marginTop: 10, gap: 6, justifyContent: 'center' }}>
-          <span className="chip">🧠 {MENTALITY[club.tactics.mentality + 2]}</span>
-          <span className="chip">⚡ {PRESSING[club.tactics.pressing]}</span>
-          <span className="chip">🎯 {STYLES[club.tactics.style]}</span>
+          <span className="chip">{MENTALITY[club.tactics.mentality + 2]}</span>
+          <span className="chip">{PRESSING[club.tactics.pressing]}</span>
+          <span className="chip">{STYLES[club.tactics.style]}</span>
         </div>
       </Card>
 
@@ -124,10 +124,10 @@ export function Home() {
           {g.inbox.slice(0, 3).map((m) => (
             <div key={m.id} className="li" onClick={() => ui.go('inbox', m.id)}>
               <div className="main">
-                <div className="t">{!m.read && '🔵 '}{m.title}</div>
+                <div className="t">{!m.read && <span className="live-dot" style={{ background: 'var(--accent)', marginRight: 7, verticalAlign: 2 }} />}{m.title}</div>
                 <div className="s">{fmtShort(m.date)} · {m.from}</div>
               </div>
-              <span className="muted">›</span>
+              <ChevronRight size={16} className="muted" />
             </div>
           ))}
           {!g.inbox.length && <div className="muted small">No messages yet.</div>}

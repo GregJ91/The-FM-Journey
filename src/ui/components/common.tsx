@@ -74,7 +74,7 @@ export function Card({ title, tag, tagColor, right, children, className = '', st
     <section className={`card ${className}`} style={style}>
       {(title || right) && (
         <div className="card-h">
-          {tag && <span className="tag" style={{ background: tagColor ?? 'var(--lime)' }}>{tag}</span>}
+          {tag && <span className="tag" style={tagColor ? ({ '--tag': tagColor } as React.CSSProperties) : undefined}>{tag}</span>}
           {title && <h3>{title}</h3>}
           {right && <div className="right">{right}</div>}
         </div>

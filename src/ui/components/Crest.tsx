@@ -62,9 +62,9 @@ export function CrestSvg({ name, short, colors, crest, size = 40 }: { name: stri
         <rect width={100} height={100} fill={c1} />
         {patternEls(crest.pattern, c2)}
       </g>
-      <path d={SHAPE_PATHS[crest.shape]} fill="none" stroke="#15120f" strokeWidth={6} strokeLinejoin="round" />
-      <rect x={18} y={38} width={64} height={26} rx={8} fill={badgeFill} stroke="#15120f" strokeWidth={3} />
-      <text x={50} y={57.5} textAnchor="middle" fontFamily="'Bricolage Grotesque Variable', sans-serif" fontWeight={800} fontSize={letters.length > 2 ? 18 : 21} fill={badgeText}>
+      <path d={SHAPE_PATHS[crest.shape]} fill="none" stroke="rgba(0,0,0,0.55)" strokeWidth={4} strokeLinejoin="round" />
+      <rect x={18} y={38} width={64} height={26} rx={13} fill={badgeFill} />
+      <text x={50} y={57.5} textAnchor="middle" fontFamily="'Inter Variable', sans-serif" fontWeight={800} letterSpacing={-0.5} fontSize={letters.length > 2 ? 18 : 21} fill={badgeText}>
         {letters}
       </text>
     </svg>

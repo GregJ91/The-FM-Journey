@@ -8,7 +8,7 @@ import type { TrainingFocus } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { AttrVal, Ovr, PosTag, Sheet, Spark, Stars } from '../components/common';
-import { Crest, textOn } from '../components/Crest';
+import { Crest } from '../components/Crest';
 
 const FOCUS_LABEL: Record<TrainingFocus, string> = { balanced: 'Balanced', attacking: 'Attack', defending: 'Defend', technical: 'Technical', physical: 'Physical', mental: 'Mental' };
 
@@ -29,7 +29,6 @@ export function PlayerModal() {
   const ask = p.clubId !== null && !own ? askingPrice(g, p) : 0;
   const bidVal = bid ?? ask;
   const bg = club ? club.colors[0] : '#d8d0c1';
-  const fg = textOn(bg);
   const isGK = p.pos === 'GK';
   const groups = ATTR_GROUPS.filter((gr) => isGK || gr.name !== 'Goalkeeping');
   const shortlisted = g.shortlist.includes(p.id);
@@ -43,7 +42,7 @@ export function PlayerModal() {
 
   return (
     <Sheet onClose={close}>
-      <div className="pcard-head" style={{ background: `linear-gradient(115deg, ${bg} 0 72%, ${club?.colors[1] ?? '#fff'} 72% 78%, ${bg} 78%)`, color: fg, marginTop: 8 }}>
+      <div className="pcard-head" style={{ background: `radial-gradient(120% 140% at 0% 0%, ${bg}, transparent 70%), radial-gradient(90% 120% at 100% 100%, ${club?.colors[1] ?? '#334155'}55, transparent 60%), #10131a` }}>
         <Ovr value={ovr} lg />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="first">{p.first}</div>

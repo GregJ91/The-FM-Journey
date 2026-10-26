@@ -6,7 +6,8 @@ import { avgRating, fullName, overall } from '../../game/ratings';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { Card, FixtureRow, PlayerRow } from '../components/common';
-import { Crest, textOn } from '../components/Crest';
+import { Crest } from '../components/Crest';
+import { luminance } from '../theme';
 import { SquadList } from './Squad';
 import { ClubBadgeButton } from '../components/BadgesSheet';
 
@@ -58,7 +59,7 @@ export function Competitions() {
       {cup && (
         <>
           {cup.winner !== null && (
-            <div className="card" style={{ background: 'var(--yellow)' }}>
+            <div className="card" style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.22), var(--surface))', borderColor: 'rgba(251,191,36,0.35)' }}>
               <div className="row"><span style={{ fontSize: 34 }}>🏆</span><Crest club={g.clubs[cup.winner]} size={46} /><div><div className="small bold">{cup.name} winners</div><h2 style={{ fontSize: 22 }}>{g.clubs[cup.winner].name}</h2></div></div>
             </div>
           )}
@@ -67,7 +68,7 @@ export function Competitions() {
             const mine = fx.filter((f) => f.home === club.id || f.away === club.id);
             const rest = fx.filter((f) => !mine.includes(f));
             return (
-              <Card key={i} title={r.name} tag={fmtShort(r.date)} tagColor="var(--paper)">
+              <Card key={i} title={r.name} tag={fmtShort(r.date)} tagColor="var(--muted)">
                 {mine.map((f) => <FixtureRow key={f.id} g={g} f={f} showComp={false} />)}
                 {rest.slice(0, 16).map((f) => <FixtureRow key={f.id} g={g} f={f} showComp={false} />)}
                 {rest.length > 16 && <div className="small muted">+{rest.length - 16} more ties</div>}
@@ -175,7 +176,7 @@ export function ClubView() {
   const best = [...squad].sort((a, b) => overall(b) - overall(a))[0];
   return (
     <div>
-      <div className="hero" style={{ background: club.colors[0], color: textOn(club.colors[0]) }}>
+      <div className="hero" style={{ '--team': luminance(club.colors[0]) > 0.85 ? club.colors[1] : club.colors[0], '--team-2': club.colors[1] } as React.CSSProperties}>
         <div className="top">
           <Crest club={club} size={64} />
           <div style={{ minWidth: 0 }}><h1>{club.name}</h1></div>

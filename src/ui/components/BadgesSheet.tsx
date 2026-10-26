@@ -95,7 +95,7 @@ function Matcher({ clubs, onClose }: { clubs: ClubOpt[]; onClose: () => void }) 
     <Sheet title={`Match badges · ${tray.length} left`} onClose={onClose}>
       <div className="sheet-b col">
         <div className="row" style={{ alignItems: 'center' }}>
-          <img src={item.data} width={96} height={96} alt={item.file} style={{ background: 'var(--paper)', border: '2px solid var(--ink)', borderRadius: 14, padding: 6, flex: 'none' }} />
+          <img src={item.data} width={96} height={96} alt={item.file} style={{ background: 'var(--surface-2)', border: '1px solid var(--line-2)', borderRadius: 18, padding: 8, flex: 'none' }} />
           <div style={{ minWidth: 0 }}>
             <div className="bold ellipsis">{item.file}</div>
             <div className="small muted">Which club is this?</div>

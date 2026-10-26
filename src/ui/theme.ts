@@ -34,7 +34,7 @@ function saturation(c: string) {
   return max === 0 ? 0 : (max - min) / max;
 }
 
-const INK = '#15120f';
+const INK = '#0a0c11';
 const WHITE = '#ffffff';
 
 /** Pick whichever of ink or white has the higher WCAG contrast ratio against c. */
@@ -54,37 +54,28 @@ export function clubTheme(colors: [string, string]): Theme {
   const isWhite = (c: string) => luminance(c) > 0.85;
   const isBlack = (c: string) => luminance(c) < 0.03;
 
-  // Main team colour for big surfaces (header, Continue): primary unless it's white
-  const team = isWhite(p) ? (isWhite(s) ? INK : s) : p;
-
-  // Highlight for selected states on light surfaces: must not be near-white
-  const candidates = [p, s].filter((c) => !isWhite(c));
-  const hl = candidates.length
-    ? candidates.sort((a, b) => saturation(b) - saturation(a) || luminance(b) - luminance(a))[0]
-    : INK;
-
-  // Highlight on the dark tab bar: must not be near-black
-  const lightish = [p, s].filter((c) => !isBlack(c) && luminance(c) > 0.06);
-  const hld = lightish.length ? lightish.sort((a, b) => saturation(b) - saturation(a) || luminance(b) - luminance(a))[0] : '#c6f432';
-
+  // Team colour for glows and gradients: the primary, unless it's white
+  const team = isWhite(p) ? (isWhite(s) ? '#3b4252' : s) : p;
   const other = team === p ? s : p;
-  const deep = mix(team, INK, isBlack(team) ? 0 : 0.62);
+
+  // Accent for buttons and selected states on the dark UI: the most vivid kit
+  // colour that is bright enough to read on near-black; very dark kits get lifted.
+  const visible = [p, s].filter((c) => !isBlack(c) && luminance(c) > 0.07);
+  let accent = visible.length
+    ? visible.sort((a, b) => saturation(b) - saturation(a) || luminance(b) - luminance(a))[0]
+    : mix(p, WHITE, 0.55);
+  if (luminance(accent) < 0.07) accent = mix(accent, WHITE, 0.45);
 
   return {
     '--team': team,
     '--team-ink': inkOn(team),
     '--team-2': other,
-    '--team-deep': deep,
-    '--hl': hl,
-    '--hl-ink': inkOn(hl),
-    '--hld': hld,
-    '--hld-ink': inkOn(hld),
-    '--tint': mix(hl, '#fffdf8', 0.82),
-    '--bg': mix(team, '#f4f0e6', isBlack(team) ? 0.9 : 0.9),
+    '--accent': accent,
+    '--accent-ink': inkOn(accent),
   };
 }
 
-const KEYS = ['--team', '--team-ink', '--team-2', '--team-deep', '--hl', '--hl-ink', '--hld', '--hld-ink', '--tint', '--bg'];
+const KEYS = ['--team', '--team-ink', '--team-2', '--accent', '--accent-ink'];
 
 export function applyTheme(t: Theme | null) {
   const root = document.documentElement.style;
@@ -93,5 +84,5 @@ export function applyTheme(t: Theme | null) {
     else root.removeProperty(k);
   }
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', t ? t['--team'] : '#14110F');
+  if (meta) meta.setAttribute('content', '#0a0c11');
 }

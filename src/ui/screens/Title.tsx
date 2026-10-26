@@ -28,18 +28,18 @@ export function Title() {
           <div className="title-logo" style={{ margin: '10px 0 16px' }}>The <span>FM</span><br />Journey<em>.</em></div>
           <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 22 }}>Football management, fast. Real leagues, real players, one-minute matches.</p>
           {saves.length > 0 && (
-            <button className="mode-card" style={{ background: 'var(--yellow)' }} onClick={() => loadGame(saves[0].slot)}>
+            <button className="mode-card" style={{ '--glow': 'rgba(251,191,36,0.3)' } as React.CSSProperties} onClick={() => loadGame(saves[0].slot)}>
               <span className="chip">▶ Continue</span>
               <h2>{saves[0].club}</h2>
               <p>{saves[0].manager} · {fmtDate(saves[0].date)}</p>
             </button>
           )}
-          <button className="mode-card" style={{ background: 'var(--lime)' }} onClick={() => setStep('create')}>
+          <button className="mode-card" style={{ '--glow': 'rgba(198,244,50,0.3)' } as React.CSSProperties} onClick={() => setStep('create')}>
             <span className="chip">🌱 Start from the bottom</span>
             <h2>Create a Club</h2>
             <p>Design your own club and start in the National League. Climb five divisions to the top.</p>
           </button>
-          <button className="mode-card" style={{ background: 'var(--sky)' }} onClick={() => setStep('classic')}>
+          <button className="mode-card" style={{ '--glow': 'rgba(56,189,248,0.32)' } as React.CSSProperties} onClick={() => setStep('classic')}>
             <span className="chip">⚽ Classic</span>
             <h2>Choose a Club</h2>
             <p>Manage any club in England, Spain, Italy, Germany or France.</p>
@@ -173,7 +173,7 @@ function LoadList({ saves, onBack, onChange }: { saves: SaveMeta[]; onBack: () =
         {saves.map((s) => (
           <div key={s.slot} className="card" style={{ marginBottom: 0 }}>
             <div className="row">
-              <div style={{ width: 14, height: 40, borderRadius: 5, background: `linear-gradient(${s.colors[0]} 50%, ${s.colors[1]} 50%)`, border: '2px solid var(--ink)', flex: 'none' }} />
+              <div style={{ width: 14, height: 40, borderRadius: 5, background: `linear-gradient(${s.colors[0]} 50%, ${s.colors[1]} 50%)`, flex: 'none' }} />
               <div style={{ minWidth: 0 }}>
                 <div className="bold ellipsis">{s.club}</div>
                 <div className="small muted">{s.mode === 'create' ? 'Create-a-club' : 'Classic'} · {s.manager} · {fmtDate(s.date, false)}</div>

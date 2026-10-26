@@ -1,6 +1,6 @@
 # The FM Journey
 
-A fast, bright football management game: a hybrid of Football Manager / Championship Manager depth and EA FC-style accessibility.
+A fast, modern football management game for mobile: a hybrid of Football Manager / Championship Manager depth and EA FC-style accessibility.
 
 - **Real leagues and players**: the full English pyramid (Premier League → National League) plus La Liga, Serie A, Bundesliga and Ligue 1, with 1,100+ real players and generated depth players.
 - **One-minute matches**: watch a live 2D match with commentary, shout tactical changes and make subs. Or take the instant result.

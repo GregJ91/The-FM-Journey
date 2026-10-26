@@ -190,14 +190,14 @@ export function Transfers() {
 
 function StatusChip({ s, counter }: { s: string; counter?: number }) {
   const map: Record<string, [string, string]> = {
-    pending: ['⏳ Waiting', 'var(--paper)'],
-    accepted: ['✅ Fee agreed', 'var(--lime)'],
-    countered: [`↩️ Wants ${counter ? fmtMoney(counter) : ''}`, 'var(--yellow)'],
-    rejected: ['❌ Rejected', '#fde2e1'],
-    done: ['🤝 Done', 'var(--sky)'],
-    withdrawn: ['Withdrawn', 'var(--soft)'],
-    collapsed: ['Collapsed', 'var(--soft)'],
+    pending: ['Waiting', 'var(--muted)'],
+    accepted: ['Fee agreed', 'var(--grass)'],
+    countered: [`Wants ${counter ? fmtMoney(counter) : ''}`, 'var(--yellow)'],
+    rejected: ['Rejected', 'var(--coral)'],
+    done: ['Completed', 'var(--sky)'],
+    withdrawn: ['Withdrawn', 'var(--faint)'],
+    collapsed: ['Collapsed', 'var(--faint)'],
   };
-  const [label, bg] = map[s] ?? [s, 'var(--paper)'];
-  return <span className="chip" style={{ background: bg }}>{label}</span>;
+  const [label, c] = map[s] ?? [s, 'var(--muted)'];
+  return <span className="chip" style={{ color: c, background: `color-mix(in srgb, ${c} 14%, transparent)`, borderColor: 'transparent' }}>{label}</span>;
 }

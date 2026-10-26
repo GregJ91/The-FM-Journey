@@ -175,7 +175,7 @@ export function MatchScreen() {
                 <div>
                   <div className="small bold muted">ON</div>
                   {userTeam.bench.map((id) => (
-                    <div key={id} className="row small" style={{ cursor: 'pointer', padding: '6px 4px', borderRadius: 8, background: subOn === id ? 'var(--lime)' : undefined }} onClick={() => setSubOn(id)}>
+                    <div key={id} className="row small" style={{ cursor: 'pointer', padding: '6px 4px', borderRadius: 8, background: subOn === id ? 'var(--accent)' : undefined, color: subOn === id ? 'var(--accent-ink)' : undefined }} onClick={() => setSubOn(id)}>
                       <b style={{ width: 30 }}>{g.players[id].pos}</b><span className="ellipsis">{g.players[id].last}</span><span className="right">{overall(g.players[id])}</span>
                     </div>
                   ))}
@@ -361,7 +361,7 @@ function PostMatch({ g, fixture, m, onClose }: { g: GameState; fixture: Fixture;
             </div>
           )}
           <div className="panel">
-            <div className="row"><h3>Ratings</h3>{motm && <span className="right chip" style={{ background: 'var(--yellow)' }}>⭐ {motm.last}</span>}</div>
+            <div className="row"><h3>Ratings</h3>{motm && <span className="right chip" style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.12)', borderColor: 'rgba(251,191,36,0.3)' }}>★ MOTM {motm.last}</span>}</div>
             {mine.map(({ lp, p, r: rt }) => (
               <div key={lp.id} className="row" style={{ padding: '6px 0', borderBottom: '1px solid var(--soft)' }}>
                 <PosTag pos={lp.pos} />
