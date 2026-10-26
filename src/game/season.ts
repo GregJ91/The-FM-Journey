@@ -11,6 +11,7 @@ import { chance, int, normal, pick } from './rng';
 import { aiBidsForUser, aiTransfers, expireOffers, respondToUserBids } from './transfers';
 import { matchdayIncome } from './club';
 import { bestFormation } from './selection';
+import { normaliseTactics } from './tactics';
 import type { Fixture, GameState, SeasonHistory } from './types';
 
 export function seasonLabel(season: number) {
@@ -24,7 +25,7 @@ export function startSeason(g: GameState) {
   setupCups(g, entrants);
   setSeasonBudgets(g);
   setBoardObjective(g);
-  for (const c of Object.values(g.clubs)) if (!c.isUser) c.tactics.formation = bestFormation(c, squadOf(g, c.id));
+  for (const c of Object.values(g.clubs)) if (!c.isUser) c.tactics = normaliseTactics({ ...c.tactics, formation: bestFormation(c, squadOf(g, c.id)), roles: [] });
   for (const p of Object.values(g.players)) {
     p.stats = emptyStats();
     p.yellowAcc = 0;

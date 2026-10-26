@@ -3,7 +3,9 @@
 A fast, modern football management game for mobile: a hybrid of Football Manager / Championship Manager depth and EA FC-style accessibility.
 
 - **Real leagues and players**: the full English pyramid (Premier League → National League) plus La Liga, Serie A, Bundesliga and Ligue 1, with 1,100+ real players and generated depth players.
-- **One-minute matches**: watch a live 2D match with commentary, shout tactical changes and make subs. Or take the instant result.
+- **One-minute matches**: watch a live 2D match with commentary, change formation, roles and instructions mid-match, and make subs. Or take the instant result.
+- **Deep tactics**: 6 quick presets, 30+ player roles and a full set of team instructions, each with real trade-offs in the match engine.
+- **Detailed player stats**: shots, xG, key passes, xA, passing, dribbles, tackles, interceptions, saves and more, tracked every match, with per-90 figures and leaderboards.
 - **FM-style ratings**: 19 attributes rated 1–20, shown alongside a FIFA-style overall (OVR) and potential stars.
 - **Monthly development**: players improve or decline at the end of every month (formula below).
 - **Continue button**: moves the calendar forward and runs the world in the background (injuries, AI transfers, bids for your players, finances, youth intakes, board reviews). It stops on match days and when news arrives.
@@ -38,6 +40,35 @@ npm test           # headless season simulations + engine tests
 ```
 
 Games save to your browser's IndexedDB: automatically after every Continue and after every match, or manually from the sidebar.
+
+## Tactics
+
+Open **First Team → Tactics**, or press **Tactics** during a match (this pauses the game and changes apply immediately).
+
+- **Presets**: Gegenpress, Tiki-Taka, Counter-Attack, Wing Play, Park the Bus, Route One. Each one sets the formation, instructions and roles, and you can tweak any of them afterwards.
+- **Formation and mentality**: choose from every formation and five mentality levels. If you change formation mid-match, players on the pitch are re-slotted automatically and keepers stay in goal.
+- **In possession**: passing (short/mixed/direct), tempo, width, attacking focus (left/centre/right), and play out from the back.
+- **Out of possession**: pressing (low block/mid/high), defensive line, tackling, and offside trap.
+- **Transition and game management**: counter-attack and time-wasting.
+- **Player roles**: each slot has its own roles, e.g. Ball-Playing Defender, Wing-Back, Inverted Full-Back, Deep-Lying Playmaker, Mezzala, Inside Forward, Shadow Striker, Poacher, False Nine and Pressing Forward. Roles change how much a player attacks, defends, shoots and creates, and how quickly they tire.
+
+Every option comes with a trade-off:
+
+- Pressing high and playing at a fast tempo tire your players.
+- A high line gets exposed by quick forwards.
+- Getting stuck in leads to more fouls and cards.
+- Counter-attacking works best when you have less of the ball.
+
+## Player stats
+
+Each match records these stats for every player: shots, shots on target, xG, key passes, xA, passes (completed/attempted), dribbles, tackles, interceptions, clearances, fouls, and for keepers, saves and goals conceded.
+
+They appear in four places:
+
+- The **Stats** tab on the player profile, with per-90 figures.
+- The squad list, sortable by xG, key passes, pass % and defensive actions.
+- The live match screen and post-match ratings.
+- The **Competitions** leaderboards.
 
 ## Season calendar
 
@@ -91,7 +122,7 @@ Badges are shrunk to 160px and stored in the browser on that device only. They'r
 
 ## Editing the data
 
-All leagues, clubs and real players are in [`src/game/data/leagues.ts`](src/game/data/leagues.ts). Squads are based on the 2025/26 season, so some transfers may be out of date. Each line is easy to edit:
+All leagues, clubs and real players are in [`src/game/data/leagues.ts`](src/game/data/leagues.ts). League line-ups and squads are for **2026/27, as of 15 October 2026** (after the summer window). They were researched from web reports, so some moves may be wrong or missing, and lower-league squads are only partly covered (generated players fill the gaps). Each line is easy to edit:
 
 ```
 Club:   "Name|SHORT|primary|secondary|reputation|level|Stadium|capacity|crestPattern"

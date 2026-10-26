@@ -58,3 +58,30 @@ describe('engine', () => {
     expect(typeof b.msg).toBe('string');
   });
 });
+
+describe('tactics & detailed stats', () => {
+  it('records detailed stats and supports in-match formation changes', () => {
+    const g = createWorld({ mode: 'classic', manager: 'T', clubName: 'Arsenal', slot: 't', seed: 5 });
+    startSeason(g);
+    let guard = 0;
+    while (!pendingUserFixture(g) && guard++ < 60) advanceDay(g);
+    const f = pendingUserFixture(g)!;
+    const m = createMatch(g, f);
+    const side = f.home === g.userClubId ? 0 : 1;
+    for (let i = 0; i < 30; i++) stepMinute(g, m);
+    changeTactics(g, m, side, { formation: '3-5-2', tempo: 2, line: 2, roles: undefined as unknown as string[] });
+    expect(m.sides[side].tactics.formation).toBe('3-5-2');
+    expect(new Set(m.sides[side].onPitch.map((lp) => lp.slot)).size).toBe(m.sides[side].onPitch.length);
+    expect(m.sides[side].onPitch.find((lp) => lp.pos === 'GK')).toBeTruthy();
+    while (!m.finished) stepMinute(g, m);
+    applyResult(g, m);
+    const squad = Object.values(g.players).filter((p) => p.clubId === g.userClubId && p.stats.apps > 0);
+    const passes = squad.reduce((s, p) => s + p.stats.passes, 0);
+    const passC = squad.reduce((s, p) => s + p.stats.passC, 0);
+    const tkl = squad.reduce((s, p) => s + p.stats.tkl, 0);
+    console.log('team passes', passes, 'completion', (passC / passes).toFixed(2), 'tackles', tkl, 'shots', squad.reduce((s, p) => s + p.stats.shots, 0));
+    expect(passes).toBeGreaterThan(250);
+    expect(passC / passes).toBeGreaterThan(0.6);
+    expect(passC / passes).toBeLessThan(0.95);
+  });
+});

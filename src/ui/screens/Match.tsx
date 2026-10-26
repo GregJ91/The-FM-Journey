@@ -9,7 +9,10 @@ import { validateLineup } from '../../game/selection';
 import type { Club, Fixture, GameState } from '../../game/types';
 import { getGame, mutate, saveGame, useGame } from '../../store';
 import { useUI } from '../context';
-import { Ovr, PosTag } from '../components/common';
+import { Ovr, PosTag, Sheet } from '../components/common';
+import { TacticsEditor } from '../components/TacticsEditor';
+import { statSummary } from '../components/PlayerStats';
+import { roleFor } from '../../game/tactics';
 import { Crest, isLight } from '../components/Crest';
 import { PitchLines } from '../components/Pitch';
 
@@ -63,6 +66,7 @@ export function MatchScreen() {
   const [subOff, setSubOff] = useState<number | null>(null);
   const [subOn, setSubOn] = useState<number | null>(null);
   const [sideTab, setSideTab] = useState<'feed' | 'stats' | 'ratings'>('feed');
+  const [tacticsOpen, setTacticsOpen] = useState(false);
   const [ballPhase, setBallPhase] = useState(0);
   const pauseUntil = useRef(0);
   const finished = matchRef.current?.finished ?? false;
@@ -209,10 +213,13 @@ export function MatchScreen() {
           {sideTab === 'ratings' && (
             <div className="feed">
               {userTeam.onPitch.map((lp) => (
-                <div key={lp.id} className="row" style={{ fontSize: 13.5, padding: '6px 8px', background: '#1f3428', borderRadius: 8 }}>
+                <div key={lp.id} className="row" style={{ fontSize: 13.5, padding: '8px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--line)', borderRadius: 12 }}>
                   <PosTag pos={lp.pos} />
-                  <b className="ellipsis" style={{ flex: 1 }}>{shortName(g.players[lp.id])}{lp.goals ? ' ⚽'.repeat(lp.goals) : ''}{lp.yellow ? ' 🟨' : ''}</b>
-                  <span className="mini-bar" style={{ background: '#2d4a3a' }}><div style={{ width: `${lp.cond}%`, background: lp.cond > 70 ? 'var(--grass)' : lp.cond > 55 ? 'var(--yellow)' : 'var(--coral)' }} /></span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <b className="ellipsis" style={{ display: 'block' }}>{shortName(g.players[lp.id])}{lp.goals ? ' ⚽'.repeat(lp.goals) : ''}{lp.assists ? ' 🅰️' : ''}{lp.yellow ? ' 🟨' : ''}</b>
+                    <div className="statline">{roleFor(lp.pos, userTeam.tactics.roles[lp.slot]).name} · {statSummary(lp.s, lp.pos === 'GK')}</div>
+                  </div>
+                  <span className="mini-bar"><div style={{ width: `${lp.cond}%`, background: lp.cond > 70 ? 'var(--grass)' : lp.cond > 55 ? 'var(--yellow)' : 'var(--coral)' }} /></span>
                   <b style={{ width: 30, textAlign: 'right', color: lp.rating >= 7 ? 'var(--lime)' : lp.rating < 6 ? 'var(--coral)' : '#fff' }}>{Math.max(3, Math.min(10, lp.rating)).toFixed(1)}</b>
                 </div>
               ))}
@@ -221,6 +228,7 @@ export function MatchScreen() {
         </div>
         <div className="match-controls">
           <button className="btn yellow" disabled={finished} onClick={() => setPaused(!paused)}>{paused ? '▶ Play' : '⏸ Subs'}</button>
+          <button className="btn" disabled={finished} onClick={() => { setPaused(true); setTacticsOpen(true); }}>Tactics</button>
           <div className="seg" style={{ flex: 1 }}>
             {[1, 2, 4].map((s) => <button key={s} className={speed === s ? 'on' : ''} onClick={() => setSpeed(s)}>{s}x</button>)}
           </div>
@@ -228,6 +236,16 @@ export function MatchScreen() {
         </div>
       </div>
       {flash !== null && <div className="goal-flash" key={flash} onAnimationEnd={() => setFlash(null)}><div>GOAL!</div></div>}
+      {tacticsOpen && (
+        <Sheet title={`Tactics · ${m.minute}'`} onClose={() => { setTacticsOpen(false); setPaused(false); }} right={<span className="chip">{userTeam.tactics.formation}</span>}>
+          <div className="sheet-b">
+            <TacticsEditor g={g} live tactics={userTeam.tactics}
+              lineup={FORMATIONS[userTeam.tactics.formation].map((_, i) => userTeam.onPitch.find((lp) => lp.slot === i)?.id ?? null)}
+              onChange={(t) => { changeTactics(getGame()!, m, userSide, t); setTick((x) => x + 1); }} />
+            <button className="btn primary block" onClick={() => { setTacticsOpen(false); setPaused(false); }}>Back to the match</button>
+          </div>
+        </Sheet>
+      )}
     </div>
   );
 }
@@ -365,7 +383,10 @@ function PostMatch({ g, fixture, m, onClose }: { g: GameState; fixture: Fixture;
             {mine.map(({ lp, p, r: rt }) => (
               <div key={lp.id} className="row" style={{ padding: '6px 0', borderBottom: '1px solid var(--soft)' }}>
                 <PosTag pos={lp.pos} />
-                <b className="ellipsis" style={{ flex: 1 }}>{shortName(p)} {lp.goals ? '⚽'.repeat(lp.goals) : ''}{lp.assists ? '🅰️' : ''}{lp.yellow ? '🟨' : ''}{lp.red ? '🟥' : ''}{lp.injured ? '🩹' : ''}</b>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <b className="ellipsis" style={{ display: 'block' }}>{shortName(p)} {lp.goals ? '⚽'.repeat(lp.goals) : ''}{lp.assists ? '🅰️' : ''}{lp.yellow ? '🟨' : ''}{lp.red ? '🟥' : ''}{lp.injured ? '🩹' : ''}</b>
+                  <div className="statline">{statSummary(lp.s, lp.pos === 'GK')}</div>
+                </div>
                 <span className="small muted">{lp.on > 0 ? `${lp.on}'↑` : lp.off !== null && lp.off < 90 ? `${lp.off}'↓` : ''}</span>
                 <b style={{ fontFamily: 'var(--display)', fontSize: 17, width: 36, textAlign: 'right', color: rt >= 7.5 ? 'var(--good)' : rt < 6 ? 'var(--bad)' : undefined }}>{rt.toFixed(1)}</b>
               </div>

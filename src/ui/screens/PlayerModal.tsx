@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { NATIONS } from '../../game/data/names';
 import { squadOf } from '../../game/generate';
-import { ATTR_GROUPS, ATTR_LABEL, age, avgRating, fmtMoney, fullName, marketValue, overall, scoutedPotential } from '../../game/ratings';
+import { ATTR_GROUPS, ATTR_LABEL, age, fmtMoney, fullName, marketValue, overall, scoutedPotential } from '../../game/ratings';
 import { seasonLabel } from '../../game/season';
 import { askingPrice, playerInterest, releasePlayer, renewContract, renewDemand, signFreeAgent, userBid, wageDemand, windowOpen } from '../../game/transfers';
 import type { TrainingFocus } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { AttrVal, Ovr, PosTag, Sheet, Spark, Stars } from '../components/common';
+import { PlayerStats } from '../components/PlayerStats';
 import { Crest } from '../components/Crest';
 
 const FOCUS_LABEL: Record<TrainingFocus, string> = { balanced: 'Balanced', attacking: 'Attack', defending: 'Defend', technical: 'Technical', physical: 'Physical', mental: 'Mental' };
@@ -94,16 +95,11 @@ export function PlayerModal() {
 
         {tab === 'stats' && (
           <>
-            <div className="grid3">
-              {[
-                ['Apps', p.stats.apps], ['Goals', p.stats.goals], ['Assists', p.stats.assists],
-                ['Avg', p.stats.apps ? avgRating(p).toFixed(2) : '—'], [isGK ? 'Clean sh.' : 'MOTM', isGK ? p.stats.cleanSheets : p.stats.motm], ['Cards', `${p.stats.yellows}🟨 ${p.stats.reds}🟥`],
-              ].map(([k, v]) => (
-                <div key={k as string} className="tile" style={{ boxShadow: 'none' }}><div className="k">{k}</div><div className="v" style={{ fontSize: 19 }}>{v}</div></div>
-              ))}
-            </div>
+            <PlayerStats p={p} />
             {p.history.length > 0 && (
-              <table className="t" style={{ marginTop: 12 }}>
+              <>
+              <div className="section-label">Career</div>
+              <table className="t">
                 <thead><tr><th>Season</th><th>Club</th><th className="r">Apps</th><th className="r">Gls</th><th className="r">Avg</th></tr></thead>
                 <tbody>
                   {[...p.history].reverse().slice(0, 8).map((h, i) => (
@@ -111,6 +107,7 @@ export function PlayerModal() {
                   ))}
                 </tbody>
               </table>
+              </>
             )}
           </>
         )}

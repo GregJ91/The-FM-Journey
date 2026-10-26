@@ -4,6 +4,7 @@ import { addDays, iso, toDate } from './dates';
 import { altPositionsFor, generateAttrs, overall, wageFor } from './ratings';
 import { chance, hash, hashString, int, normal, pick, rand, seed, weighted } from './rng';
 import { bestFormation, pickLineup } from './selection';
+import { normaliseTactics } from './tactics';
 import type { Club, CrestPattern, CrestShape, GameState, League, Player, Pos, SeasonStats } from './types';
 
 export const START_DATE = '2026-07-01';
@@ -11,7 +12,10 @@ export const START_SEASON = 2026;
 export const SAVE_VERSION = 1;
 
 export function emptyStats(): SeasonStats {
-  return { apps: 0, goals: 0, assists: 0, mins: 0, ratingSum: 0, yellows: 0, reds: 0, cleanSheets: 0, motm: 0 };
+  return {
+    apps: 0, goals: 0, assists: 0, mins: 0, ratingSum: 0, yellows: 0, reds: 0, cleanSheets: 0, motm: 0,
+    shots: 0, sot: 0, xg: 0, kp: 0, xa: 0, passes: 0, passC: 0, drb: 0, drbA: 0, tkl: 0, int: 0, clr: 0, fouls: 0, saves: 0, conceded: 0,
+  };
 }
 
 export function nextId(g: GameState) {
@@ -139,7 +143,7 @@ function parseClub(line: string, leagueId: string, country: string, id: number):
     transferBudget: 0,
     wageBudget: 0,
     facilities: { training: facilityFor(r), youth: facilityFor(r - 4) },
-    tactics: { formation: pick(['4-3-3', '4-2-3-1', '4-4-2', '4-2-3-1', '4-3-3', '3-5-2', '4-1-4-1']), mentality: 0, pressing: 1, style: 'mixed' },
+    tactics: normaliseTactics({ formation: pick(['4-3-3', '4-2-3-1', '4-4-2', '4-2-3-1', '4-3-3', '3-5-2', '4-1-4-1']) }),
     lineup: [],
     subs: [],
     isUser: false,
@@ -291,7 +295,7 @@ export function createWorld(opts: NewGameOptions): GameState {
         leagueId: def.id, country: 'ENG', reputation: 12, stadium: c.stadium, capacity: 2500,
         balance: 400_000, transferBudget: 150_000, wageBudget: 0,
         facilities: { training: 1, youth: 1 },
-        tactics: { formation: '4-4-2', mentality: 0, pressing: 1, style: 'mixed' },
+        tactics: normaliseTactics({ formation: '4-4-2' }),
         lineup: [], subs: [], isUser: true, custom: true, seasonIncome: 0, seasonExpense: 0, trophies: [],
       };
       g.clubs[id] = club;
@@ -340,7 +344,7 @@ export function createWorld(opts: NewGameOptions): GameState {
   for (const club of Object.values(g.clubs)) {
     club.wageBudget = Math.round(wageBill(g, club.id) * (club.custom ? 1.4 : 1.12));
     const squad = squadOf(g, club.id);
-    club.tactics.formation = bestFormation(club, squad);
+    club.tactics = normaliseTactics({ ...club.tactics, formation: bestFormation(club, squad), roles: [] });
     const { lineup, subs } = pickLineup(club, squad);
     club.lineup = lineup;
     club.subs = subs;

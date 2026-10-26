@@ -22,7 +22,26 @@ export interface SeasonStats {
   reds: number;
   cleanSheets: number;
   motm: number;
+  // detailed
+  shots: number;
+  sot: number; // shots on target
+  xg: number;
+  kp: number; // key passes (passes leading to a shot)
+  xa: number;
+  passes: number; // attempted
+  passC: number; // completed
+  drb: number; // dribbles completed
+  drbA: number; // dribbles attempted
+  tkl: number; // tackles won
+  int: number; // interceptions
+  clr: number; // clearances
+  fouls: number;
+  saves: number;
+  conceded: number;
 }
+
+/** Per-match stat line (same detailed fields, used live and in match reports). */
+export type StatLine = Omit<SeasonStats, 'apps' | 'ratingSum' | 'cleanSheets' | 'motm'>;
 
 export interface CareerEntry {
   season: number;
@@ -72,9 +91,19 @@ export interface Player {
 
 export interface Tactics {
   formation: string;
-  mentality: number; // -2..2
-  pressing: number; // 0..2
-  style: 'short' | 'mixed' | 'direct';
+  mentality: number; // -2..2 (very defensive .. very attacking)
+  pressing: number; // 0 low block, 1 mid, 2 high press
+  style: 'short' | 'mixed' | 'direct'; // passing style
+  tempo: number; // 0 slow, 1 normal, 2 fast
+  width: number; // 0 narrow, 1 balanced, 2 wide
+  line: number; // defensive line: 0 deep, 1 standard, 2 high
+  tackling: number; // 0 stay on feet, 1 normal, 2 get stuck in
+  focus: 'mixed' | 'left' | 'centre' | 'right'; // attacking focus
+  counter: boolean; // break quickly when winning the ball
+  offsideTrap: boolean;
+  playOutBack: boolean;
+  timeWasting: boolean;
+  roles: string[]; // role id per formation slot
 }
 
 export interface Facilities {

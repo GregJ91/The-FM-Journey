@@ -2,7 +2,8 @@ import { useSyncExternalStore } from 'react';
 import { del, get, set } from 'idb-keyval';
 import { getSeed, seed } from './game/rng';
 import { ATTR_KEYS, type Attrs, type GameState } from './game/types';
-import { SAVE_VERSION } from './game/generate';
+import { SAVE_VERSION, emptyStats } from './game/generate';
+import { normaliseTactics } from './game/tactics';
 
 let game: GameState | null = null;
 let version = 0;
@@ -71,10 +72,14 @@ export function compact(g: GameState) {
 
 export function expand(raw: string): GameState {
   const g = JSON.parse(raw) as GameState;
+  const blank = emptyStats();
   for (const p of Object.values(g.players)) {
     const a = p.attrs as unknown;
     if (Array.isArray(a)) p.attrs = Object.fromEntries(ATTR_KEYS.map((k, i) => [k, a[i]])) as Attrs;
+    // saves from before detailed stats existed
+    p.stats = { ...blank, ...p.stats };
   }
+  for (const c of Object.values(g.clubs)) c.tactics = normaliseTactics(c.tactics);
   return g;
 }
 

@@ -2,13 +2,20 @@ import { FORMATIONS } from './formations';
 import { POS_GROUP, ratingAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
-import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, Pos, Tactics } from './types';
+import { normaliseTactics, roleFor, ROLES } from './tactics';
+import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, Pos, StatLine, Tactics } from './types';
+
+export function emptyLine(): StatLine {
+  return { goals: 0, assists: 0, mins: 0, yellows: 0, reds: 0, shots: 0, sot: 0, xg: 0, kp: 0, xa: 0, passes: 0, passC: 0, drb: 0, drbA: 0, tkl: 0, int: 0, clr: 0, fouls: 0, saves: 0, conceded: 0 };
+}
 
 export interface LivePlayer {
   id: number;
+  slot: number; // index into the formation's slots
   pos: Pos;
   x: number;
   y: number;
+  s: StatLine; // detailed match stats (fractional passes, rounded at full time)
   rating: number;
   cond: number;
   goals: number;
@@ -61,33 +68,65 @@ export interface LiveMatch {
 const ATT_W: Record<Pos, number> = { ST: 1, AML: 0.8, AMR: 0.8, AMC: 0.8, ML: 0.5, MR: 0.5, MC: 0.35, DM: 0.15, DL: 0.2, DR: 0.2, DC: 0.05, GK: 0 };
 const MID_W: Record<Pos, number> = { MC: 1, DM: 0.9, AMC: 0.8, ML: 0.6, MR: 0.6, AML: 0.4, AMR: 0.4, DL: 0.3, DR: 0.3, ST: 0.2, DC: 0.15, GK: 0.05 };
 const DEF_W: Record<Pos, number> = { DC: 1, DL: 0.85, DR: 0.85, DM: 0.8, MC: 0.35, ML: 0.3, MR: 0.3, AMC: 0.1, AML: 0.1, AMR: 0.1, ST: 0.05, GK: 0 };
-const SHOOT_W: Record<Pos, number> = { ST: 5, AMC: 3, AML: 3, AMR: 3, ML: 1.5, MR: 1.5, MC: 1.4, DM: 0.6, DL: 0.4, DR: 0.4, DC: 0.5, GK: 0 };
+const SHOOT_W: Record<Pos, number> = { ST: 4, AMC: 3.2, AML: 3.2, AMR: 3.2, ML: 1.5, MR: 1.5, MC: 1.4, DM: 0.6, DL: 0.4, DR: 0.4, DC: 0.5, GK: 0 };
 const ASSIST_W: Record<Pos, number> = { AMC: 4, AML: 3.5, AMR: 3.5, MC: 3, ML: 3, MR: 3, ST: 2, DL: 1.8, DR: 1.8, DM: 1.5, DC: 0.4, GK: 0.1 };
 
 function playerOf(g: GameState, id: number): Player {
   return g.players[id];
 }
 
+function role(side: Side, lp: LivePlayer) {
+  return roleFor(lp.pos, side.tactics.roles[lp.slot]);
+}
+
 function computeStrength(g: GameState, side: Side) {
   let att = 0, mid = 0, def = 0, gk = 20;
   let hasGK = false;
+  let backPass = 0, backN = 0;
   for (const lp of side.onPitch) {
     const p = playerOf(g, lp.id);
+    const rl = role(side, lp);
     const r = ratingAt(p, lp.pos) * (0.72 + 0.28 * (lp.cond / 100)) * (0.95 + p.morale / 1000);
-    att += r * ATT_W[lp.pos];
-    mid += r * MID_W[lp.pos];
-    def += r * DEF_W[lp.pos];
+    att += r * ATT_W[lp.pos] * rl.att;
+    mid += r * MID_W[lp.pos] * rl.mid;
+    def += r * DEF_W[lp.pos] * rl.def;
     if (lp.pos === 'GK') { gk = r; hasGK = true; }
+    if (lp.pos === 'GK' || lp.pos === 'DC') { backPass += p.attrs.passing; backN++; }
   }
   if (!hasGK) gk = 20;
   const t = side.tactics;
   const m = t.mentality;
-  side.str = {
-    att: (att / 3.6) * (1 + 0.06 * m),
-    mid: (mid / 4.5) * (1 + 0.025 * (t.pressing - 1)) * (t.style === 'short' ? 1.03 : t.style === 'direct' ? 0.97 : 1),
-    def: (def / 5.0) * (1 - 0.04 * m) * (1 + 0.02 * (t.pressing === 0 ? 1 : 0)),
-    gk,
-  };
+  let attM = 1 + 0.06 * m;
+  let midM = 1 + 0.025 * (t.pressing - 1);
+  let defM = (1 - 0.04 * m) * (1 + 0.015 * (t.pressing - 1));
+  if (t.style === 'short') { midM *= 1.025; attM *= 0.96; }
+  if (t.style === 'direct') { midM *= 0.96; attM *= 1.03; }
+  if (t.tempo === 2) { attM *= 1.03; midM *= 0.98; }
+  if (t.tempo === 0) { attM *= 0.95; midM *= 1.02; }
+  if (t.width === 2) attM *= 1.02;
+  if (t.width === 0) midM *= 1.01;
+  if (t.tackling === 2) defM *= 1.03;
+  if (t.tackling === 0) defM *= 0.98;
+  // Playing out from the back only pays off with good passers at the back
+  if (t.playOutBack && backN) midM *= 1 + Math.max(-0.05, Math.min(0.05, (backPass / backN - 12) * 0.008));
+  side.str = { att: (att / 3.6) * attM, mid: (mid / 4.5) * midM, def: (def / 5.0) * defM, gk };
+}
+
+/** Which flank a slot is on, for attacking focus. */
+function flank(lp: LivePlayer): 'left' | 'centre' | 'right' {
+  return lp.y < 35 ? 'left' : lp.y > 65 ? 'right' : 'centre';
+}
+
+function focusMult(side: Side, lp: LivePlayer) {
+  const f = side.tactics.focus;
+  if (f === 'mixed') return 1;
+  return flank(lp) === f ? 1.6 : 0.85;
+}
+
+/** Average of an attribute over the given players. */
+function avgAttr(g: GameState, list: LivePlayer[], k: keyof Player['attrs']) {
+  if (!list.length) return 10;
+  return list.reduce((s, lp) => s + g.players[lp.id].attrs[k], 0) / list.length;
 }
 
 function buildSide(g: GameState, club: Club, isUser: boolean): Side {
@@ -99,15 +138,16 @@ function buildSide(g: GameState, club: Club, isUser: boolean): Side {
     club.lineup = lineup;
     club.subs = subs;
   }
+  club.tactics = normaliseTactics(club.tactics);
   const slots = FORMATIONS[club.tactics.formation];
   const onPitch: LivePlayer[] = [];
   club.lineup.forEach((id, i) => {
     if (id === null) return;
-    onPitch.push(newLive(g, id, slots[i].pos, slots[i].x, slots[i].y, 0));
+    onPitch.push(newLive(g, id, i, slots[i].pos, slots[i].x, slots[i].y, 0));
   });
   const side: Side = {
     clubId: club.id,
-    tactics: { ...club.tactics },
+    tactics: { ...club.tactics, roles: [...club.tactics.roles] },
     onPitch,
     bench: [...club.subs].slice(0, 9),
     out: [],
@@ -118,9 +158,9 @@ function buildSide(g: GameState, club: Club, isUser: boolean): Side {
   return side;
 }
 
-function newLive(g: GameState, id: number, pos: Pos, x: number, y: number, minute: number): LivePlayer {
+function newLive(g: GameState, id: number, slot: number, pos: Pos, x: number, y: number, minute: number): LivePlayer {
   const p = playerOf(g, id);
-  return { id, pos, x, y, rating: 6.55, cond: p.condition, goals: 0, assists: 0, yellow: false, red: false, injured: false, on: minute, off: null };
+  return { id, slot, pos, x, y, s: emptyLine(), rating: 6.55, cond: p.condition, goals: 0, assists: 0, yellow: false, red: false, injured: false, on: minute, off: null };
 }
 
 export function createMatch(g: GameState, f: Fixture): LiveMatch {
@@ -166,13 +206,25 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
     computeStrength(g, A);
   }
 
-  // Fatigue
+  // Fatigue: pressing, tempo and role all add to the running
   for (const side of m.sides) {
-    const press = side.tactics.pressing - 1;
+    const t = side.tactics;
+    const teamRate = (1 + 0.3 * (t.pressing - 1)) * (t.tempo === 2 ? 1.1 : t.tempo === 0 ? 0.94 : 1);
     for (const lp of side.onPitch) {
       const st = attr(g, lp.id, 'stamina');
-      const rate = (lp.pos === 'GK' ? 0.08 : 0.34 + 0.07 * press) * (1.35 - (st / 20) * 0.75);
-      lp.cond = Math.max(15, lp.cond - rate);
+      const base = lp.pos === 'GK' ? 0.08 : 0.34 * teamRate * role(side, lp).fatigue;
+      lp.cond = Math.max(15, lp.cond - base * (1.35 - (st / 20) * 0.75));
+    }
+  }
+
+  // AI managers react to the scoreline
+  if (minute === 70 || minute === 80) {
+    for (const side of [0, 1] as const) {
+      const s = m.sides[side];
+      if (g.clubs[s.clubId].isUser) continue;
+      const diff = m.score[side] - m.score[side === 0 ? 1 : 0];
+      if (diff < 0 && s.tactics.mentality < 2) changeTactics(g, m, side, { mentality: s.tactics.mentality + 1 });
+      if (diff > 0 && minute === 80 && s.tactics.mentality > -1) changeTactics(g, m, side, { mentality: s.tactics.mentality - 1 });
     }
   }
 
@@ -189,28 +241,67 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
   const def = m.sides[o];
   const dir = t === 0 ? 1 : -1;
   m.ball = { x: 50 + dir * (rand() * 30 - 5), y: 15 + rand() * 70 };
+  const at = att.tactics;
+  const dt = def.tactics;
+  const leading = (side: 0 | 1) => m.score[side] > m.score[side === 0 ? 1 : 0];
+
+  // Passing: share out this minute's passes by role, completion by skill & style
+  passMinute(g, att, dt.pressing);
+  // Duels: dribbles, tackles, interceptions
+  duelMinute(g, att, def);
 
   // Chance creation
-  const ratio = (att.str.att) / Math.max(1, def.str.def);
+  const ratio = att.str.att / Math.max(1, def.str.def);
   const homeAdv = t === 0 ? 1.06 : 0.97;
-  const styleQ = att.tactics.style === 'direct' ? 1.05 : att.tactics.style === 'short' ? 0.98 : 1;
-  const pShot = 0.22 * Math.pow(ratio, 1.6) * homeAdv * (1 + 0.05 * att.tactics.mentality);
+  let shotMult = homeAdv * (1 + 0.05 * at.mentality);
+  shotMult *= at.tempo === 2 ? 1.06 : at.tempo === 0 ? 0.94 : 1;
+  shotMult *= at.width === 2 ? 1.04 : at.width === 0 ? 0.97 : 1;
+  const attShare = t === 0 ? pH : 1 - pH;
+  // counter-attacking pays off for the side with less of the ball; it's wasted when you dominate
+  const counterOn = at.counter && attShare < 0.5;
+  if (counterOn) shotMult *= 1.06 + (0.5 - attShare) * 0.6;
+  if (at.timeWasting && leading(t)) shotMult *= 0.85;
+  if (dt.line === 0) shotMult *= 1.05; // deep line concedes more (but worse) shots
+  if (dt.offsideTrap) shotMult *= 0.94;
+  if (dt.timeWasting && leading(o)) shotMult *= 0.95;
+  // Chance quality
+  let quality = at.style === 'direct' ? 1.05 : at.style === 'short' ? 0.98 : 1;
+  quality *= at.width === 0 ? 1.04 : at.width === 2 ? 0.95 : 1;
+  if (counterOn) quality *= 1.08;
+  if (dt.line === 2) {
+    // a high line is exposed by quick forwards
+    const fwdPace = avgAttr(g, att.onPitch.filter((lp) => POS_GROUP[lp.pos] === 'ATT'), 'pace');
+    const cbPace = avgAttr(g, def.onPitch.filter((lp) => lp.pos === 'DC'), 'pace');
+    quality *= Math.max(0.9, Math.min(1.15, 1 + (fwdPace - cbPace) * 0.012));
+    quality *= 1.04; // space in behind
+  } else if (dt.line === 0) quality *= 0.93;
+  if (dt.pressing === 2) quality *= 1.05; // beat the press and there's room to attack
+  if (dt.pressing === 0) quality *= 0.97;
+  const pShot = 0.22 * Math.pow(ratio, 1.6) * shotMult;
   if (rand() < pShot && att.onPitch.length > 0) {
-    evs.push(...shot(g, m, t, ratio * styleQ));
+    const beatTrap = dt.offsideTrap && rand() < 0.05;
+    evs.push(...shot(g, m, t, ratio * quality, beatTrap));
+  } else if (rand() < 0.12) {
+    // ball cleared from danger
+    const cb = def.onPitch.filter((lp) => POS_GROUP[lp.pos] === 'DEF' || lp.pos === 'DM');
+    if (cb.length) weighted(cb, (lp) => (lp.pos === 'DC' ? 2 : 1) * attr(g, lp.id, 'heading')).s.clr++;
   }
 
-  // Fouls & cards
-  if (rand() < 0.2) {
+  // Fouls & cards (tackling style matters)
+  const foulRate = 0.2 * (dt.tackling === 2 ? 1.45 : dt.tackling === 0 ? 0.6 : 1);
+  const cardRate = 0.14 * (dt.tackling === 2 ? 1.3 : dt.tackling === 0 ? 0.65 : 1) * (dt.timeWasting && leading(o) ? 1.2 : 1);
+  if (rand() < foulRate) {
     const fouler = weighted(def.onPitch, (lp) => (lp.pos === 'GK' ? 0.05 : POS_GROUP[lp.pos] === 'DEF' ? 1.4 : POS_GROUP[lp.pos] === 'MID' ? 1.2 : 0.7) * (24 - attr(g, lp.id, 'decisions')));
     if (fouler) {
       m.stats.fouls[o]++;
+      fouler.s.fouls++;
       fouler.rating -= 0.04;
       const straightRed = rand() < 0.004;
-      if (straightRed || (rand() < 0.14)) {
+      if (straightRed || rand() < cardRate) {
         if (straightRed || fouler.yellow) {
           fouler.red = true;
           fouler.rating -= 1.4;
-          sendOff(g, m, o, fouler, straightRed);
+          sendOff(g, m, o, fouler);
           evs.push({ minute, type: 'red', team: o, player: fouler.id, text: straightRed ? `RED CARD! ${name(g, fouler.id)} is sent off for a reckless challenge!` : `Second yellow! ${name(g, fouler.id)} has to go.` });
         } else {
           fouler.yellow = true;
@@ -225,7 +316,7 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
   // Injuries
   for (const side of [0, 1] as const) {
     const s = m.sides[side];
-    if (rand() < 0.0012 * (1 + 0.3 * (s.tactics.pressing - 1)) && s.onPitch.length > 0) {
+    if (rand() < 0.0012 * (1 + 0.3 * (s.tactics.pressing - 1)) * (s.tactics.tackling === 2 ? 1.1 : 1) && s.onPitch.length > 0) {
       const lp = pick(s.onPitch.filter((x) => x.pos !== 'GK').length ? s.onPitch.filter((x) => x.pos !== 'GK') : s.onPitch);
       lp.injured = true;
       m.injuredOut.push(lp.id);
@@ -269,14 +360,67 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
   return evs;
 }
 
-function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number): MatchEvent[] {
+/** About ten passes per minute of possession, shared out by role and completed by skill. */
+function passMinute(g: GameState, side: Side, oppPress: number) {
+  const t = side.tactics;
+  const attempts = 11 * (t.tempo === 2 ? 0.88 : t.tempo === 0 ? 1.15 : 1) * (t.style === 'short' ? 1.15 : t.style === 'direct' ? 0.8 : 1);
+  const shares = side.onPitch.map((lp) => (lp.pos === 'GK' ? (t.playOutBack ? 0.35 : 0.15) : MID_W[lp.pos] * role(side, lp).mid + 0.2));
+  const total = shares.reduce((a, b) => a + b, 0) || 1;
+  side.onPitch.forEach((lp, i) => {
+    const n = (attempts * shares[i]) / total;
+    const pa = attr(g, lp.id, 'passing');
+    const grp = POS_GROUP[lp.pos];
+    let c = 0.7 + 0.016 * (pa - 10) + (t.style === 'short' ? 0.05 : t.style === 'direct' ? -0.08 : 0) - 0.025 * (oppPress - 1);
+    c += grp === 'DEF' || grp === 'GK' ? 0.05 : grp === 'ATT' ? -0.06 : 0;
+    c = Math.max(0.45, Math.min(0.95, c));
+    lp.s.passes += n;
+    lp.s.passC += n * c;
+  });
+}
+
+function duelMinute(g: GameState, att: Side, def: Side) {
+  const defenders = def.onPitch.filter((lp) => lp.pos !== 'GK');
+  if (!defenders.length || !att.onPitch.length) return;
+  const tackleStyle = def.tactics.tackling === 2 ? 1.2 : def.tactics.tackling === 0 ? 0.8 : 1;
+  // Dribble attempt
+  if (rand() < 0.32) {
+    const runner = weighted(att.onPitch.filter((lp) => lp.pos !== 'GK'), (lp) => (ATT_W[lp.pos] * role(att, lp).att + 0.1) * attr(g, lp.id, 'dribbling'));
+    if (runner) {
+      runner.s.drbA++;
+      const tackler = weighted(defenders, (lp) => DEF_W[lp.pos] * role(def, lp).def + 0.1);
+      const p = Math.max(0.2, Math.min(0.85, 0.48 + (attr(g, runner.id, 'dribbling') - attr(g, tackler.id, 'tackling')) * 0.03));
+      if (rand() < p) { runner.s.drb++; runner.rating += 0.03; }
+      else { tackler.s.tkl++; tackler.rating += 0.04; }
+    }
+  }
+  // Tackles in open play
+  if (rand() < 0.3 * tackleStyle) {
+    const tk = weighted(defenders, (lp) => (DEF_W[lp.pos] * role(def, lp).def + 0.15) * attr(g, lp.id, 'tackling'));
+    if (rand() < 0.5 + (attr(g, tk.id, 'tackling') - 10) * 0.025) { tk.s.tkl++; tk.rating += 0.03; }
+  }
+  // Interceptions
+  if (rand() < 0.3) {
+    const ic = weighted(defenders, (lp) => (DEF_W[lp.pos] * role(def, lp).def + 0.15) * attr(g, lp.id, 'positioning'));
+    ic.s.int++;
+    ic.rating += 0.02;
+  }
+}
+
+function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number, beatTrap = false): MatchEvent[] {
   const minute = m.minute;
   const att = m.sides[t];
   const def = m.sides[t === 0 ? 1 : 0];
   const evs: MatchEvent[] = [];
-  const shooter = weighted(att.onPitch, (lp) => SHOOT_W[lp.pos] * (attr(g, lp.id, 'finishing') + attr(g, lp.id, 'composure')) / 2);
-  const isPen = rand() < 0.025;
+  const shooter = weighted(att.onPitch, (lp) => SHOOT_W[lp.pos] * role(att, lp).shoot * focusMult(att, lp) * (attr(g, lp.id, 'finishing') + attr(g, lp.id, 'composure')) / 2);
+  const isPen = !beatTrap && rand() < 0.025;
   let xg = isPen ? 0.78 : Math.min(0.65, Math.max(0.02, -Math.log(1 - rand() * 0.999) * 0.1 * Math.pow(ratio, 0.3)));
+  if (beatTrap) xg = Math.max(xg, 0.32);
+  // The pass that made the chance
+  const others = att.onPitch.filter((lp) => lp !== shooter);
+  const creator = !isPen && others.length && rand() < 0.78
+    ? weighted(others, (lp) => ASSIST_W[lp.pos] * role(att, lp).create * focusMult(att, lp) * (attr(g, lp.id, 'passing') + attr(g, lp.id, 'vision') + attr(g, lp.id, 'crossing')) / 3)
+    : null;
+  if (creator) { creator.s.kp++; creator.s.xa += xg; creator.rating += 0.08; }
   const fin = attr(g, shooter.id, 'finishing');
   const comp = attr(g, shooter.id, 'composure');
   const keeper = def.onPitch.find((lp) => lp.pos === 'GK');
@@ -286,6 +430,8 @@ function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number): MatchEvent[]
   const goalP = Math.min(0.92, xg * shooterF / keeperF);
   m.stats.shots[t]++;
   m.stats.xg[t] += xg;
+  shooter.s.shots++;
+  shooter.s.xg += xg;
   const dir = t === 0 ? 1 : -1;
   m.ball = { x: 50 + dir * (38 + rand() * 10), y: 30 + rand() * 40 };
   const onTargetP = Math.min(0.95, 0.28 + 0.22 * fin / 20 + xg * 0.8);
@@ -294,34 +440,30 @@ function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number): MatchEvent[]
   if (rand() < goalP) {
     m.score[t]++;
     m.stats.onTarget[t]++;
+    shooter.s.sot++;
     shooter.goals++;
     shooter.rating += 1.1;
-    let assistId: number | null = null;
-    if (!isPen && rand() < 0.75) {
-      const others = att.onPitch.filter((lp) => lp !== shooter);
-      if (others.length) {
-        const a = weighted(others, (lp) => ASSIST_W[lp.pos] * (attr(g, lp.id, 'passing') + attr(g, lp.id, 'vision') + attr(g, lp.id, 'crossing')) / 3);
-        a.assists++;
-        a.rating += 0.6;
-        assistId = a.id;
-      }
-    }
+    const assistId = creator && rand() < 0.92 ? creator.id : null;
+    if (creator && assistId) { creator.assists++; creator.rating += 0.55; }
     for (const lp of def.onPitch) {
-      if (lp.pos === 'GK') lp.rating -= 0.35;
+      if (lp.pos === 'GK') { lp.rating -= 0.35; lp.s.conceded++; }
       else if (POS_GROUP[lp.pos] === 'DEF') lp.rating -= 0.18;
     }
     m.goals.push({ minute, team: t, scorer: shooter.id, assist: assistId, pen: isPen });
     m.ball = { x: t === 0 ? 99 : 1, y: 50 };
     const how = isPen
       ? `PENALTY converted by ${sName}!`
-      : assistId
-        ? pick([`GOAL! ${sName} finishes after a lovely ball from ${name(g, assistId)}!`, `GOAL! ${name(g, assistId)} sets it up and ${sName} buries it!`, `GOAL! ${sName} turns in ${name(g, assistId)}'s cross!`])
-        : pick([`GOAL! ${sName} hammers it into the top corner!`, `GOAL! What a strike from ${sName}!`, `GOAL! ${sName} goes it alone and scores!`]);
+      : beatTrap
+        ? `GOAL! ${sName} beats the offside trap and slots it home!`
+        : assistId
+          ? pick([`GOAL! ${sName} finishes after a lovely ball from ${name(g, assistId)}!`, `GOAL! ${name(g, assistId)} sets it up and ${sName} buries it!`, `GOAL! ${sName} turns in ${name(g, assistId)}'s cross!`])
+          : pick([`GOAL! ${sName} hammers it into the top corner!`, `GOAL! What a strike from ${sName}!`, `GOAL! ${sName} goes it alone and scores!`]);
     evs.push({ minute, type: 'goal', team: t, player: shooter.id, assist: assistId ?? undefined, text: `${how} ${club.short} ${m.score[0]}-${m.score[1]}` });
   } else if (rand() < onTargetP) {
     m.stats.onTarget[t]++;
+    shooter.s.sot++;
     shooter.rating += 0.12;
-    if (keeper) keeper.rating += 0.14;
+    if (keeper) { keeper.rating += 0.14; keeper.s.saves++; }
     if (chance(0.35)) m.stats.corners[t]++;
     if (xg > 0.22 || chance(0.35)) {
       evs.push({ minute, type: 'save', team: t, player: shooter.id, text: isPen ? `Penalty SAVED! ${keeper ? name(g, keeper.id) : 'The keeper'} denies ${sName}!` : pick([`${sName} forces a fine save from ${keeper ? name(g, keeper.id) : 'the keeper'}.`, `Big chance! ${sName} is denied at the near post.`, `${sName} tests the keeper from range.`]) });
@@ -329,6 +471,10 @@ function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number): MatchEvent[]
   } else {
     shooter.rating -= 0.05;
     if (chance(0.25)) m.stats.corners[t]++;
+    if (chance(0.3)) {
+      const blockers = def.onPitch.filter((lp) => POS_GROUP[lp.pos] === 'DEF');
+      if (blockers.length) pick(blockers).s.clr++;
+    }
     if (xg > 0.25 || chance(0.25)) {
       evs.push({ minute, type: 'miss', team: t, player: shooter.id, text: pick([`${sName} blazes over the bar!`, `${sName} drags it wide.`, `So close! ${sName} hits the post!`, `${sName}'s header goes just over.`]) });
     }
@@ -343,7 +489,7 @@ function removeFromPitch(m: LiveMatch, side: 0 | 1, lp: LivePlayer, minute: numb
   s.out.push(lp);
 }
 
-function sendOff(g: GameState, m: LiveMatch, side: 0 | 1, lp: LivePlayer, straight: boolean) {
+function sendOff(g: GameState, m: LiveMatch, side: 0 | 1, lp: LivePlayer) {
   m.reds.push({ minute: m.minute, team: side, player: lp.id });
   removeFromPitch(m, side, lp, m.minute);
   // If the keeper is sent off, an outfield player goes in goal
@@ -352,7 +498,6 @@ function sendOff(g: GameState, m: LiveMatch, side: 0 | 1, lp: LivePlayer, straig
     if (s.onPitch.length) s.onPitch[0].pos = 'GK';
   }
   computeStrength(g, m.sides[side]);
-  void straight;
 }
 
 /** Bring on the best bench replacement for `off` (same position preferred). */
@@ -361,7 +506,7 @@ export function makeSub(g: GameState, m: LiveMatch, side: 0 | 1, offId: number, 
   if (s.subsLeft <= 0) return null;
   const off = s.onPitch.find((x) => x.id === offId);
   if (!off || !s.bench.includes(onId)) return null;
-  const on = newLive(g, onId, off.pos, off.x, off.y, m.minute);
+  const on = newLive(g, onId, off.slot, off.pos, off.x, off.y, m.minute);
   s.onPitch = s.onPitch.map((x) => (x === off ? on : x));
   off.off = m.minute;
   s.out.push(off);
@@ -502,6 +647,16 @@ export function applyResult(g: GameState, m: LiveMatch) {
     p.stats.ratingSum += r;
     if (lp.yellow) { p.stats.yellows++; p.yellowAcc++; }
     if (lp.red) { p.stats.reds++; p.suspended += lp.yellow ? 1 : 3; }
+    // detailed numbers (passes accumulate fractionally during the match)
+    lp.s.mins = mins;
+    lp.s.goals = lp.goals;
+    lp.s.assists = lp.assists;
+    lp.s.passes = Math.round(lp.s.passes);
+    lp.s.passC = Math.min(lp.s.passes, Math.round(lp.s.passC));
+    const st = p.stats;
+    st.shots += lp.s.shots; st.sot += lp.s.sot; st.xg += lp.s.xg; st.kp += lp.s.kp; st.xa += lp.s.xa;
+    st.passes += lp.s.passes; st.passC += lp.s.passC; st.drb += lp.s.drb; st.drbA += lp.s.drbA;
+    st.tkl += lp.s.tkl; st.int += lp.s.int; st.clr += lp.s.clr; st.fouls += lp.s.fouls; st.saves += lp.s.saves; st.conceded += lp.s.conceded;
     if (p.yellowAcc >= 5) { p.suspended += 1; p.yellowAcc = 0; }
     if (conceded === 0 && mins >= 60 && (lp.pos === 'GK' || POS_GROUP[lp.pos] === 'DEF')) p.stats.cleanSheets++;
     p.form = [...p.form.slice(-4), r];
@@ -553,6 +708,49 @@ export function winnerOf(f: Fixture): number | null {
 }
 
 export function changeTactics(g: GameState, m: LiveMatch, side: 0 | 1, t: Partial<Tactics>) {
-  Object.assign(m.sides[side].tactics, t);
-  computeStrength(g, m.sides[side]);
+  const s = m.sides[side];
+  if (t.formation && t.formation !== s.tactics.formation) changeFormation(g, m, side, t.formation);
+  for (const [k, v] of Object.entries(t)) {
+    if (k !== 'formation' && v !== undefined) (s.tactics as unknown as Record<string, unknown>)[k] = v;
+  }
+  computeStrength(g, s);
+}
+
+/** Switch formation mid-match: players on the pitch are re-slotted to the positions that suit them best. */
+export function changeFormation(g: GameState, m: LiveMatch, side: 0 | 1, formation: string) {
+  const s = m.sides[side];
+  const slots = FORMATIONS[formation];
+  if (!slots) return;
+  const pairs: { r: number; slot: number; lp: LivePlayer }[] = [];
+  slots.forEach((slot, i) => {
+    for (const lp of s.onPitch) {
+      const p = g.players[lp.id];
+      // keepers stay in goal; outfielders never go in goal unless there's no keeper
+      const gkPenalty = (slot.pos === 'GK') !== (lp.pos === 'GK') ? -200 : 0;
+      pairs.push({ r: ratingAt(p, slot.pos) + gkPenalty, slot: i, lp });
+    }
+  });
+  pairs.sort((a, b) => b.r - a.r);
+  const usedSlots = new Set<number>();
+  const placed = new Set<LivePlayer>();
+  for (const pr of pairs) {
+    if (usedSlots.has(pr.slot) || placed.has(pr.lp)) continue;
+    usedSlots.add(pr.slot);
+    placed.add(pr.lp);
+    const sl = slots[pr.slot];
+    pr.lp.slot = pr.slot;
+    pr.lp.pos = sl.pos;
+    pr.lp.x = sl.x;
+    pr.lp.y = sl.y;
+  }
+  // keep a role choice where the new slot has the same position as before
+  const oldSlots = FORMATIONS[s.tactics.formation];
+  const roles = slots.map((sl) => {
+    const j = oldSlots.findIndex((o) => o.pos === sl.pos);
+    const prev = j >= 0 ? s.tactics.roles[j] : undefined;
+    return ROLES[sl.pos].some((r) => r.id === prev) ? prev! : ROLES[sl.pos][0].id;
+  });
+  s.tactics = normaliseTactics({ ...s.tactics, formation, roles });
+  computeStrength(g, s);
+  m.events.push({ minute: m.minute, type: 'info', team: side, text: `${g.clubs[s.clubId].short} switch to a ${formation}.` });
 }

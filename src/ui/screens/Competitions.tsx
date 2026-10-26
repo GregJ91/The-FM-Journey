@@ -9,6 +9,7 @@ import { Card, FixtureRow, PlayerRow } from '../components/common';
 import { Crest } from '../components/Crest';
 import { luminance } from '../theme';
 import { SquadList } from './Squad';
+import type { Player } from '../../game/types';
 import { ClubBadgeButton } from '../components/BadgesSheet';
 
 export function Competitions() {
@@ -136,26 +137,40 @@ function LeagueFixtures({ leagueId }: { leagueId: string }) {
   );
 }
 
+type Board = { id: string; label: string; value: (p: Player) => number; show: (p: Player) => string; min?: (p: Player) => boolean };
+const BOARDS: Board[] = [
+  { id: 'goals', label: 'Goals', value: (p) => p.stats.goals, show: (p) => String(p.stats.goals) },
+  { id: 'assists', label: 'Assists', value: (p) => p.stats.assists, show: (p) => String(p.stats.assists) },
+  { id: 'rating', label: 'Avg rating', value: (p) => avgRating(p), show: (p) => avgRating(p).toFixed(2), min: (p) => p.stats.apps >= 5 },
+  { id: 'xg', label: 'xG', value: (p) => p.stats.xg, show: (p) => p.stats.xg.toFixed(1) },
+  { id: 'shots', label: 'Shots', value: (p) => p.stats.shots, show: (p) => String(p.stats.shots) },
+  { id: 'kp', label: 'Key passes', value: (p) => p.stats.kp, show: (p) => String(p.stats.kp) },
+  { id: 'xa', label: 'xA', value: (p) => p.stats.xa, show: (p) => p.stats.xa.toFixed(1) },
+  { id: 'pass', label: 'Pass %', value: (p) => p.stats.passC / Math.max(1, p.stats.passes), show: (p) => `${Math.round((p.stats.passC / Math.max(1, p.stats.passes)) * 100)}%`, min: (p) => p.stats.mins >= 450 },
+  { id: 'drb', label: 'Dribbles', value: (p) => p.stats.drb, show: (p) => String(p.stats.drb) },
+  { id: 'tkl', label: 'Tackles', value: (p) => p.stats.tkl, show: (p) => String(p.stats.tkl) },
+  { id: 'int', label: 'Interceptions', value: (p) => p.stats.int, show: (p) => String(p.stats.int) },
+  { id: 'cs', label: 'Clean sheets', value: (p) => p.stats.cleanSheets, show: (p) => String(p.stats.cleanSheets), min: (p) => p.pos === 'GK' },
+  { id: 'saves', label: 'Saves', value: (p) => p.stats.saves, show: (p) => String(p.stats.saves), min: (p) => p.pos === 'GK' },
+  { id: 'cards', label: 'Cards', value: (p) => p.stats.yellows + p.stats.reds * 3, show: (p) => `${p.stats.yellows}🟨 ${p.stats.reds}🟥` },
+];
+
 function Scorers({ clubIds }: { clubIds: number[] }) {
   const g = useGame();
-  const [kind, setKind] = useState<'goals' | 'assists' | 'rating'>('goals');
+  const [kind, setKind] = useState('goals');
   const set = new Set(clubIds);
-  const players = Object.values(g.players).filter((p) => p.clubId !== null && set.has(p.clubId) && p.stats.apps > 0);
-  const rows = kind === 'goals'
-    ? [...players].sort((a, b) => b.stats.goals - a.stats.goals || a.stats.apps - b.stats.apps)
-    : kind === 'assists' ? [...players].sort((a, b) => b.stats.assists - a.stats.assists)
-    : [...players].filter((p) => p.stats.apps >= 5).sort((a, b) => avgRating(b) - avgRating(a));
+  const board = BOARDS.find((b) => b.id === kind)!;
+  const players = Object.values(g.players).filter((p) => p.clubId !== null && set.has(p.clubId) && p.stats.apps > 0 && (!board.min || board.min(p)));
+  const rows = [...players].sort((a, b) => board.value(b) - board.value(a) || a.stats.mins - b.stats.mins);
   return (
     <>
       <div className="tabs">
-        <button className={`tab ${kind === 'goals' ? 'active' : ''}`} onClick={() => setKind('goals')}>⚽ Goals</button>
-        <button className={`tab ${kind === 'assists' ? 'active' : ''}`} onClick={() => setKind('assists')}>🅰️ Assists</button>
-        <button className={`tab ${kind === 'rating' ? 'active' : ''}`} onClick={() => setKind('rating')}>⭐ Avg rating</button>
+        {BOARDS.map((b) => <button key={b.id} className={`tab ${kind === b.id ? 'active' : ''}`} onClick={() => setKind(b.id)}>{b.label}</button>)}
       </div>
       <Card>
         <div className="list">
-          {rows.slice(0, 20).map((p) => (
-            <PlayerRow key={p.id} p={p} me={p.clubId === g.userClubId} sub={`${g.clubs[p.clubId!].name} · ${p.stats.apps} apps`} end={kind === 'goals' ? p.stats.goals : kind === 'assists' ? p.stats.assists : avgRating(p).toFixed(2)} />
+          {rows.slice(0, 20).map((p, i) => (
+            <PlayerRow key={p.id} p={p} me={p.clubId === g.userClubId} sub={`${i + 1}. ${g.clubs[p.clubId!].name} · ${p.stats.apps} apps`} end={board.show(p)} />
           ))}
           {!rows.length && <div className="empty">No matches played yet.</div>}
         </div>

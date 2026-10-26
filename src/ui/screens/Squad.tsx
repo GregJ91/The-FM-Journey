@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { FORMATIONS, FORMATION_NAMES, MENTALITY, PRESSING, STYLES } from '../../game/formations';
+import { FORMATIONS } from '../../game/formations';
+import { normaliseTactics } from '../../game/tactics';
+import { TacticsEditor } from '../components/TacticsEditor';
 import { squadOf } from '../../game/generate';
 import { POS_GROUP, age, avgRating, familiarity, fmtMoney, marketValue, overall, ratingAt, scoutedPotential, shortName } from '../../game/ratings';
 import { pickLineup, validateLineup } from '../../game/selection';
-import type { Club, GameState, Player } from '../../game/types';
+import type { Club, GameState, Player, Tactics as TacticsT } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { Card, CondBar, OvrChange, PlayerRow, Sheet, Spark, Stars } from '../components/common';
 import { FormationPitch } from '../components/Pitch';
 
-type SortKey = 'pos' | 'ovr' | 'age' | 'value' | 'pot' | 'goals' | 'rating';
-const SORTS: [SortKey, string][] = [['pos', 'Position'], ['ovr', 'Overall'], ['pot', 'Potential'], ['age', 'Age'], ['value', 'Value'], ['goals', 'Goals'], ['rating', 'Avg rating']];
+type SortKey = 'pos' | 'ovr' | 'age' | 'value' | 'pot' | 'goals' | 'rating' | 'xg' | 'kp' | 'pass' | 'def';
+const SORTS: [SortKey, string][] = [['pos', 'Position'], ['ovr', 'Overall'], ['pot', 'Potential'], ['age', 'Age'], ['value', 'Value'], ['rating', 'Avg rating'], ['goals', 'Goals'], ['xg', 'xG'], ['kp', 'Key passes'], ['pass', 'Pass %'], ['def', 'Tackles + Int']];
+const STAT_SORTS: SortKey[] = ['goals', 'rating', 'xg', 'kp', 'pass', 'def'];
+const passPct = (p: Player) => (p.stats.passes ? (p.stats.passC / p.stats.passes) * 100 : 0);
 const POS_ORDER = ['GK', 'DR', 'DC', 'DL', 'DM', 'MR', 'MC', 'ML', 'AMR', 'AMC', 'AML', 'ST'];
 const GROUP_NAME = { GK: 'Goalkeepers', DEF: 'Defenders', MID: 'Midfielders', ATT: 'Attackers' } as const;
 
@@ -25,16 +29,26 @@ export function SquadList({ g, players, own = true }: { g: GameState; players: P
     value: (p) => -marketValue(p, g.date),
     goals: (p) => -p.stats.goals,
     rating: (p) => -avgRating(p),
+    xg: (p) => -p.stats.xg,
+    kp: (p) => -p.stats.kp,
+    pass: (p) => -(p.stats.passes >= 20 ? passPct(p) : 0),
+    def: (p) => -(p.stats.tkl + p.stats.int),
   };
   const rows = [...players].sort((a, b) => get[sort](a) - get[sort](b));
   const line = (p: Player) => {
     const bits = [`${age(p, g.date)}y`, p.nat];
-    if (sort === 'goals' || sort === 'rating') bits.push(`${p.stats.apps} apps · ${p.stats.goals}G ${p.stats.assists}A`);
+    if (STAT_SORTS.includes(sort)) bits.push(`${p.stats.apps} apps · ${p.stats.goals}G ${p.stats.assists}A`);
     else bits.push(fmtMoney(marketValue(p, g.date)));
     return bits.join(' · ');
   };
   const end = (p: Player) => {
-    if (sort === 'rating' || sort === 'goals') return p.stats.apps ? avgRating(p).toFixed(2) : '—';
+    if (!p.stats.apps && STAT_SORTS.includes(sort)) return '—';
+    if (sort === 'rating') return avgRating(p).toFixed(2);
+    if (sort === 'goals') return p.stats.goals;
+    if (sort === 'xg') return p.stats.xg.toFixed(1);
+    if (sort === 'kp') return p.stats.kp;
+    if (sort === 'pass') return p.stats.passes ? `${passPct(p).toFixed(0)}%` : '—';
+    if (sort === 'def') return p.stats.tkl + p.stats.int;
     if (sort === 'pot') return <Stars ovr={scoutedPotential(p, own)} />;
     return <Spark values={p.form} />;
   };
@@ -90,8 +104,6 @@ export function Squad() {
   );
 }
 
-const MENTALITY_SHORT = ['V.Def', 'Def', 'Bal', 'Att', 'V.Att'];
-
 function Tactics({ g, club, squad }: { g: GameState; club: Club; squad: Player[] }) {
   const [sel, setSel] = useState<number | null>(null);
   const [benchPick, setBenchPick] = useState(false);
@@ -114,6 +126,12 @@ function Tactics({ g, club, squad }: { g: GameState; club: Club; squad: Player[]
     setSel(null);
   };
   const autoPick = () => mutate(() => { const r = pickLineup(club, squad); club.lineup = r.lineup; club.subs = r.subs; });
+  const updateTactics = (t: Partial<TacticsT>) => mutate(() => {
+    const formationChanged = !!t.formation && t.formation !== club.tactics.formation;
+    // a new formation brings default roles unless the change supplied its own (presets)
+    club.tactics = normaliseTactics({ ...club.tactics, ...t, roles: t.roles ?? (formationChanged ? [] : club.tactics.roles) });
+    if (formationChanged) { const r = pickLineup(club, squad); club.lineup = r.lineup; club.subs = r.subs; }
+  });
 
   return (
     <div>
@@ -122,41 +140,13 @@ function Tactics({ g, club, squad }: { g: GameState; club: Club; squad: Player[]
         <p className="small muted" style={{ textAlign: 'center', margin: '8px 0 0' }}>Tap a position to choose a player. Red names are out of position.</p>
       </Card>
 
-      <Card title="Formation" tag="Shape" tagColor="var(--sky)">
-        <div className="tabs" style={{ marginBottom: 0 }}>
-          {FORMATION_NAMES.map((f) => (
-            <button key={f} className={`tab ${club.tactics.formation === f ? 'active' : ''}`} onClick={() => mutate(() => { club.tactics.formation = f; const r = pickLineup(club, squad); club.lineup = r.lineup; club.subs = r.subs; })}>{f}</button>
-          ))}
-        </div>
-      </Card>
-
-      <Card title="Team Instructions" tag="Tactics" tagColor="var(--violet)">
-        <div className="col">
-          <div className="field">
-            <label>Mentality · {MENTALITY[club.tactics.mentality + 2]}</label>
-            <div className="seg">
-              {MENTALITY_SHORT.map((m, i) => <button key={m} className={club.tactics.mentality === i - 2 ? 'on' : ''} onClick={() => mutate(() => { club.tactics.mentality = i - 2; })}>{m}</button>)}
-            </div>
-          </div>
-          <div className="field">
-            <label>Pressing</label>
-            <div className="seg">
-              {PRESSING.map((m, i) => <button key={m} className={club.tactics.pressing === i ? 'on' : ''} onClick={() => mutate(() => { club.tactics.pressing = i; })}>{m}</button>)}
-            </div>
-          </div>
-          <div className="field">
-            <label>Passing</label>
-            <div className="seg">
-              {(Object.keys(STYLES) as (keyof typeof STYLES)[]).map((k) => <button key={k} className={club.tactics.style === k ? 'on' : ''} onClick={() => mutate(() => { club.tactics.style = k; })}>{STYLES[k]}</button>)}
-            </div>
-          </div>
-          <label className="row small bold" style={{ cursor: 'pointer' }}>
-            <input type="checkbox" style={{ width: 20, height: 20 }} checked={g.autoSubs} onChange={(e) => mutate((gg) => { gg.autoSubs = e.target.checked; })} />
-            Assistant makes subs during matches
-          </label>
-          <div className="help">Attacking mentality creates more chances but leaves gaps. A high press wins the ball back but tires players. Short passing keeps possession; direct play makes slightly better chances.</div>
-        </div>
-      </Card>
+      <TacticsEditor g={g} tactics={club.tactics} lineup={lineup} onChange={updateTactics} />
+      <div className="card" style={{ padding: 4 }}>
+        <button className="li" style={{ width: '100%', background: 'none', border: 'none', color: 'inherit', textAlign: 'left', padding: '10px 12px' }} onClick={() => mutate((gg) => { gg.autoSubs = !gg.autoSubs; })}>
+          <div className="main"><div className="t">Assistant makes substitutions</div><div className="s">Tired or struggling players are swapped automatically during matches.</div></div>
+          <span className={`switch ${g.autoSubs ? 'on' : ''}`}><span /></span>
+        </button>
+      </div>
 
       <Card title="Substitutes" tag={`${subs.length}/9`} tagColor="var(--yellow)" right={<button className="btn sm" disabled={subs.length >= 9} onClick={() => setBenchPick(true)}>+ Add</button>}>
         <div className="list">
