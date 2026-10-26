@@ -24,6 +24,8 @@ The game is designed for phones in portrait. On a desktop it runs in a centred p
 - **Continue bar**: sits just above the tabs, within thumb reach. It turns into **Play Match** on match days.
 - Player profiles, position pickers and menus open as bottom sheets. The match screen uses a portrait pitch, with the controls at the bottom.
 
+- The whole interface (header, tab bar, Continue button, selections, page tint, match screen accents) takes on **your club's colours**. Text colour is picked by contrast ratio so white, black or pale kits stay readable.
+
 Tip: open it on your phone and use "Add to Home Screen" to get it full-screen.
 
 ## Running it

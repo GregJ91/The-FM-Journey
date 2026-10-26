@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { setGame, useGame, useVersion } from './store';
 import { UIProvider, useUI } from './ui/context';
+import { applyTheme, clubTheme } from './ui/theme';
 import { ContinueBar, Header, TabBar } from './ui/components/Layout';
 import { Home } from './ui/screens/Home';
 import { Squad } from './ui/screens/Squad';
@@ -16,6 +17,13 @@ import { Title } from './ui/screens/Title';
 function Game() {
   const g = useGame();
   const ui = useUI();
+  // Theme the whole UI in the managed club's colours
+  const colors = g.clubs[g.userClubId].colors;
+  useEffect(() => {
+    applyTheme(clubTheme(colors));
+    return () => applyTheme(null);
+  }, [colors[0], colors[1]]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') ui.openPlayer(null); };
     window.addEventListener('keydown', onKey);
