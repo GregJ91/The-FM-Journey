@@ -1,4 +1,5 @@
 import { FORMATIONS } from './formations';
+import { isMetaClub, META_TUNING } from './meta';
 import { POS_GROUP, ratingAt, rawOverallAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
@@ -124,7 +125,8 @@ function computeStrength(g: GameState, side: Side) {
   if (t.tackling === 0) defM *= 0.98;
   // Playing out from the back only pays off with good passers at the back
   if (t.playOutBack && backN) midM *= 1 + Math.max(-0.05, Math.min(0.05, (backPass / backN - 12) * 0.008));
-  side.str = { att: (att / 3.6) * attM, mid: (mid / 4.5) * midM, def: (def / 5.0) * defM, gk };
+  const edge = isMetaClub(g.clubs[side.clubId]) ? META_TUNING.edge : 1;
+  side.str = { att: (att / 3.6) * attM * edge, mid: (mid / 4.5) * midM * edge, def: (def / 5.0) * defM * edge, gk };
 }
 
 /** Which flank a slot is on, for attacking focus. */

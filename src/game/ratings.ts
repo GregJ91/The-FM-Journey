@@ -109,7 +109,7 @@ export function generateAttrs(pos: Pos, target: number, style?: string): Attrs {
   return attrs;
 }
 
-function applyStyle(a: Attrs, style: string) {
+export function applyStyle(a: Attrs, style: string) {
   for (const s of style.split('')) {
     if (s === 'p') { a.pace += 3; a.strength -= 1; }
     if (s === 's') { a.strength += 3; a.heading += 2; a.pace -= 1.5; }

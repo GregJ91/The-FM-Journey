@@ -163,9 +163,9 @@ In the match engine, pace and composure matter more than the overall rating sugg
 
 **Arsenal** players have meta attribute profiles. Their overall ratings are the same, but their attributes lean towards these areas:
 
-- **Who it covers**: real players, academy prospects, generated squad players and future youth intakes.
-- **Effect**: Arsenal win about 50% of games against Man City, Liverpool, Aston Villa and Brentford, instead of 43%.
-- **Changing it**: the club list is `META_CLUBS` in `src/game/generate.ts`; add or remove clubs there.
+- **Who it covers**: real players, academy prospects, generated squad players, future youth intakes, and anyone Arsenal sign. Signings are reshaped when they join, keeping their overall.
+- **Team edge**: Arsenal also get a team-strength multiplier (`META_TUNING.edge` = 1.095). It's calibrated so they win about **65% of games against the rest of the big six** (Man City, Liverpool, Chelsea, Man United, Spurs), checked by `tests/meta.test.ts`. Without it the figure is about 48%. Over a season they typically win the league comfortably (around 95–105 points).
+- **Changing it**: the club list and the edge are in `src/game/meta.ts`. Set the edge to 1 to keep only the attribute profiles.
 
 ## Player development: the monthly ratio
 

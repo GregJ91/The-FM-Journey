@@ -7,6 +7,7 @@ import { altPositionsFor, generateAttrs, overall, wageFor } from './ratings';
 import { chance, hash, hashString, int, normal, pick, rand, seed, weighted } from './rng';
 import { bestFormation, pickLineup } from './selection';
 import { normaliseTactics } from './tactics';
+import { isMetaClub, metaStyle } from './meta';
 import type { Club, CrestPattern, CrestShape, GameState, League, Player, Pos, SeasonStats } from './types';
 
 export const START_DATE = '2026-07-01';
@@ -68,16 +69,9 @@ export interface PlayerSpec {
   real?: boolean;
 }
 
-/** Clubs whose players (real, generated and future academy intakes) get meta attribute profiles. */
-export const META_CLUBS = new Set(['Arsenal']);
-
-/** Same overall, attributes shifted towards what wins matches: pace, dribbling, finishing, composure (see ratings.ts). */
-function metaStyle(pos: Pos) {
-  return pos === 'GK' ? 'k' : pos === 'DC' || pos === 'DL' || pos === 'DR' ? 'n' : 'm';
-}
-
 export function createPlayer(g: GameState, spec: PlayerSpec, clubId: number | null, rep = 50): Player {
-  const meta = clubId !== null && META_CLUBS.has(g.clubs[clubId]?.name);
+  // Meta clubs' players (real, generated and academy intakes) get meta attribute profiles
+  const meta = clubId !== null && isMetaClub(g.clubs[clubId]);
   const attrs = generateAttrs(spec.pos, spec.ovr, meta ? (spec.style ?? '') + metaStyle(spec.pos) : spec.style);
   const id = nextId(g);
   const pa = spec.pa ?? potentialFor(spec.ovr, spec.age);
@@ -115,6 +109,7 @@ export function createPlayer(g: GameState, spec: PlayerSpec, clubId: number | nu
   };
   p.wage = wageFor(overall(p), rep);
   g.players[id] = p;
+  if (meta) p.meta = true;
   return p;
 }
 

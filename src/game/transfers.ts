@@ -1,3 +1,4 @@
+import { applyMetaProfile, isMetaClub } from './meta';
 import { addDays, inTransferWindow, month } from './dates';
 import { emptyStats, nextId, squadOf, wageBill } from './generate';
 import { age, fmtMoney, fullName, marketValue, overall, ratingAt, roundMoney, wageFor } from './ratings';
@@ -131,6 +132,8 @@ export function completeTransfer(g: GameState, playerId: number, toId: number, f
     p.stats = emptyStats();
   }
   p.clubId = toId;
+  // Signings for meta clubs get the meta attribute profile
+  if (isMetaClub(to)) applyMetaProfile(p);
   p.squad = 'first';
   p.wage = wage;
   const a = age(p, g.date);
