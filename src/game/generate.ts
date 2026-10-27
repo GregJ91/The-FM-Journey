@@ -68,8 +68,17 @@ export interface PlayerSpec {
   real?: boolean;
 }
 
+/** Clubs whose players (real, generated and future academy intakes) get meta attribute profiles. */
+export const META_CLUBS = new Set(['Arsenal']);
+
+/** Same overall, attributes shifted towards what wins matches: pace, dribbling, finishing, composure (see ratings.ts). */
+function metaStyle(pos: Pos) {
+  return pos === 'GK' ? 'k' : pos === 'DC' || pos === 'DL' || pos === 'DR' ? 'n' : 'm';
+}
+
 export function createPlayer(g: GameState, spec: PlayerSpec, clubId: number | null, rep = 50): Player {
-  const attrs = generateAttrs(spec.pos, spec.ovr, spec.style);
+  const meta = clubId !== null && META_CLUBS.has(g.clubs[clubId]?.name);
+  const attrs = generateAttrs(spec.pos, spec.ovr, meta ? (spec.style ?? '') + metaStyle(spec.pos) : spec.style);
   const id = nextId(g);
   const pa = spec.pa ?? potentialFor(spec.ovr, spec.age);
   const foot = spec.pos.endsWith('L') ? (chance(0.75) ? 'L' : 'R') : chance(0.2) ? 'L' : chance(0.08) ? 'B' : 'R';

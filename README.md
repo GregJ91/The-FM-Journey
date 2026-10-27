@@ -157,6 +157,16 @@ The Club World Cup is held every four years (2029, 2033 …) in June, after the 
 - **15 Mar**: youth intake.
 - **5 Jun**: the season ends. Promotion and relegation (3 up/3 down in most English divisions), prize money, contract expiries, retirements and the season review.
 
+## Meta players
+
+In the match engine, pace and composure matter more than the overall rating suggests. So do dribbling and finishing for attackers, and tackling and positioning for defenders. A player whose attributes in these areas are above his overall level adds up to 4% more to his team (and a player who is below it adds up to 4% less).
+
+**Arsenal** players have meta attribute profiles. Their overall ratings are the same, but their attributes lean towards these areas:
+
+- **Who it covers**: real players, academy prospects, generated squad players and future youth intakes.
+- **Effect**: Arsenal win about 50% of games against Man City, Liverpool, Aston Villa and Brentford, instead of 43%.
+- **Changing it**: the club list is `META_CLUBS` in `src/game/generate.ts`; add or remove clubs there.
+
 ## Player development: the monthly ratio
 
 At the end of every month each player's overall changes by:

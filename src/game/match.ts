@@ -1,5 +1,5 @@
 import { FORMATIONS } from './formations';
-import { POS_GROUP, ratingAt, shortName } from './ratings';
+import { POS_GROUP, ratingAt, rawOverallAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
 import { normaliseTactics, roleFor, ROLES } from './tactics';
@@ -80,6 +80,20 @@ function role(side: Side, lp: LivePlayer) {
   return roleFor(lp.pos, side.tactics.roles[lp.slot]);
 }
 
+/**
+ * Players whose match-winning attributes (pace and composure, plus dribbling and finishing going forward or
+ * tackling and positioning at the back) are above what their overall suggests contribute a little more, and
+ * vice versa. Capped at ±4%; for a typical player it's about 1.
+ */
+function metaFactor(p: Player, pos: Pos) {
+  if (pos === 'GK') return 1;
+  const a = p.attrs;
+  const key = POS_GROUP[pos] === 'DEF' ? a.tackling + a.positioning : a.dribbling + a.finishing;
+  const keyAvg = (a.pace + a.composure + key) / 4;
+  const level = (rawOverallAt(a, pos) - 10) / 4.6;
+  return 1 + Math.max(-0.04, Math.min(0.04, (keyAvg - level) * 0.015));
+}
+
 function computeStrength(g: GameState, side: Side) {
   let att = 0, mid = 0, def = 0, gk = 20;
   let hasGK = false;
@@ -87,7 +101,7 @@ function computeStrength(g: GameState, side: Side) {
   for (const lp of side.onPitch) {
     const p = playerOf(g, lp.id);
     const rl = role(side, lp);
-    const r = ratingAt(p, lp.pos) * (0.72 + 0.28 * (lp.cond / 100)) * (0.95 + p.morale / 1000);
+    const r = ratingAt(p, lp.pos) * (0.72 + 0.28 * (lp.cond / 100)) * (0.95 + p.morale / 1000) * metaFactor(p, lp.pos);
     att += r * ATT_W[lp.pos] * rl.att;
     mid += r * MID_W[lp.pos] * rl.mid;
     def += r * DEF_W[lp.pos] * rl.def;

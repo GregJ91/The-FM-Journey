@@ -119,6 +119,10 @@ function applyStyle(a: Attrs, style: string) {
     if (s === 'w') { a.workRate += 3; a.stamina += 2; }
     if (s === 'h') { a.heading += 3; a.aerial += 1; }
     if (s === 'c') { a.crossing += 3; }
+    // Meta profiles: attributes reshaped towards what wins matches (the overall is rebalanced afterwards)
+    if (s === 'm') { a.pace += 3; a.dribbling += 2.5; a.finishing += 2; a.composure += 2.5; a.firstTouch += 1; }
+    if (s === 'n') { a.pace += 3; a.tackling += 2; a.positioning += 2; a.composure += 2; }
+    if (s === 'k') { a.reflexes += 2; a.handling += 1; a.composure += 2; a.distribution += 1.5; }
   }
 }
 
