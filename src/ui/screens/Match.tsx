@@ -153,6 +153,13 @@ export function MatchScreen() {
   const userTeam = m.sides[userSide];
   const total = m.stats.poss[0] + m.stats.poss[1] || 1;
   const colors: [string, string] = [hk[0], ak[0]];
+  const shouts = (
+          <div className="shouts">
+            {SHOUTS.map((label, i) => (
+              <button key={label} className={`btn sm ${userTeam.tactics.mentality === i - 2 ? 'primary' : ''}`} onClick={() => { changeTactics(getGame()!, m, userSide, { mentality: i - 2 }); setTick((t) => t + 1); }}>{label}</button>
+            ))}
+          </div>
+  );
 
   return (
     <div className="match-screen">
@@ -161,14 +168,11 @@ export function MatchScreen() {
         <div className="match-scroll live">
           <div className="match-main">
           <LivePitch m={m} kits={[hk, ak]} ballPhase={ballPhase} horizontal={landscape} />
-          <div className="shouts">
-            {SHOUTS.map((label, i) => (
-              <button key={label} className={`btn sm ${userTeam.tactics.mentality === i - 2 ? 'primary' : ''}`} onClick={() => { changeTactics(getGame()!, m, userSide, { mentality: i - 2 }); setTick((t) => t + 1); }}>{label}</button>
-            ))}
-          </div>
+          {!landscape && shouts}
           </div>
 
           <div className="match-side">
+          {landscape && shouts}
           {paused && !m.finished && (
             <div className="panel" ref={(el) => el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })}>
               <div className="row"><h3>Substitutions</h3><span className="right chip">{userTeam.subsLeft} left</span></div>

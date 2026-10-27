@@ -585,7 +585,20 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .match-scroll.live { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: 14px; overflow: hidden; }
   .match-scroll.live .match-main { justify-content: center; overflow: hidden; }
   .match-scroll.live .match-side { overflow-y: auto; scrollbar-width: none; padding-bottom: 8px; }
-  .match-pitch.horizontal { width: min(100%, calc((100dvh - 200px - var(--safe-t) - var(--safe-b)) * 105 / 68)); margin: 0 auto; }
+  /* The pitch fills everything between the slim scoreboard and the controls */
+  .match-pitch.horizontal { width: min(100%, calc((100dvh - 118px - var(--safe-t) - var(--safe-b)) * 105 / 68)); margin: 0 auto; }
+  .match-pitch.horizontal .pl { width: 24px; height: 24px; margin: -12px 0 0 -12px; font-size: 10px; }
+  .match-pitch.horizontal .ball { width: 12px; height: 12px; margin: -6px 0 0 -6px; }
+  .match-scroll.live { padding-top: 0; padding-bottom: 6px; gap: 12px; }
+  .match-scroll.live .shouts { flex-wrap: wrap; overflow: visible; }
+  .match-scroll.live .shouts .btn { flex: 1 1 auto; min-height: 34px; padding: 6px 10px; font-size: 12.5px; }
+  .match-inner:has(.match-scroll.live) .scoreboard { padding-top: calc(4px + var(--safe-t)); padding-bottom: 2px; }
+  .match-inner:has(.match-scroll.live) .scoreboard .team img, .match-inner:has(.match-scroll.live) .scoreboard .team svg { width: 26px; height: 26px; }
+  .match-inner:has(.match-scroll.live) .scoreboard .score { font-size: 26px; }
+  .match-inner:has(.match-scroll.live) .scoreboard .clock { margin-top: 2px; font-size: 10.5px; }
+  .match-inner:has(.match-scroll.live) .progress { margin-top: 4px; }
+  .match-inner:has(.match-scroll.live) .match-controls { padding-top: 6px; padding-bottom: calc(6px + var(--safe-b)); }
+  .match-inner:has(.match-scroll.live) .match-controls .btn, .match-inner:has(.match-scroll.live) .match-controls .seg button { min-height: 38px; }
   /* Pre- and post-match: panels side by side, notes across the full width */
   .match-scroll:not(.live) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 12px; }
   .match-scroll:not(.live) > .small, .match-scroll:not(.live) > .continue-btn, .match-scroll:not(.live) > .btn { grid-column: 1 / -1; }
