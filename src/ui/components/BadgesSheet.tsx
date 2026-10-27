@@ -7,7 +7,7 @@ import type { Club } from '../../game/types';
 import { getGame } from '../../store';
 import { assignFromTray, badgeCount, badgeFor, clearBadges, clearTray, discardTray, importBadgeFiles, removeBadge, setBadge, slug, trayItems, useBadgesVersion } from '../badges';
 import { useUI } from '../context';
-import { Sheet } from './common';
+import { ConfirmButton, Sheet } from './common';
 
 interface ClubOpt {
   name: string;
@@ -83,7 +83,7 @@ export function BadgesSheet({ onClose }: { onClose: () => void }) {
             {result.skipped.length > 0 && <div className="small muted" style={{ marginTop: 6 }}>Skipped {result.skipped.length} file(s) that weren't usable images.</div>}
           </div>
         )}
-        {badgeCount() > 0 && <button className="btn coral block" onClick={() => { if (confirm('Remove all imported badges?')) clearBadges(); }}>Remove all badges</button>}
+        {badgeCount() > 0 && <ConfirmButton className="btn coral block" label="Remove all badges" confirmLabel="Tap again to remove all badges" onConfirm={() => clearBadges()} />}
       </div>
     </Sheet>
   );
@@ -132,7 +132,7 @@ function Matcher({ clubs, onClose }: { clubs: ClubOpt[]; onClose: () => void }) 
           ))}
           {!list.length && <div className="empty">No club matches "{q}".</div>}
         </div>
-        <button className="btn block" onClick={() => { if (confirm('Discard all unmatched images?')) { clearTray(); onClose(); } }}>Discard all unmatched</button>
+        <ConfirmButton className="btn block" label="Discard all unmatched" confirmLabel="Tap again to discard them" onConfirm={() => { clearTray(); onClose(); }} />
       </div>
     </Sheet>
   );

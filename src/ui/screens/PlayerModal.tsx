@@ -8,7 +8,7 @@ import { askingPrice, playerInterest, releasePlayer, renewContract, renewDemand,
 import type { TrainingFocus } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
-import { AttrVal, Ovr, PosTag, Sheet, Spark, Stars } from '../components/common';
+import { AttrVal, ConfirmButton, Ovr, PosTag, Sheet, Spark, Stars } from '../components/common';
 import { PlayerStats } from '../components/PlayerStats';
 import { Crest } from '../components/Crest';
 
@@ -133,7 +133,7 @@ export function PlayerModal() {
                 {p.squad === 'first' ? '→ Youth team' : '⬆ First team'}
               </button>
             </div>
-            <button className="btn coral block" onClick={() => { if (confirm(`Release ${fullName(p)}? You will pay off half the remaining contract.`)) { act(() => releasePlayer(g, p.id)); close(); } }}>Release player</button>
+            <ConfirmButton className="btn coral block" label="Release player" confirmLabel={`Tap again: release ${fullName(p)} and pay off half the contract`} onConfirm={() => { act(() => releasePlayer(g, p.id)); close(); }} />
             <div className="small muted">{squadOf(g, user.id).length} players in first team</div>
           </div>
         )}

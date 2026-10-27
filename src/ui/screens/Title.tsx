@@ -7,6 +7,7 @@ import { startSeason } from '../../game/season';
 import type { CrestPattern, CrestShape } from '../../game/types';
 import { deleteSave, listSaves, loadGame, saveGame, setGame, type SaveMeta } from '../../store';
 import { CrestSvg } from '../components/Crest';
+import { ConfirmButton } from '../components/common';
 import { BadgesSheet } from '../components/BadgesSheet';
 
 type Step = 'menu' | 'classic' | 'create' | 'load';
@@ -181,7 +182,7 @@ function LoadList({ saves, onBack, onChange }: { saves: SaveMeta[]; onBack: () =
             </div>
             <div className="grid2" style={{ marginTop: 10 }}>
               <button className="btn primary" onClick={() => loadGame(s.slot).catch((e) => setErr(String(e.message ?? e)))}>Load</button>
-              <button className="btn coral" onClick={async () => { if (confirm(`Delete save for ${s.club}?`)) { await deleteSave(s.slot); onChange(); } }}>Delete</button>
+              <ConfirmButton className="btn coral" label="Delete" confirmLabel="Sure?" onConfirm={async () => { await deleteSave(s.slot); onChange(); }} />
             </div>
           </div>
         ))}

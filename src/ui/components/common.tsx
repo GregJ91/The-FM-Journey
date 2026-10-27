@@ -210,3 +210,13 @@ export function PlayerRow({ p, sub, end, endSub, ovr, onClick, me }: { p: Player
     </div>
   );
 }
+
+/** A button that needs a second tap to confirm (browser confirm() dialogs aren't available everywhere). */
+export function ConfirmButton({ className, label, confirmLabel, onConfirm }: { className?: string; label: ReactNode; confirmLabel: string; onConfirm: () => void }) {
+  const [armed, setArmed] = useState(false);
+  return (
+    <button className={className} onClick={() => { if (armed) { setArmed(false); onConfirm(); } else { setArmed(true); setTimeout(() => setArmed(false), 4000); } }}>
+      {armed ? confirmLabel : label}
+    </button>
+  );
+}
