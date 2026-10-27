@@ -6,6 +6,9 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Emanuele Sala|MC|19|ITA|57|75",
     "Mattia Angelicchio|AMC|17|ITA|54|78",
   ],
+  "Alavés": [
+    "Xanet Olaiz|DR|19|ESP|58|73",
+  ],
   "Angers": [
     "Jules Bouffandeau|MC|17|FRA|54|74",
   ],
@@ -41,12 +44,19 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "Atlético Madrid": [
     "Rayane Belaid|AML|18|ESP|57|78",
+    "Sergio Esteban|ST|18|ESP|57|77",
+    "Miguel Cubo|ST|18|ESP|60|77",
+    "Iker Luque|ST|18|ESP|58|75",
   ],
   "Augsburg": [
     "Noahkai Banks|DC|19|USA|63|77",
   ],
   "Auxerre": [
     "Ackah-Tidiane Zoukrou|DC|17|FRA|55|75",
+    "Mohamed Coulibaly|DC|17|FRA|55|74",
+    "Yvan Zaddy|MC|19|CIV|59|73",
+    "Alvin Petit Dol|DC|19|FRA|56|70",
+    "Pierre Reale|GK|18|FRA|52|70",
   ],
   "Barcelona": [
     "Guille Fernández|MC|18|ESP|63|84",
@@ -69,6 +79,11 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "David Santos Daiber|AML|18|GER|60|79",
     "Wisdom Mike|AML|18|GER|61|80",
   ],
+  "Birmingham City": [
+    "Briar Bateman|AMC|18|ENG|55|72",
+    "Alezandro Da Silva|DR|19|ENG|55|70",
+    "Alfie Smith|GK|16|ENG|48|72",
+  ],
   "Blackburn Rovers": [
     "Osman Kamara|AML|19|ENG|58|71",
     "Frank Vare|MC|18|ENG|53|68",
@@ -81,6 +96,12 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "Bolton Wanderers": [
     "Toby Ritchie|ST|18|ENG|54|68",
+    "David Abimbola|ST|19|ENG|54|69",
+    "Daeshon Lawrence|ST|19|ENG|53|68",
+    "Harrison Rice|DR|19|ENG|53|68",
+    "Jamie Grayson|DC|19|ENG|52|67",
+    "Harley Irwin|MC|19|ENG|52|67",
+    "Conor Lewis|ST|19|ENG|51|66",
   ],
   "Borussia Dortmund": [
     "Samuele Inácio|AMC|18|ITA|66|83",
@@ -89,6 +110,8 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "Borussia Mönchengladbach": [
     "Wael Mohya|AMC|17|GER|67|86",
+    "Josiah Uwakhonye|ST|18|GER|59|76",
+    "Tyler Meiser|DC|19|GER|60|75",
   ],
   "Bournemouth": [
     "Veljko Milosavljević|DC|19|SRB|67|81",
@@ -102,6 +125,7 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "Brest": [
     "Raphaël Le Guen|DC|19|FRA|55|70",
+    "Mathis Lainé|ST|19|FRA|58|71",
   ],
   "Brighton": [
     "Zadok Yohanna|AMR|19|NGA|68|84",
@@ -120,12 +144,26 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Zach Johnson|AML|19|ENG|54|68",
     "Jack Robinson|GK|18|ENG|50|66",
   ],
+  "Cagliari": [
+    "Matteo Nuvoli|DC|19|ITA|56|72",
+    "Kristiyan Goryanov|MC|18|BUL|55|73",
+  ],
   "Cardiff City": [
     "Robert Tankiewicz|MC|16|WAL|50|72",
     "Alex Donczew|MC|16|WAL|49|70",
   ],
   "Celta Vigo": [
     "Yoel Lago|DC|21|ESP|62|74",
+    "Anxo Rodríguez|DC|18|ESP|57|76",
+    "Andrés Antañón|MC|18|ESP|58|77",
+  ],
+  "Charlton Athletic": [
+    "Ethan Brown|ST|19|ENG|54|70",
+    "Jacob Safa|MC|19|ENG|54|70",
+    "Ty Ewens-Findlay|DC|19|ENG|52|67",
+    "Kai Enslin|DL|19|ENG|52|67",
+    "Chetam Ezenwata|DC|16|ENG|50|74",
+    "Ayden Minto-St Aimie|DC|16|ENG|48|70",
   ],
   "Chelsea": [
     "Josh Acheampong|DR|20|ENG|67|80",
@@ -156,6 +194,12 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "Eintracht Frankfurt": [
     "Noah Fenyő|MC|20|HUN|60|74",
+    "Nilo Neuendorff|DL|18|GER|57|74",
+    "Sadiki Chemwor|AML|18|GER|57|76",
+    "Niko Iličević|MC|15|GER|50|78",
+  ],
+  "Elche": [
+    "Buba Sangaré|DC|18|ESP|63|80",
   ],
   "Everton": [
     "Harrison Armstrong|MC|19|ENG|66|79",
@@ -173,10 +217,23 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Riccardo Braschi|ST|20|ITA|60|75",
     "Dennis Beldenti|AMC|16|ITA|52|79",
   ],
+  "Freiburg": [
+    "Rouven Tarnutzer|MC|18|SUI|56|74",
+    "Elijah Oguguo|DC|18|GER|56|73",
+    "Théodore Pizarro|GK|18|CMR|53|72",
+    "Elias Klaus|MC|19|AUT|56|72",
+  ],
   "Fulham": [
     "Josh King|AMC|19|ENG|68|81",
     "Jonah Kusi-Asare|ST|19|SWE|65|79",
     "Farhaan Ali-Wahid|AML|19|ENG|58|74",
+  ],
+  "Genoa": [
+    "Jeremie Fazio|DC|18|ITA|55|75",
+    "Pietro Baccelli|GK|18|ITA|54|72",
+    "Fernando Pellegrini|ST|18|ITA|55|74",
+    "Alessandro Consoli|ST|16|ITA|52|74",
+    "Marco Romano|DC|19|ITA|58|73",
   ],
   "Getafe": [
     "Davinchi|DL|19|ESP|63|78",
@@ -192,6 +249,7 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "Hull City": [
     "Calvin Okike|DL|18|ENG|57|74",
+    "Josh Ocaya|MC|17|ENG|52|70",
   ],
   "Inter": [
     "Mattia Mosconi|AMR|19|ITA|60|78",
@@ -204,6 +262,9 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "Ipswich Town": [
     "Luca Fletcher|ST|19|ENG|60|76",
+    "Josh Pitts|AML|19|ENG|57|72",
+    "Corbin Mthunzi|AMC|19|ENG|55|70",
+    "Leon Ayinde|ST|19|ENG|55|70",
   ],
   "Juventus": [
     "Niccolò Rizzo|DR|19|ITA|58|75",
@@ -211,6 +272,16 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Destiny Elimoghale|ST|19|ITA|57|75",
     "Alfonso Montero|DC|19|URU|57|75",
     "Riccardo Radu|GK|19|ITA|55|73",
+  ],
+  "Lazio": [
+    "Federico Ciucci|DC|17|ITA|54|74",
+    "Lorenzo Calvani|DC|18|ITA|54|73",
+    "Nicolò Pannozzo|GK|18|ITA|54|73",
+    "Federico Serra|ST|20|ITA|59|72",
+    "Valerio Farcomeni|MC|20|ITA|58|72",
+  ],
+  "Le Havre": [
+    "Stephan Zagadou|DC|17|FRA|62|80",
   ],
   "Le Mans": [
     "Noa Boissé|MC|19|FRA|54|69",
@@ -227,6 +298,10 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Kyllian Antonio|DC|18|FRA|57|75",
     "Kembo Diliwidi|ST|20|FRA|58|71",
   ],
+  "Levante": [
+    "Marc Santos|DL|16|ESP|57|81",
+    "Asier Herrera|GK|20|ESP|56|71",
+  ],
   "Lille": [
     "Ethan Mbappé|MC|19|FRA|62|76",
     "Ichem Ferrah|MC|18|FRA|58|77",
@@ -236,6 +311,10 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "Lincoln City": [
     "Oisin Gallagher|MC|17|IRL|51|68",
+    "Charlie Parks|DC|19|ENG|52|66",
+    "Tariro Darikwa|MC|16|ENG|45|66",
+    "Fletcher Don-Duncan|ST|16|ENG|45|66",
+    "Leo Fifield|DC|16|ENG|45|65",
   ],
   "Liverpool": [
     "Rio Ngumoha|AML|17|ENG|70|88",
@@ -246,6 +325,8 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "Lorient": [
     "Isaac Monnier|DC|19|FRA|56|71",
+    "Imrane Camara|AMC|16|FRA|55|79",
+    "Enzo Genton|DC|20|FRA|59|71",
   ],
   "Lyon": [
     "Khalis Merah|AMR|18|FRA|63|81",
@@ -295,9 +376,17 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Nahël Haddani|MC|18|FRA|55|75",
     "Melvin Gomes Da Veiga|DC|18|FRA|55|74",
   ],
+  "Monza": [
+    "Christian Fogliaro|ST|18|ITA|55|73",
+  ],
   "Málaga": [
     "Izan Merino|DM|20|ESP|63|78",
     "Aarón Ochoa|MC|21|ESP|62|74",
+  ],
+  "Napoli": [
+    "Claudio Pugliese|GK|18|ITA|55|74",
+    "Milton Pereyra|ST|19|ARG|57|74",
+    "Mohamed Manè|ST|17|SEN|55|77",
   ],
   "Newcastle United": [
     "Park Seung-soo|AML|19|KOR|62|77",
@@ -319,8 +408,17 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Kalum Thompson|AMR|17|NIR|56|76",
     "Azae Bonnick|ST|16|ENG|52|76",
   ],
+  "Osasuna": [
+    "Iker Lizaso|DC|19|ESP|54|71",
+    "Hodei Iriarte|MC|19|ESP|54|71",
+    "Yoel Villamayor|MC|19|ESP|54|71",
+    "Xabier Garin|MC|19|ESP|53|70",
+    "Lucas Díaz|ST|19|ESP|54|71",
+  ],
   "Paris FC": [
     "Mohamed Dao|ST|19|FRA|56|72",
+    "Emmanuel Mbemba|DC|18|FRA|57|74",
+    "Ibrahim Meïté|GK|19|FRA|53|69",
   ],
   "Paris Saint-Germain": [
     "Quentin Ndjantou|ST|19|FRA|64|80",
@@ -348,6 +446,10 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "RB Leipzig": [
     "Samba Konaté|ST|17|FRA|58|80",
+    "Benno Kaltefleiter|MC|18|GER|60|77",
+  ],
+  "Racing Santander": [
+    "Jorge Salinas|DL|19|ESP|65|79",
   ],
   "Real Betis": [
     "Pablo García|AMR|20|ESP|66|82",
@@ -379,6 +481,14 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Deniz Zeitler|AMC|19|GER|60|76",
     "Lasse Eickel|ST|18|GER|54|71",
   ],
+  "SV Elversberg": [
+    "Elias Etringer|GK|18|GER|54|73",
+  ],
+  "Sassuolo": [
+    "Gabriel Kulla|ST|18|ITA|55|75",
+    "Christian Frangella|MC|20|ITA|57|71",
+    "Francesco Corradini|DC|21|ITA|58|70",
+  ],
   "Schalke 04": [
     "Luca Vozar|DC|18|GER|56|73",
     "Mika Wallentowitz|AMR|19|GER|59|74",
@@ -393,6 +503,9 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "Sheffield United": [
     "Jaydon Makhalira|MC|18|MWI|53|70",
+    "Sam Aston|MC|20|ENG|55|67",
+    "Seth Okyere|DC|19|ENG|53|68",
+    "Archie Christie-Crainie|ST|19|SCO|53|68",
   ],
   "Southampton": [
     "Jay Robinson|AML|19|ENG|61|75",
@@ -406,6 +519,12 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Tyler Martin|AML|18|ENG|54|69",
     "Favour Fawunmi|AMR|19|ENG|55|68",
   ],
+  "Strasbourg": [
+    "Yoann Becker|DC|17|FRA|57|76",
+    "Jean-Baptiste Bosey|ST|18|FRA|58|76",
+    "Ghianny Kodia|AMR|18|FRA|57|75",
+    "Gabriel Kerckaert|GK|19|FRA|54|70",
+  ],
   "Sunderland": [
     "Trey Samuel-Ogunsuyi|ST|19|ENG|58|74",
     "Timur Tutierov|AMR|20|UKR|61|74",
@@ -418,6 +537,10 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Caio Ifans|MC|19|WAL|54|67",
     "Iestyn Jones|DC|20|WAL|54|66",
   ],
+  "Torino": [
+    "Andrea Luongo|MC|18|ITA|60|78",
+    "Francesco Cereser|GK|18|ITA|54|72",
+  ],
   "Tottenham Hotspur": [
     "Luca Williams-Barnett|AMC|17|ENG|64|86",
     "Mikey Moore|AML|18|ENG|68|84",
@@ -426,18 +549,39 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Tyrese Hall|MC|20|ENG|62|75",
     "Malachi Hardy|DC|18|ENG|55|74",
   ],
+  "Toulouse": [
+    "Wassim Dardake|AMC|18|MAR|57|76",
+    "Aymen Sadi|DL|20|FRA|57|71",
+    "Adam El Ouali|MC|19|FRA|57|73",
+    "Théo Collin|GK|19|FRA|55|72",
+    "Thibaud Garondo|DR|19|FRA|56|72",
+    "Aymen Amaaouch|MC|16|FRA|55|79",
+    "Enzo Faty|ST|19|FRA|58|73",
+    "Darris Zema|AMR|19|ALG|57|72",
+  ],
   "Troyes": [
     "Khays Guimba|ST|18|FRA|55|73",
     "Yacouba Koné|ST|19|FRA|57|72",
   ],
+  "Udinese": [
+    "Matteo Palma|DC|18|ITA|62|79",
+    "Giulio Vinciati|ST|19|ITA|59|74",
+  ],
   "Union Berlin": [
     "Andrik Markgraf|DL|20|GER|59|71",
+    "Mekhi Gray|ST|18|GER|57|73",
+    "Oluwaseun Ogbemudia|DC|18|GER|56|72",
+    "Linus Güther|MC|16|GER|57|78",
   ],
   "Valencia": [
     "Aarón Mayol|AMR|18|ESP|62|79",
     "David Otorbi|AML|18|ESP|57|79",
     "Pablo Mollà|GK|19|ESP|55|74",
     "Aimar Blázquez|MC|19|ESP|56|73",
+  ],
+  "Venezia": [
+    "Alex Amadio|ST|18|ITA|55|73",
+    "Ricardo Perez|MC|18|ITA|54|72",
   ],
   "VfB Stuttgart": [
     "Finn Jeltsch|DC|20|GER|68|82",
@@ -462,6 +606,11 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
   ],
   "West Bromwich Albion": [
     "Michael Parker|DC|20|ENG|58|70",
+    "Harry French|ST|18|ENG|54|72",
+    "George Shaw|DC|18|ENG|52|69",
+    "Antonio Perkins|DC|18|ENG|52|69",
+    "Maxwell Moses|GK|18|ENG|50|69",
+    "Remar McNeil|AMR|18|ENG|53|70",
   ],
   "West Ham United": [
     "Ollie Scarles|DL|20|ENG|62|75",
