@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from '../src/game/generate';
+import { autoResolveActions } from '../src/game/actions';
 import { advanceDay, quickPlayUserMatch, startSeason } from '../src/game/season';
 import { youthTable } from '../src/game/youth';
 import { age, overall } from '../src/game/ratings';
@@ -13,6 +14,7 @@ describe('youth football', () => {
     const t0 = Date.now();
     while (g.date < '2027-06-01') {
       const r = advanceDay(g);
+      if (!r.ok && r.reason === 'action') { autoResolveActions(g); continue; }
       if (!r.ok && r.reason === 'match') quickPlayUserMatch(g);
       else if (!r.ok && r.reason === 'sacked') { g.sacked = false; g.board.confidence = 60; }
     }

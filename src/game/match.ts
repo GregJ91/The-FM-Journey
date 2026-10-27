@@ -1,4 +1,5 @@
 import { FORMATIONS } from './formations';
+import { isEligible } from './actions';
 import { isMetaClub, META_TUNING } from './meta';
 import { POS_GROUP, ratingAt, rawOverallAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
@@ -146,8 +147,9 @@ function avgAttr(g: GameState, list: LivePlayer[], k: keyof Player['attrs']) {
   return list.reduce((s, lp) => s + g.players[lp.id].attrs[k], 0) / list.length;
 }
 
-function buildSide(g: GameState, club: Club, isUser: boolean, cupTie = false): Side {
-  const squad = Object.values(g.players).filter((p) => p.clubId === club.id && p.squad === 'first');
+function buildSide(g: GameState, club: Club, isUser: boolean, cupTie = false, comp = ''): Side {
+  // The manager's unregistered senior players can't play in league or European games
+  const squad = Object.values(g.players).filter((p) => p.clubId === club.id && p.squad === 'first' && (!isUser || isEligible(g, p, comp)));
   if (isUser) {
     validateLineup(club, squad);
   } else {
@@ -202,7 +204,7 @@ export function createMatch(g: GameState, f: Fixture): LiveMatch {
     fixtureId: f.id,
     knockout: !!f.knockout,
     agg0: firstLeg(g, f),
-    sides: [buildSide(g, home, home.isUser, cupTie), buildSide(g, away, away.isUser, cupTie)],
+    sides: [buildSide(g, home, home.isUser, cupTie, f.comp), buildSide(g, away, away.isUser, cupTie, f.comp)],
     minute: 0,
     score: [0, 0],
     events: [],

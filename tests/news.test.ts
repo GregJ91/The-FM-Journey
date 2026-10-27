@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from '../src/game/generate';
+import { autoResolveActions } from '../src/game/actions';
 import { advanceDay, continueGame, quickPlayUserMatch, startSeason } from '../src/game/season';
 import { leagueTable } from '../src/game/competitions';
 
@@ -12,6 +13,7 @@ describe('news and inbox', () => {
     let firedAt: string | null = null;
     while (g.date < '2027-06-06') {
       const r = advanceDay(g);
+      if (!r.ok && r.reason === 'action') { autoResolveActions(g); continue; }
       if (!r.ok && r.reason === 'match') quickPlayUserMatch(g);
       else if (!r.ok) { g.sacked = false; g.board.confidence = 60; }
       if (!firedAt && g.deductions?.length) {

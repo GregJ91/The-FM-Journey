@@ -14,6 +14,8 @@ import { EURO_PLACES } from '../../game/data/europe';
 import { europeFor, europeTable } from '../../game/europe';
 import { guestLeagueName } from '../../game/guests';
 import { CwcView, IntlView, UpcomingCard } from './WorldViews';
+import { respondAction } from '../../game/actions';
+import { RegistrationSheet } from '../components/RegistrationSheet';
 import { YouthCompView } from './YouthViews';
 import { winnerOf } from '../../game/match';
 import { ClubBadgeButton } from '../components/BadgesSheet';
@@ -358,7 +360,10 @@ export function Inbox() {
   const [filter, setFilter] = useState<InboxFilter>('all');
   const msg = g.inbox.find((m) => m.id === sel);
   const kinds = FILTERS.find((f) => f[0] === filter)![2];
-  const shown = kinds ? g.inbox.filter((m) => kinds.includes(m.kind)) : g.inbox;
+  const open = g.inbox.filter((m) => m.action?.status === 'open');
+  const shown = [...open, ...(kinds ? g.inbox.filter((m) => kinds.includes(m.kind)) : g.inbox).filter((m) => m.action?.status !== 'open')];
+  const [regScope, setRegScope] = useState<'league' | 'europe' | null>(null);
+  useEffect(() => { if (typeof ui.param === 'number') setSel(ui.param); }, [ui.param]);
   useEffect(() => {
     if (msg && !msg.read) mutate(() => { msg.read = true; });
   }, [msg]);
@@ -372,7 +377,28 @@ export function Inbox() {
           <div className="small muted bold">{fmtShort(msg.date)} · From {msg.from}</div>
           <h2 style={{ margin: '6px 0 12px', fontSize: 23 }}>{isBreaking(msg) ? '' : `${ICON[msg.kind]} `}{msg.title}</h2>
           <div className="msg-body">{msg.body}</div>
-          {msg.offerId && <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('transfers')}>Go to Transfers →</button>}
+          {msg.action && (
+            <div className={`action-box ${msg.action.status}`}>
+              {msg.action.status === 'open' ? (
+                <>
+                  <div className="action-tag">ACTION REQUIRED</div>
+                  <div className="col" style={{ gap: 8 }}>
+                    {msg.action.options.map((o) => (
+                      <button key={o.id} className={`btn block ${o.id === msg.action!.options[0].id ? 'primary' : ''}`} onClick={() => {
+                        const r = mutate((gg) => respondAction(gg, msg.id, o.id));
+                        if (r.msg === 'pick') setRegScope(msg.action!.scope!);
+                        else ui.toast(r.msg);
+                      }}>{o.label}</button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div><b>✓ Done.</b> {msg.action.result}</div>
+              )}
+            </div>
+          )}
+          {regScope && <RegistrationSheet scope={regScope} onClose={() => setRegScope(null)} />}
+          {msg.offerId && !msg.action && <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('transfers')}>Go to Transfers →</button>}
           {msg.kind === 'youth' && <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('youth')}>See youth team →</button>}
         </Card>
       </div>
@@ -398,7 +424,7 @@ export function Inbox() {
             <div key={m.id} className={`li ${isBreaking(m) ? 'breaking-row' : ''}`} onClick={() => setSel(m.id)}>
               <span style={{ fontSize: 20, width: 26, textAlign: 'center' }}>{isBreaking(m) ? '🚨' : ICON[m.kind] ?? '✉️'}</span>
               <div className="main">
-                <div className="t" style={{ fontWeight: m.read ? 600 : 800 }}>{!m.read && '🔵 '}{isBreaking(m) ? m.title.replace('🚨 ', '') : m.title}</div>
+                <div className="t" style={{ fontWeight: m.read ? 600 : 800 }}>{m.action?.status === 'open' ? <span className="action-pill">RESPOND</span> : !m.read && '🔵 '}{isBreaking(m) ? m.title.replace('🚨 ', '') : m.title}</div>
                 <div className="s">{fmtShort(m.date)} · {m.from}</div>
               </div>
               <span className="muted">›</span>

@@ -4,6 +4,8 @@ import { fmtShort } from '../../game/dates';
 import { POS_GROUP, overall, stars } from '../../game/ratings';
 import type { Fixture, GameState, Player, Pos } from '../../game/types';
 import { useUI } from '../context';
+import { getGame } from '../../store';
+import { isEligible } from '../../game/actions';
 import { Crest } from './Crest';
 
 export function Ovr({ value, lg }: { value: number; lg?: boolean }) {
@@ -54,12 +56,20 @@ export function CondBar({ v }: { v: number }) {
   );
 }
 
+function notRegistered(p: Player) {
+  const g = getGame();
+  if (!g || p.clubId !== g.userClubId || !g.registration?.league) return false;
+  const league = g.leagues.find((l) => l.clubIds.includes(g.userClubId));
+  return !!league && !isEligible(g, p, league.id);
+}
+
 export function StatusIcons({ p }: { p: Player }) {
   return (
     <>
       {p.injury && <span className="status-ico" title={`${p.injury.name} (${p.injury.days}d)`}>🩹</span>}
       {p.suspended > 0 && <span className="status-ico" title={`Suspended ${p.suspended} match(es)`}>🟥</span>}
       {p.away && <span className="status-ico" title={`Away at the ${p.away}`}>✈️</span>}
+      {notRegistered(p) && <span className="status-ico" title="Not registered for the league: can't play league games">🚫</span>}
       {p.listed && <span className="status-ico" title="Transfer listed">🏷️</span>}
     </>
   );

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from '../src/game/generate';
+import { autoResolveActions } from '../src/game/actions';
 import { advanceDay, pendingUserFixture, startSeason, finishUserMatch } from '../src/game/season';
 import { applyResult, changeTactics, createMatch, makeSub, stepMinute } from '../src/game/match';
 import { overall } from '../src/game/ratings';
@@ -17,7 +18,7 @@ describe('engine', () => {
   it('plays a live match minute by minute with subs and shouts', () => {
     const g = world();
     let guard = 0;
-    while (!pendingUserFixture(g) && guard++ < 60) advanceDay(g);
+    while (!pendingUserFixture(g) && guard++ < 60) { if (!advanceDay(g).ok) autoResolveActions(g); }
     const f = pendingUserFixture(g)!;
     expect(f).toBeTruthy();
     const m = createMatch(g, f);
@@ -33,12 +34,14 @@ describe('engine', () => {
     finishUserMatch(g, f);
     expect(f.result).toBeTruthy();
     expect(f.result!.ratings).toBeTruthy();
+    // Anything that needs a response (bids, press conferences) blocks the calendar until answered
+    if (!advanceDay(g).ok) autoResolveActions(g);
     expect(advanceDay(g).ok).toBe(true);
   });
 
   it('save round-trips and stays compact', () => {
     const g = world();
-    for (let i = 0; i < 20; i++) advanceDay(g);
+    for (let i = 0; i < 20; i++) { if (!advanceDay(g).ok) autoResolveActions(g); }
     const raw = compact(g);
     const back = expand(raw);
     const p = Object.values(g.players)[10];
@@ -64,7 +67,7 @@ describe('tactics & detailed stats', () => {
     const g = createWorld({ mode: 'classic', manager: 'T', clubName: 'Arsenal', slot: 't', seed: 5 });
     startSeason(g);
     let guard = 0;
-    while (!pendingUserFixture(g) && guard++ < 60) advanceDay(g);
+    while (!pendingUserFixture(g) && guard++ < 60) { if (!advanceDay(g).ok) autoResolveActions(g); }
     const f = pendingUserFixture(g)!;
     const m = createMatch(g, f);
     const side = f.home === g.userClubId ? 0 : 1;

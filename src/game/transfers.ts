@@ -1,4 +1,5 @@
 import { applyMetaProfile, isMetaClub } from './meta';
+import { closeOfferAction, offerAction, registerNewSigning } from './actions';
 import { addDays, inTransferWindow, month } from './dates';
 import { emptyStats, nextId, squadOf, wageBill } from './generate';
 import { age, fmtMoney, fullName, marketValue, overall, ratingAt, roundMoney, wageFor } from './ratings';
@@ -134,6 +135,7 @@ export function completeTransfer(g: GameState, playerId: number, toId: number, f
   p.clubId = toId;
   // Signings for meta clubs get the meta attribute profile
   if (isMetaClub(to)) applyMetaProfile(p);
+  registerNewSigning(g, p);
   p.squad = 'first';
   p.wage = wage;
   const a = age(p, g.date);
@@ -276,25 +278,26 @@ export function aiBidsForUser(g: GameState) {
   if (fee > buyer.transferBudget) return;
   const o: Offer = { id: nextId(g), playerId: target.id, from: buyer.id, to: user.id, fee, wage: 0, status: 'pending', date: g.date, respondBy: addDays(g.date, 4) };
   g.offers.push(o);
-  sendMessage(g, { from: buyer.name, kind: 'offer', title: `${buyer.name} bid ${fmtMoney(fee)} for ${fullName(target)}`, body: `${buyer.name} have submitted a ${fmtMoney(fee)} offer for ${fullName(target)} (valued at ${fmtMoney(value)}). You have until ${o.respondBy} to respond.`, offerId: o.id });
+  offerAction(g, o.id, `${buyer.name} bid ${fmtMoney(fee)} for ${fullName(target)}`, `${buyer.name} have submitted a ${fmtMoney(fee)} offer for ${fullName(target)} (valued at ${fmtMoney(value)}, ${overall(target)} overall).\n\nYou need to respond before the game can continue.`, buyer.name);
 }
 
 export function respondIncoming(g: GameState, offerId: number, accept: boolean): { ok: boolean; msg: string } {
   const o = g.offers.find((x) => x.id === offerId);
   if (!o || o.status !== 'pending' || !g.players[o.playerId] || g.players[o.playerId].clubId !== o.to) return { ok: false, msg: 'Offer no longer valid.' };
-  if (!accept) { o.status = 'rejected'; return { ok: true, msg: 'Offer rejected.' }; }
-  if (!windowOpen(g)) { o.status = 'collapsed'; return { ok: false, msg: 'The window has closed.' }; }
+  if (!accept) { o.status = 'rejected'; closeOfferAction(g, offerId, 'You rejected the offer.'); return { ok: true, msg: 'Offer rejected.' }; }
+  if (!windowOpen(g)) { o.status = 'collapsed'; closeOfferAction(g, offerId, 'The window closed before the deal could go through.'); return { ok: false, msg: 'The window has closed.' }; }
   const p = g.players[o.playerId];
   const buyer = g.clubs[o.from];
   completeTransfer(g, p.id, buyer.id, o.fee, wageDemand(g, p, buyer));
   o.status = 'done';
+  closeOfferAction(g, offerId, `${fullName(p)} sold to ${buyer.name} for ${fmtMoney(o.fee)}.`);
   return { ok: true, msg: `${fullName(p)} sold to ${buyer.name} for ${fmtMoney(o.fee)}.` };
 }
 
 export function expireOffers(g: GameState) {
   for (const o of g.offers) {
     if (!g.players[o.playerId] && (o.status === 'pending' || o.status === 'accepted' || o.status === 'countered')) { o.status = 'collapsed'; continue; }
-    if (o.status === 'pending' && o.to === g.userClubId && o.respondBy && o.respondBy < g.date) o.status = 'rejected';
+    if (o.status === 'pending' && o.to === g.userClubId && o.respondBy && o.respondBy < g.date && !g.inbox.some((m) => m.action?.status === 'open' && m.action.offerId === o.id)) o.status = 'rejected';
     if ((o.status === 'accepted' || o.status === 'countered') && !windowOpen(g)) o.status = 'collapsed';
   }
   // Keep the offers list small

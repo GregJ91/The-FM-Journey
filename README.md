@@ -173,6 +173,25 @@ The inbox works like Football Manager's:
 - **Quiet messages**: routine reports (previews, match reports, training, round-ups, awards you didn't win) don't stop **Continue**. Breaking news and other important messages still do.
 - **Filters**: All, News, Matches, Squad and Club.
 
+## Decisions you can't skip
+
+Some inbox items need an answer. While one is open, **Continue becomes "Respond"** and takes you there. The calendar won't move, and you can't kick off, until you answer.
+
+| Decision | When | Options |
+| --- | --- | --- |
+| Transfer bid for one of your players | Window open, at random | Accept · Ask for 25% more (the buyer may pay or walk away) · Reject |
+| Squad registration (league, and Europe if you're in it) | 1 September and 1 February | Pick squad (up to **25 players aged 21+**; under-21s are exempt) · Use the suggested squad |
+| Contract talks: key players in their final year want a new deal | 15 January | Offer 3 years at their demand · Let it run down (morale drops; they leave in summer) |
+| Unhappy player wants a word | 1st of the month (morale under 35) | Promise more game time · Transfer-list them · Tell them to fight for their place |
+| Press conference before big games (top-six opponents, European knockouts, cup semis and finals) | Match day | Confident · Cautious · Mind games (can backfire) |
+
+**Registration rules:**
+- Senior players left out can't play league or European games until the next registration window. They're marked 🚫 in squad lists.
+- Signings after the deadline are registered automatically if there's room.
+- Registration resets each summer.
+
+Bids can also be handled from the Transfers screen, which closes the inbox item too.
+
 ## Scripted events
 
 - **Manchester City FFP ruling (2026/27)**: when City have five league games left, they're docked 60 points for breaching financial rules, announced as breaking news. In testing they dropped from 4th to 20th and were relegated.
@@ -180,7 +199,7 @@ The inbox works like Football Manager's:
 
 ## Meta players
 
-In the match engine, pace and composure matter more than the overall rating suggests. So do dribbling and finishing for attackers, and tackling and positioning for defenders. A player whose attributes in these areas are above his overall level adds up to 4% more to his team (and a player who is below it adds up to 4% less).
+In the match engine, pace and composure matter more than the overall rating suggests. So do dribbling and finishing for attackers, and tackling and positioning for defenders. A player whose attributes in these areas are above their overall level adds up to 4% more to the team (and one below it adds up to 4% less).
 
 **Arsenal** players have meta attribute profiles. Their overall ratings are the same, but their attributes lean towards these areas:
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from '../src/game/generate';
+import { autoResolveActions } from '../src/game/actions';
 import { advanceDay, continueGame, quickPlayUserMatch, startSeason } from '../src/game/season';
 import { leagueTable } from '../src/game/competitions';
 import { overall, age, fullName } from '../src/game/ratings';
@@ -8,6 +9,7 @@ import { NATIONS } from '../src/game/data/names';
 function runDays(g: ReturnType<typeof createWorld>, n: number) {
   for (let i = 0; i < n; i++) {
     const r = advanceDay(g);
+    if (!r.ok && r.reason === 'action') { autoResolveActions(g); i--; continue; }
     if (!r.ok && r.reason === 'match') { quickPlayUserMatch(g); i--; continue; }
     if (!r.ok) break;
   }

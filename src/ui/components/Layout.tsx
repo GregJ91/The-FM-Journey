@@ -6,7 +6,8 @@ import { leagueOf } from '../../game/generate';
 import { unreadCount } from '../../game/inbox';
 import { continueGame, ordinal, pendingUserFixture, seasonLabel } from '../../game/season';
 import { windowOpen } from '../../game/transfers';
-import { mutate, saveGame, setGame, useGame } from '../../store';
+import { getGame, mutate, saveGame, setGame, useGame } from '../../store';
+import { openActions } from '../../game/actions';
 import { useUI, type Screen } from '../context';
 import { Sheet } from './common';
 import { BadgesSheet } from './BadgesSheet';
@@ -66,7 +67,10 @@ export function ContinueBar() {
   const ui = useUI();
   const [busy, setBusy] = useState(false);
   const matchToday = pendingUserFixture(g);
+  const actions = openActions(g);
   const onContinue = async () => {
+    // Anything that needs a response has to be answered first (including before kick-off)
+    if (actions.length) { ui.go('inbox', actions[actions.length - 1].id); ui.toast('Respond to this before continuing'); return; }
     if (matchToday) { ui.setMatchOpen(true); return; }
     setBusy(true);
     // let the button state paint before the (synchronous) simulation runs
@@ -74,6 +78,7 @@ export function ContinueBar() {
     const r = mutate((gg) => continueGame(gg));
     setBusy(false);
     if (!r.ok && r.reason === 'match') ui.setMatchOpen(true);
+    if (!r.ok && r.reason === 'action') { const a = openActions(getGame()!); if (a.length) ui.go('inbox', a[a.length - 1].id); }
     saveGame().catch(() => {});
   };
   return (
@@ -82,8 +87,8 @@ export function ContinueBar() {
         <b>{fmtShort(g.date)}</b>
         <span>{matchToday ? 'Match day' : `Season ${seasonLabel(g.season)}`}</span>
       </div>
-      <button className={`continue-btn ${matchToday ? 'match' : ''}`} onClick={onContinue} disabled={busy}>
-        {busy ? <><LoaderCircle className="spin" /> Simulating…</> : matchToday ? <>Play match <Play fill="currentColor" /></> : <>Continue <Play fill="currentColor" /></>}
+      <button className={`continue-btn ${matchToday && !actions.length ? 'match' : ''} ${actions.length ? 'respond' : ''}`} onClick={onContinue} disabled={busy}>
+        {busy ? <><LoaderCircle className="spin" /> Simulating…</> : actions.length ? <>Respond ({actions.length}) <Mail /></> : matchToday ? <>Play match <Play fill="currentColor" /></> : <>Continue <Play fill="currentColor" /></>}
       </button>
     </div>
   );

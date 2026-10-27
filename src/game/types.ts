@@ -300,6 +300,26 @@ export interface Message {
   offerId?: number;
   /** Routine reports don't stop Continue */
   quiet?: boolean;
+  /** Needs a response: Continue is blocked until it's answered */
+  action?: MessageAction;
+}
+
+export type ActionType = 'offer' | 'registration' | 'contract' | 'unhappy' | 'press';
+
+export interface MessageAction {
+  type: ActionType;
+  status: 'open' | 'done';
+  options: { id: string; label: string }[];
+  offerId?: number;
+  playerId?: number;
+  fixtureId?: number;
+  scope?: 'league' | 'europe'; // registration
+  result?: string; // what happened after the response
+}
+
+export interface Registration {
+  league?: number[]; // registered players aged 21+ (under-21s are exempt)
+  europe?: number[];
 }
 
 export interface Deduction {
@@ -385,6 +405,7 @@ export interface GameState {
   intl?: IntlTournament[]; // international tournaments (current and recent)
   youth?: YouthComp[]; // this season's youth competitions
   deductions?: Deduction[]; // points deductions (this and past seasons)
-  events?: string[]; // one-off scripted events that have already fired // qualified clubs for next season's European competitions
+  events?: string[]; // one-off scripted events that have already fired
+  registration?: Registration; // the manager's squad registration // qualified clubs for next season's European competitions
   ledgerMark?: { i: number; e: number };
 }

@@ -4,6 +4,7 @@ import { computeEntrants, ensureEurope, europeFor, initialEntrants, progressEuro
 import { guestLevel, isGuest } from './guests';
 import { intlDay } from './intl';
 import { setupYouth, youthDay } from './youth';
+import { contractTalks, openActions, pressConference, registrationDeadlines, resetRegistration, unhappyPlayers } from './actions';
 import { leagueRoundup, matchPreview, matchReport, monthlyAwards, scriptedEvents, trainingReport } from './news';
 import { CWC_ID, progressClubWorldCup, setupClubWorldCup } from './world';
 import { addDays, dayOfMonth, diffDays, month, weekday } from './dates';
@@ -29,6 +30,7 @@ export function startSeason(g: GameState) {
   g.fixtures = g.fixtures.filter((f) => f.comp === CWC_ID && diffDays(g.date, f.date) < 60);
   for (const league of g.leagues) scheduleLeague(g, league);
   ensureEurope(g);
+  resetRegistration(g);
   setupCups(g);
   setupEurope(g, g.europe ?? (g.season === START_SEASON ? initialEntrants(g) : computeEntrants(g)));
   g.europe = undefined;
@@ -192,6 +194,10 @@ function newDay(g: GameState) {
     leagueRoundup(g);
   }
   matchPreview(g);
+  pressConference(g);
+  registrationDeadlines(g);
+  contractTalks(g);
+  unhappyPlayers(g);
   if (m === 7 && day === 1) startSeason(g);
   if (m === 6 && day === 5) endSeason(g);
   if (m === 3 && day === 15) youthIntake(g);
@@ -380,11 +386,12 @@ export function ordinal(n: number) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-export type AdvanceResult = { ok: true } | { ok: false; reason: 'match' | 'sacked' };
+export type AdvanceResult = { ok: true } | { ok: false; reason: 'match' | 'sacked' | 'action' };
 
 /** Move the game forward by one day. */
 export function advanceDay(g: GameState): AdvanceResult {
   if (g.sacked) return { ok: false, reason: 'sacked' };
+  if (openActions(g).length) return { ok: false, reason: 'action' };
   if (pendingUserFixture(g)) return { ok: false, reason: 'match' };
   playDayFixtures(g);
   intlDay(g);
@@ -405,6 +412,7 @@ export function continueGame(g: GameState, maxDays = 7): AdvanceResult & { days:
     if (!r.ok) return { ...r, days };
     days++;
     if (pendingUserFixture(g)) break;
+    if (openActions(g).length) break;
     if (unreadImportant(g) > startUnread) break;
     if (g.sacked) break;
   }

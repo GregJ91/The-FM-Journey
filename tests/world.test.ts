@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from '../src/game/generate';
+import { autoResolveActions } from '../src/game/actions';
 import { advanceDay, quickPlayUserMatch, startSeason } from '../src/game/season';
 import { groupTable, matchWinner, nationName, topScorers } from '../src/game/intl';
 import { CWC_ID, cwcGroupTable } from '../src/game/world';
@@ -8,6 +9,7 @@ function runUntil(g: ReturnType<typeof createWorld>, date: string) {
   let guard = 0;
   while (g.date < date && guard++ < 5000) {
     const r = advanceDay(g);
+      if (!r.ok && r.reason === 'action') { autoResolveActions(g); continue; }
     if (!r.ok && r.reason === 'match') quickPlayUserMatch(g);
     else if (!r.ok && r.reason === 'sacked') { g.sacked = false; g.board.confidence = 60; }
   }
