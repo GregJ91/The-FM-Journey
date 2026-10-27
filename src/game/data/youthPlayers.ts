@@ -199,7 +199,6 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Niko Iličević|MC|15|GER|50|78",
   ],
   "Elche": [
-    "Buba Sangaré|DC|18|ESP|63|80",
   ],
   "Everton": [
     "Harrison Armstrong|MC|19|ENG|66|79",
@@ -449,7 +448,6 @@ export const YOUTH_PLAYERS: Record<string, string[]> = {
     "Benno Kaltefleiter|MC|18|GER|60|77",
   ],
   "Racing Santander": [
-    "Jorge Salinas|DL|19|ESP|65|79",
   ],
   "Real Betis": [
     "Pablo García|AMR|20|ESP|66|82",

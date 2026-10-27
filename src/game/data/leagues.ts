@@ -501,6 +501,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Yeremay Hernández|AML|23|ESP|76|82|t', 'Pierre-Emerick Aubameyang|ST|37|GAB|77',
   ],
   'Elche': [
+    'Buba Sangaré|DC|18|ESP|63|80',
     'Marc Aguado|DM|26|ESP|72', 'Germán Valera|AMR|24|ESP|71', 'André Silva|ST|30|POR|73', 'Rafa Mir|ST|29|ESP|72',
   ],
   'Espanyol': [
@@ -522,6 +523,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Ante Budimir|ST|35|CRO|77||h',
   ],
   'Racing Santander': [
+    'Jorge Salinas|DL|19|ESP|65|79',
     'Julen Agirrezabala|GK|26|ESP|74', 'Peio Canales|AMC|21|ESP|72|80', 'Íñigo Sainz-Maza|MC|29|ESP|70', 'Asier Villalibre|ST|28|ESP|70',
   ],
   'Rayo Vallecano': [
