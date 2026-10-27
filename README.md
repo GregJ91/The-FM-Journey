@@ -30,7 +30,11 @@ The game is designed for phones in portrait. On a desktop it runs in a centred p
 
 - The whole interface (header, tab bar, Continue button, selections, page tint, match screen accents) takes on **your club's colours**. Text colour is picked by contrast ratio so white, black or pale kits stay readable.
 
-Tip: open it on your phone and use "Add to Home Screen" to get it full-screen.
+### Playing on your phone
+
+- **Install it:** open the game in Safari (iPhone) or Chrome (Android) and choose **Add to Home Screen**. It installs like an app: it has its own icon, runs full-screen in portrait, and works offline once loaded.
+- **Hosting on GitHub Pages:** this repo has a workflow at `.github/workflows/deploy.yml`. Turn it on once under **Settings → Pages → Source: GitHub Actions**. Every push to `main` (or this branch) then publishes the game.
+- **Saves:** they're stored in that phone's browser, so a save made on your phone stays on your phone.
 
 ## Running it
 
