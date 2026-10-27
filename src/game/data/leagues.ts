@@ -276,13 +276,13 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Ian Maatsen|DL|24|NED|78', 'Boubacar Kamara|DM|26|FRA|82', 'Amadou Onana|DM|24|BEL|81', 'John McGinn|MC|31|SCO|80||w',
     'Emiliano Buendía|AMR|29|ARG|77', 'Alejandro Garnacho|AML|22|ARG|80|85|p', 'Nicolas Jackson|ST|25|SEN|79', 'Johan Manzambi|MC|20|SUI|73|84',
     'João Gomes|DM|25|BRA|79||w', 'Taylor Harwood-Bellis|DC|24|ENG|72', 'Zion Suzuki|GK|24|JPN|76', 'Matteo Ruggeri|DL|24|ITA|76',
-    'Leon Goretzka|MC|31|GER|81', 'Aaron Wan-Bissaka|DR|28|ENG|79', 'Ibrahim Mbaye|AML|18|SEN|74',
+    'Leon Goretzka|MC|31|GER|81', 'Aaron Wan-Bissaka|DR|28|ENG|79', 'Ibrahim Mbaye|AML|18|SEN|74|86',
   ],
   'Bournemouth': [
     'Đorđe Petrović|GK|26|SRB|78', 'Bafodé Diakité|DC|25|FRA|76', 'Adam Smith|DR|35|ENG|72', 'Adrien Truffert|DL|24|FRA|77',
     'Tyler Adams|DM|27|USA|78', 'Alex Scott|MC|22|ENG|76|83', 'Lewis Cook|MC|29|ENG|76', 'Ryan Christie|AMC|31|SCO|75',
     'Justin Kluivert|AMC|27|NED|79', 'Marcus Tavernier|AML|27|ENG|77', 'Amine Adli|AMR|26|MAR|76', 'Evanilson|ST|26|BRA|78',
-    'Eli Junior Kroupi|ST|20|FRA|73|85', 'Rayan|AMR|19|BRA|74', 'António Silva|DC|22|POR|80', 'Álvaro Rodríguez|ST|22|URU|75',
+    'Eli Junior Kroupi|ST|20|FRA|73|85', 'Rayan|AMR|19|BRA|74|84', 'António Silva|DC|22|POR|80', 'Álvaro Rodríguez|ST|22|URU|75',
     'Juanlu Sánchez|DR|22|ESP|75', 'Michele Di Gregorio|GK|28|ITA|81',
   ],
   'Brentford': [
@@ -302,13 +302,13 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Wesley Fofana|DC|25|FRA|80', 'Jorrel Hato|DL|20|NED|78|87', 'Moisés Caicedo|DM|24|ECU|87|88|w', 'Romeo Lavia|DM|22|BEL|78|84',
     'Cole Palmer|AMC|24|ENG|87|90|tf', 'Estêvão|AMR|19|BRA|80|90|t', 'Pedro Neto|AMR|26|POR|82|83|p', 'Jamie Gittens|AML|21|ENG|78|85|p',
     'João Pedro|ST|24|BRA|83|85', 'Morgan Rogers|AMC|23|ENG|83|87|t', 'Maxence Lacroix|DC|26|FRA|81', 'Emiliano Martínez|GK|33|ARG|85',
-    'Danny Welbeck|ST|35|ENG|76', 'Jordan Henderson|MC|36|ENG|76', 'Geovany Quenda|AMR|19|POR|77', 'Marco Palestra|DR|21|ITA|77',
+    'Danny Welbeck|ST|35|ENG|76', 'Jordan Henderson|MC|36|ENG|76', 'Geovany Quenda|AMR|19|POR|77|88', 'Marco Palestra|DR|21|ITA|77',
     'Valentín Barco|DL|21|ARG|75',
   ],
   'Coventry City': [
     'Carl Rushworth|GK|24|ENG|70', 'Bobby Thomas|DC|25|ENG|69', 'Jack Rudoni|AMC|25|ENG|71', 'Haji Wright|ST|28|USA|72',
     'Ellis Simms|ST|25|ENG|69', 'Ethan Pinnock|DC|33|JAM|76', 'Loum Tchaouna|AMR|22|FRA|72', 'Taiwo Awoniyi|ST|28|NGA|74',
-    'Frank Onyeka|MC|28|NGA|74', 'Gustavo Hamer|AMC|29|NED|73', 'Aurèle Amenda|DC|22|SUI|74', 'Caleb Yirenkyi|DM|20|GHA|72',
+    'Frank Onyeka|MC|28|NGA|74', 'Gustavo Hamer|AMC|29|NED|73', 'Aurèle Amenda|DC|22|SUI|74', 'Caleb Yirenkyi|DM|20|GHA|72|81',
   ],
   'Crystal Palace': [
     'Dean Henderson|GK|29|ENG|81', 'Chris Richards|DC|26|USA|78', 'Tyrick Mitchell|DL|26|ENG|78', 'Adam Wharton|MC|22|ENG|81|87|v',
@@ -356,7 +356,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Matheus Nunes|DR|27|POR|80', 'Rayan Aït-Nouri|DL|25|ALG|82', 'Nico O\'Reilly|DL|21|ENG|77|85', 'Tijjani Reijnders|MC|27|NED|85',
     'Mateo Kovačić|MC|32|CRO|81', 'Phil Foden|AMC|26|ENG|85||t', 'Rayan Cherki|AMC|22|FRA|83|88|t', 'Jérémy Doku|AML|24|BEL|83||p',
     'Antoine Semenyo|AMR|26|GHA|82||p', 'Erling Haaland|ST|25|NOR|91|92|sf', 'Marc Guéhi|DC|25|ENG|84', 'Enzo Fernández|MC|25|ARG|85',
-    'Iliman Ndiaye|AMR|26|SEN|80', 'Elliot Anderson|MC|23|ENG|84|87|w', 'Ayyoub Bouaddi|MC|18|MAR|78', 'Gerónimo Rulli|GK|34|ARG|80',
+    'Iliman Ndiaye|AMR|26|SEN|80', 'Elliot Anderson|MC|23|ENG|84|87|w', 'Ayyoub Bouaddi|MC|18|MAR|78|89', 'Gerónimo Rulli|GK|34|ARG|80',
   ],
   'Manchester United': [
     'Senne Lammens|GK|24|BEL|78|84', 'Matthijs de Ligt|DC|26|NED|82', 'Lisandro Martínez|DC|28|ARG|83', 'Leny Yoro|DC|20|FRA|78|88',
@@ -446,7 +446,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Edo Kayembe|MC|28|COD|69',
   ],
   'West Bromwich Albion': [
-    'Alex Mowatt|MC|31|ENG|69', 'Jed Wallace|AMR|32|ENG|68', 'Josh Maja|ST|27|NGA|70', 'Jimmy-Jay Morgan|ST|19|ENG|64',
+    'Alex Mowatt|MC|31|ENG|69', 'Jed Wallace|AMR|32|ENG|68', 'Josh Maja|ST|27|NGA|70', 'Jimmy-Jay Morgan|ST|19|ENG|64|77',
   ],
   'West Ham United': [
     'Alphonse Areola|GK|33|FRA|78', 'Mads Hermansen|GK|26|DEN|78', 'Max Kilman|DC|29|ENG|78', 'Tomáš Souček|MC|31|CZE|78',
@@ -541,12 +541,12 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Ferland Mendy|DL|31|FRA|80', 'Aurélien Tchouaméni|DM|26|FRA|85', 'Federico Valverde|MC|27|URU|88||w', 'Eduardo Camavinga|MC|23|FRA|83|87',
     'Jude Bellingham|AMC|23|ENG|89|92', 'Arda Güler|AMC|21|TUR|82|90|tv', 'Brahim Díaz|AMC|26|MAR|80', 'Rodrygo|AMR|25|BRA|84',
     'Vinícius Júnior|AML|25|BRA|89||pt', 'Kylian Mbappé|ST|27|FRA|91||pf', 'Ibrahima Konaté|DC|27|FRA|85||s', 'Bernardo Silva|MC|31|POR|85||t',
-    'Marc Cucurella|DL|27|ESP|83', 'Denzel Dumfries|DR|30|NED|84||p', 'Carlos Espí|ST|20|ESP|73', 'Yan Diomande|AMR|19|CIV|74|86',
+    'Marc Cucurella|DL|27|ESP|83', 'Denzel Dumfries|DR|30|NED|84||p', 'Carlos Espí|ST|20|ESP|73|81', 'Yan Diomande|AMR|19|CIV|74|86',
   ],
   'Real Sociedad': [
     'Álex Remiro|GK|31|ESP|83', 'Igor Zubeldia|DC|29|ESP|79', 'Sergio Gómez|DL|25|ESP|76', 'Jon Gorrotxategi|MC|23|ESP|74',
-    'Takefusa Kubo|AMR|25|JPN|81||t', 'Ander Barrenetxea|AML|24|ESP|76', 'Mikel Oyarzabal|ST|29|ESP|82', 'Héctor Fort|DR|19|ESP|72',
-    'Mamadou Sarr|DC|20|FRA|72',
+    'Takefusa Kubo|AMR|25|JPN|81||t', 'Ander Barrenetxea|AML|24|ESP|76', 'Mikel Oyarzabal|ST|29|ESP|82', 'Héctor Fort|DR|19|ESP|72|82',
+    'Mamadou Sarr|DC|20|FRA|72|82',
   ],
   'Sevilla': [
     'Odysseas Vlachodimos|GK|32|GRE|76', 'José Ángel Carmona|DR|24|ESP|74', 'Nemanja Gudelj|DM|34|SRB|75', 'Rubén Vargas|AML|27|SUI|76',
@@ -587,7 +587,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
   'Como': [
     'Jean Butez|GK|31|FRA|77', 'Marc-Oliver Kempf|DC|31|GER|76', 'Diego Carlos|DC|33|BRA|76', 'Álex Valle|DL|22|ESP|74',
     'Máximo Perrone|MC|23|ARG|77', 'Lucas Da Cunha|MC|25|FRA|76', 'Nico Paz|AMC|21|ARG|81|89|t', 'Jesús Rodríguez|AML|20|ESP|74|84',
-    'Assane Diao|AMR|20|SEN|75|84', 'Jayden Addai|AMR|20|NED|72', 'Álvaro Morata|ST|33|ESP|77', 'Tasos Douvikas|ST|27|GRE|74',
+    'Assane Diao|AMR|20|SEN|75|84', 'Jayden Addai|AMR|20|NED|72|80', 'Álvaro Morata|ST|33|ESP|77', 'Tasos Douvikas|ST|27|GRE|74',
     'Trevoh Chalobah|DC|27|ENG|79', 'Robert Sánchez|GK|28|ESP|81', 'Luis Milla|MC|31|ESP|77', 'Samuele Ricci|DM|24|ITA|78',
     'Moise Kean|ST|26|ITA|82||p', 'Yan Couto|DR|24|BRA|78',
   ],
@@ -616,7 +616,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Weston McKennie|MC|27|USA|78', 'Teun Koopmeiners|MC|28|NED|80', 'Kenan Yıldız|AML|21|TUR|84|90|t', 'Francisco Conceição|AMR|23|POR|80|84',
     'Edon Zhegrova|AMR|27|KOS|79', 'Guglielmo Vicario|GK|29|ITA|83', 'Randal Kolo Muani|ST|27|FRA|80', 'Nick Woltemade|ST|24|GER|81|84',
     'Pape Matar Sarr|MC|23|SEN|80|83', 'Kamil Grabara|GK|27|POL|77', 'Jhon Lucumí|DC|27|COL|79', 'Zeki Çelik|DR|29|TUR|76',
-    'Jeff Ekhator|ST|19|ITA|70', 'Jérémie Boga|AML|29|CIV|74',
+    'Jeff Ekhator|ST|19|ITA|70|80', 'Jérémie Boga|AML|29|CIV|74',
   ],
   'Lazio': [
     'Adam Marušić|DR|33|MNE|76', 'Nuno Tavares|DL|26|POR|78', 'Nicolò Rovella|DM|24|ITA|79', 'Matías Vecino|MC|34|URU|74',
@@ -644,7 +644,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Bryan Cristante|DM|31|ITA|77', 'Manu Koné|MC|25|FRA|81', 'Niccolò Pisilli|MC|21|ITA|74|81', 'Lorenzo Pellegrini|AMC|30|ITA|78',
     'Paulo Dybala|AMC|32|ARG|82||t', 'Matías Soulé|AMR|23|ARG|79|84', 'Leon Bailey|AMR|28|JAM|77', 'Evan Ferguson|ST|21|IRL|75|82',
     'Nahuel Molina|DR|28|ARG|78', 'Marten de Roon|DM|35|NED|78', 'Santiago Castro|ST|21|ARG|76|83', 'Konstantinos Koulierakis|DC|22|GRE|75',
-    'Rodrigo Mora|AMC|19|POR|78', 'Daniele Ghilardi|DC|23|ITA|74', 'Donyell Malen|ST|27|NED|80', 'Robinio Vaz|ST|19|FRA|72',
+    'Rodrigo Mora|AMC|19|POR|78|88', 'Daniele Ghilardi|DC|23|ITA|74', 'Donyell Malen|ST|27|NED|80', 'Robinio Vaz|ST|19|FRA|72|82',
     'Bryan Zaragoza|AML|24|ESP|75', 'Leonardo Balerdi|DC|27|ARG|79',
   ],
   'Sassuolo': [
@@ -670,7 +670,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Arthur|DR|23|BRA|74', 'Robert Andrich|DM|31|GER|79', 'Aleix García|MC|29|ESP|79', 'Malik Tillman|AMC|24|USA|78',
     'Ibrahim Maza|AMC|20|ALG|75|84', 'Eliesse Ben Seghir|AMC|21|MAR|77|84', 'Nathan Tella|AMR|27|NGA|76', 'Ernest Poku|AMR|22|NED|74',
     'Patrik Schick|ST|30|CZE|81', 'Christian Kofane|ST|20|CMR|72|83', 'Afonso Moreira|AML|21|POR|73', 'Facundo Medina|DL|27|ARG|77',
-    'Guéla Doué|DR|23|CIV|75', 'Moussa Diaby|AMR|27|FRA|80', 'Miguel Gutiérrez|DL|24|ESP|79', 'Kennet Eichhorn|DM|17|GER|68',
+    'Guéla Doué|DR|23|CIV|75', 'Moussa Diaby|AMR|27|FRA|80', 'Miguel Gutiérrez|DL|24|ESP|79', 'Kennet Eichhorn|DM|17|GER|68|85',
   ],
   'Bayern Munich': [
     'Manuel Neuer|GK|40|GER|84', 'Jonas Urbig|GK|22|GER|74|83', 'Dayot Upamecano|DC|27|FRA|84', 'Jonathan Tah|DC|30|GER|84',
@@ -683,8 +683,8 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Gregor Kobel|GK|28|SUI|86', 'Alexander Meyer|GK|35|GER|71', 'Nico Schlotterbeck|DC|26|GER|84', 'Waldemar Anton|DC|29|GER|80',
     'Niklas Süle|DC|30|GER|78', 'Julian Ryerson|DR|28|NOR|78', 'Ramy Bensebaini|DL|31|ALG|77', 'Daniel Svensson|DL|24|SWE|76',
     'Emre Can|DM|32|GER|78', 'Felix Nmecha|MC|25|GER|80|83', 'Marcel Sabitzer|MC|32|AUT|79', 'Jobe Bellingham|MC|20|ENG|76|86',
-    'Carney Chukwuemeka|MC|22|ENG|73', 'Serhou Guirassy|ST|30|GUI|85||f', 'Maximilian Beier|ST|23|GER|78|82', 'Konstantinos Karetsas|AMC|18|GRE|75',
-    'Joey Veerman|MC|27|NED|80', 'Giannis Konstantelias|AMC|23|GRE|76', 'Joane Gadou|DC|19|FRA|73', 'Ethan Nwaneri|AMC|19|ENG|76|89|t',
+    'Carney Chukwuemeka|MC|22|ENG|73', 'Serhou Guirassy|ST|30|GUI|85||f', 'Maximilian Beier|ST|23|GER|78|82', 'Konstantinos Karetsas|AMC|18|GRE|75|87',
+    'Joey Veerman|MC|27|NED|80', 'Giannis Konstantelias|AMC|23|GRE|76', 'Joane Gadou|DC|19|FRA|73|84', 'Ethan Nwaneri|AMC|19|ENG|76|89|t',
   ],
   'Borussia Mönchengladbach': [
     'Moritz Nicolas|GK|28|GER|76', 'Ko Itakura|DC|29|JPN|77', 'Joe Scally|DR|23|USA|75', 'Julian Weigl|DM|30|GER|77',
@@ -731,7 +731,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Gabriel Vidović|AMC|22|CRO|72', 'Laurin Curda|DR|22|GER|68', 'Oliver Batista Meier|AML|25|GER|68',
   ],
   'SV Elversberg': [
-    'Cole Campbell|AMR|20|USA|69', 'Noel Futkeu|ST|23|GER|70', 'Lukas Petkov|AML|25|GER|70', 'Łukasz Poręba|MC|26|POL|70',
+    'Cole Campbell|AMR|20|USA|69|79', 'Noel Futkeu|ST|23|GER|70', 'Lukas Petkov|AML|25|GER|70', 'Łukasz Poręba|MC|26|POL|70',
     'Nicolas Kristof|GK|27|GER|69',
   ],
   'Union Berlin': [
@@ -765,7 +765,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
   ],
   'Lens': [
     'Robin Risser|GK|21|FRA|75|82', 'Jonathan Gradit|DC|33|FRA|74', 'Andy Diouf|MC|23|FRA|75', 'Florian Thauvin|AMR|33|FRA|77',
-    'Rayan Fofana|AML|20|FRA|70', 'Odsonne Édouard|ST|28|FRA|75', 'Jean-Clair Todibo|DC|26|FRA|78', 'Michaël Cuisance|AMC|26|FRA|72',
+    'Rayan Fofana|AML|20|FRA|70|80', 'Odsonne Édouard|ST|28|FRA|75', 'Jean-Clair Todibo|DC|26|FRA|78', 'Michaël Cuisance|AMC|26|FRA|72',
     'Thorgan Hazard|AML|33|BEL|73',
   ],
   'Lille': [
@@ -781,7 +781,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Rémy Descamps|GK|29|FRA|73', 'Moussa Niakhaté|DC|30|SEN|78', 'Clinton Mata|DC|33|ANG|75', 'Ainsley Maitland-Niles|DR|28|ENG|74',
     'Nicolás Tagliafico|DL|33|ARG|77', 'Orel Mangala|DM|28|BEL|76', 'Tanner Tessmann|DM|24|USA|75', 'Corentin Tolisso|MC|32|FRA|77',
     'Pavel Šulc|AMC|25|CZE|76', 'Ernest Nuamah|AMR|22|GHA|75', 'Martín Satriano|ST|25|URU|72', 'Loïs Openda|ST|26|BEL|80|82|p',
-    'Julien Duranville|AMR|20|BEL|72', 'Noham Kamara|DL|19|FRA|70', 'Mads Bidstrup|MC|25|DEN|75',
+    'Julien Duranville|AMR|20|BEL|72|82', 'Noham Kamara|DL|19|FRA|70|81', 'Mads Bidstrup|MC|25|DEN|75',
   ],
   'Marseille': [
     'Benjamin Pavard|DC|30|FRA|80', 'Nayef Aguerd|DC|30|MAR|79', 'CJ Egan-Riley|DC|23|ENG|74', 'Pierre-Emile Højbjerg|DM|30|DEN|80',
@@ -792,7 +792,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Philipp Köhn|GK|28|SUI|77', 'Thilo Kehrer|DC|29|GER|77', 'Mohammed Salisu|DC|27|GHA|77', 'Vanderson|DR|24|BRA|80',
     'Denis Zakaria|DM|29|SUI|80', 'Lamine Camara|MC|22|SEN|78|84', 'Aleksandr Golovin|AMC|30|RUS|78', 'Takumi Minamino|AML|31|JPN|78',
     'Ansu Fati|AML|23|ESP|76', 'Folarin Balogun|ST|25|USA|79', 'Mika Biereth|ST|23|DEN|77', 'Matthis Abline|ST|23|FRA|74',
-    'Sadibou Sané|DC|21|FRA|70', 'Mathys Detourbet|AML|19|FRA|70',
+    'Sadibou Sané|DC|21|FRA|70', 'Mathys Detourbet|AML|19|FRA|70|81',
   ],
   'Nice': [
     'Yehvann Diouf|GK|27|SEN|76', 'Youssouf Ndayishimiye|DC|28|BDI|75', 'Jonathan Clauss|DR|33|FRA|76', 'Hicham Boudaoui|MC|26|ALG|75',
@@ -800,7 +800,7 @@ export const REAL_PLAYERS: Record<string, string[]> = {
     'Mohamed Amoura|ST|26|ALG|78||p', 'Gauthier Hein|AMC|30|FRA|71', 'Axel Witsel|DM|37|BEL|76',
   ],
   'Paris FC': [
-    'Kevin Trapp|GK|36|GER|77', 'Nhoa Sangui|DL|20|FRA|70', 'Maxime López|MC|28|FRA|74', 'Ilan Kebbal|AMC|28|ALG|75',
+    'Kevin Trapp|GK|36|GER|77', 'Nhoa Sangui|DL|20|FRA|70|78', 'Maxime López|MC|28|FRA|74', 'Ilan Kebbal|AMC|28|ALG|75',
     'Jean-Philippe Krasso|ST|29|CIV|72', 'Willem Geubbels|ST|25|FRA|71',
   ],
   'Paris Saint-Germain': [
