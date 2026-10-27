@@ -15,6 +15,7 @@ import { statSummary } from '../components/PlayerStats';
 import { roleFor } from '../../game/tactics';
 import { Crest, isLight } from '../components/Crest';
 import { PitchLines } from '../components/Pitch';
+import { useLandscape } from '../useLandscape';
 
 const MS_PER_MIN = 667; // 90 minutes ≈ 60 seconds at 1x
 const SHOUTS = ['V.Defensive', 'Defensive', 'Balanced', 'Attacking', 'All-out attack'];
@@ -68,6 +69,7 @@ export function MatchScreen() {
   const [sideTab, setSideTab] = useState<'feed' | 'stats' | 'ratings'>('feed');
   const [tacticsOpen, setTacticsOpen] = useState(false);
   const [ballPhase, setBallPhase] = useState(0);
+  const landscape = useLandscape();
   const pauseUntil = useRef(0);
   const finished = matchRef.current?.finished ?? false;
 
@@ -156,14 +158,17 @@ export function MatchScreen() {
     <div className="match-screen">
       <div className="match-inner">
         <Scoreboard home={home} away={away} score={`${m.score[0]} - ${m.score[1]}`} clock={`${m.finished ? 'FULL TIME' : halfTime ? 'HALF-TIME' : `${m.minute}'`} · ${m.agg0 ? `AGG ${aggGoals(m, 0)}-${aggGoals(m, 1)}` : compName(g, fixture.comp)}`} progress={(m.minute / 90) * 100} />
-        <div className="match-scroll">
-          <LivePitch m={m} kits={[hk, ak]} ballPhase={ballPhase} />
+        <div className="match-scroll live">
+          <div className="match-main">
+          <LivePitch m={m} kits={[hk, ak]} ballPhase={ballPhase} horizontal={landscape} />
           <div className="shouts">
             {SHOUTS.map((label, i) => (
               <button key={label} className={`btn sm ${userTeam.tactics.mentality === i - 2 ? 'primary' : ''}`} onClick={() => { changeTactics(getGame()!, m, userSide, { mentality: i - 2 }); setTick((t) => t + 1); }}>{label}</button>
             ))}
           </div>
+          </div>
 
+          <div className="match-side">
           {paused && !m.finished && (
             <div className="panel" ref={(el) => el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })}>
               <div className="row"><h3>Substitutions</h3><span className="right chip">{userTeam.subsLeft} left</span></div>
@@ -225,6 +230,7 @@ export function MatchScreen() {
               ))}
             </div>
           )}
+          </div>
         </div>
         <div className="match-controls">
           <button className="btn yellow" disabled={finished} onClick={() => setPaused(!paused)}>{paused ? '▶ Play' : '⏸ Subs'}</button>
@@ -273,7 +279,7 @@ function StatBar({ label, a, b, c, pct }: { label: string; a: number; b: number;
 }
 
 /** Portrait pitch: home attacks upwards, away downwards. */
-function LivePitch({ m, kits: k, ballPhase }: { m: LiveMatch; kits: [[string, string], [string, string]]; ballPhase: number }) {
+function LivePitch({ m, kits: k, ballPhase, horizontal }: { m: LiveMatch; kits: [[string, string], [string, string]]; ballPhase: number; horizontal?: boolean }) {
   const poss = m.possTeam;
   const dots: { key: number; left: number; top: number; fill: string; stroke: string; num: string }[] = [];
   m.sides.forEach((side, si) => {
@@ -283,8 +289,9 @@ function LivePitch({ m, kits: k, ballPhase }: { m: LiveMatch; kits: [[string, st
       const jy = Math.cos(m.minute * 1.3 + lp.id * 2) * 3;
       const fwd = Math.max(3, Math.min(95, lp.x * 0.9 + 4 + push + jx)); // 0 = own goal
       const lat = Math.max(6, Math.min(94, lp.y + jy));
-      const top = si === 0 ? 100 - fwd : fwd;
-      const left = si === 0 ? lat : 100 - lat;
+      // Vertical: home attacks upward. Horizontal: home attacks to the right.
+      const top = horizontal ? (si === 0 ? lat : 100 - lat) : si === 0 ? 100 - fwd : fwd;
+      const left = horizontal ? (si === 0 ? fwd : 100 - fwd) : si === 0 ? lat : 100 - lat;
       dots.push({ key: lp.id, left, top, fill: k[si][0], stroke: k[si][1], num: String(idx + 1) });
     });
   });
@@ -292,12 +299,12 @@ function LivePitch({ m, kits: k, ballPhase }: { m: LiveMatch; kits: [[string, st
   const bx = ballPhase % 2 === 0 ? m.ball.x : 50 + (m.ball.x - 50) * 0.4;
   const by = ballPhase % 2 === 0 ? m.ball.y : 50 + (m.ball.y - 50) * 0.6;
   return (
-    <div className="match-pitch">
-      <PitchLines vertical />
+    <div className={`match-pitch ${horizontal ? 'horizontal' : ''}`}>
+      <PitchLines vertical={!horizontal} />
       {dots.map((d) => (
         <div key={d.key} className="pl" style={{ left: `${d.left}%`, top: `${d.top}%`, background: d.fill, borderColor: d.stroke, color: isLight(d.fill) ? '#15120f' : '#fff' }}>{d.num}</div>
       ))}
-      <div className="ball" style={{ left: `${Math.max(2, Math.min(98, by))}%`, top: `${Math.max(1, Math.min(99, 100 - bx))}%` }} />
+      <div className="ball" style={horizontal ? { left: `${Math.max(1, Math.min(99, bx))}%`, top: `${Math.max(2, Math.min(98, by))}%` } : { left: `${Math.max(2, Math.min(98, by))}%`, top: `${Math.max(1, Math.min(99, 100 - bx))}%` }} />
     </div>
   );
 }

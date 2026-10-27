@@ -17,6 +17,7 @@ import { CwcView, IntlView, UpcomingCard } from './WorldViews';
 import { respondAction } from '../../game/actions';
 import { RegistrationSheet } from '../components/RegistrationSheet';
 import { YouthCompView } from './YouthViews';
+import { useLandscape } from '../useLandscape';
 import { winnerOf } from '../../game/match';
 import { ClubBadgeButton } from '../components/BadgesSheet';
 
@@ -33,7 +34,7 @@ export function Competitions() {
   const youthComp = comp.startsWith('YOUTH:') ? g.youth?.find((c) => c.id === comp.slice(6)) : undefined;
 
   return (
-    <div>
+    <div className="cols">
       <div className="page-title">
         <div className="kicker">World of football</div>
         <h1>Competitions</h1>
@@ -368,10 +369,10 @@ export function Inbox() {
     if (msg && !msg.read) mutate(() => { msg.read = true; });
   }, [msg]);
 
-  if (msg) {
-    return (
+  const landscape = useLandscape();
+  const detail = msg && (
       <div>
-        <button className="btn sm" style={{ marginBottom: 12 }} onClick={() => setSel(null)}>← Inbox</button>
+        {!landscape && <button className="btn sm" style={{ marginBottom: 12 }} onClick={() => setSel(null)}>← Inbox</button>}
         <Card style={isBreaking(msg) ? { borderColor: 'rgba(251,113,133,0.5)', background: 'linear-gradient(135deg, rgba(251,113,133,0.16), var(--surface))' } : undefined}>
           {isBreaking(msg) && <div className="breaking">BREAKING NEWS</div>}
           <div className="small muted bold">{fmtShort(msg.date)} · From {msg.from}</div>
@@ -402,10 +403,10 @@ export function Inbox() {
           {msg.kind === 'youth' && <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('youth')}>See youth team →</button>}
         </Card>
       </div>
-    );
-  }
+  );
+  if (detail && !landscape) return detail;
 
-  return (
+  const list = (
     <div>
       <div className="page-title">
         <div className="kicker">Messages</div>
@@ -421,7 +422,7 @@ export function Inbox() {
       <Card style={{ paddingTop: 4, paddingBottom: 4 }}>
         <div className="list">
           {shown.map((m) => (
-            <div key={m.id} className={`li ${isBreaking(m) ? 'breaking-row' : ''}`} onClick={() => setSel(m.id)}>
+            <div key={m.id} className={`li ${isBreaking(m) ? 'breaking-row' : ''} ${m.id === sel ? 'sel' : ''}`} onClick={() => setSel(m.id)}>
               <span style={{ fontSize: 20, width: 26, textAlign: 'center' }}>{isBreaking(m) ? '🚨' : ICON[m.kind] ?? '✉️'}</span>
               <div className="main">
                 <div className="t" style={{ fontWeight: m.read ? 600 : 800 }}>{m.action?.status === 'open' ? <span className="action-pill">RESPOND</span> : !m.read && '🔵 '}{isBreaking(m) ? m.title.replace('🚨 ', '') : m.title}</div>
@@ -433,6 +434,14 @@ export function Inbox() {
           {!shown.length && <div className="empty">No messages.</div>}
         </div>
       </Card>
+    </div>
+  );
+  if (!landscape) return list;
+  // Landscape: list on the left, the open message on the right
+  return (
+    <div className="inbox-split">
+      <div className="inbox-list">{list}</div>
+      <div className="inbox-detail">{detail ?? <div className="empty" style={{ marginTop: 80 }}>Select a message to read it.</div>}</div>
     </div>
   );
 }

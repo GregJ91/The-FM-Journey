@@ -38,7 +38,7 @@ export function Home() {
   }, [needsFix, club, g]);
 
   return (
-    <div>
+    <div className="cols">
       <div className="hero">
         <div className="top">
           <Crest club={club} size={72} />

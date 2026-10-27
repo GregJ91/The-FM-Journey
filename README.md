@@ -30,9 +30,21 @@ The game is designed for phones in portrait. On a desktop it runs in a centred p
 
 - The whole interface (header, tab bar, Continue button, selections, page tint, match screen accents) takes on **your club's colours**. Text colour is picked by contrast ratio so white, black or pale kits stay readable.
 
+### Landscape layout
+
+The game is designed for a phone held sideways (it also works on tablets and desktops):
+
+- **Navigation:** a rail on the left, with Continue / Respond / Play match at the top right.
+- **Screens:** they flow into two columns of cards.
+- **Inbox:** the message list and the open message sit side by side.
+- **Panels:** player profiles, tactics and other panels slide in from the right.
+- **Match:** a horizontal pitch with commentary, stats and subs beside it, and the controls along the bottom.
+
+Turn the phone upright and the portrait layout takes over. The installed app opens in landscape.
+
 ### Playing on your phone
 
-- **Install it:** open the game in Safari (iPhone) or Chrome (Android) and choose **Add to Home Screen**. It installs like an app: it has its own icon, runs full-screen in portrait, and works offline once loaded.
+- **Install it:** open the game in Safari (iPhone) or Chrome (Android) and choose **Add to Home Screen**. It installs like an app: it has its own icon, runs full-screen in landscape, and works offline once loaded.
 - **Hosting on GitHub Pages:** this repo has a workflow at `.github/workflows/deploy.yml`. Turn it on once under **Settings → Pages → Source: GitHub Actions**. Every push to `main` (or this branch) then publishes the game.
 - **Saves:** they're stored in that phone's browser, so a save made on your phone stays on your phone.
 

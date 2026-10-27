@@ -25,9 +25,12 @@ export function Title() {
   return (
     <div className="title-screen">
       {step === 'menu' && (
-        <div style={{ paddingBottom: 28 }}>
+        <div className="title-menu" style={{ paddingBottom: 28 }}>
+          <div className="title-intro">
           <div className="title-logo" style={{ margin: '10px 0 16px' }}>The <span>FM</span><br />Journey<em>.</em></div>
           <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 22 }}>Football management, fast. Real leagues, real players, one-minute matches.</p>
+          </div>
+          <div className="title-actions">
           {saves.length > 0 && (
             <button className="mode-card" style={{ '--glow': 'rgba(251,191,36,0.3)' } as React.CSSProperties} onClick={() => loadGame(saves[0].slot)}>
               <span className="chip">▶ Continue</span>
@@ -48,6 +51,7 @@ export function Title() {
           {saves.length > 0 && <button className="btn block" onClick={() => setStep('load')}>💾 All saves ({saves.length})</button>}
           <button className="btn block" style={{ marginTop: 10 }} onClick={() => setBadgesOpen(true)}>🛡️ Club badges</button>
           {badgesOpen && <BadgesSheet onClose={() => setBadgesOpen(false)} />}
+          </div>
         </div>
       )}
       {step === 'classic' && <ClassicSetup onBack={() => setStep('menu')} />}

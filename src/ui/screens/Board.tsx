@@ -23,7 +23,7 @@ export function Board() {
   const used = g.board.lastRequest === g.date.slice(0, 7);
   const stars = (n: number) => <span className="stars">{'★'.repeat(n)}<span className="off">{'★'.repeat(5 - n)}</span></span>;
   return (
-    <div>
+    <div className="cols">
       <div className="page-title">
         <div className="kicker">{club.name}</div>
         <h1>The Board</h1>

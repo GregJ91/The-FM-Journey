@@ -28,7 +28,7 @@ export function Youth() {
   // Fringe first-teamers who also play youth football
   const fringe = squadOf(g, club.id).filter((p) => p.ys?.apps).sort((a, b) => (b.ys!.apps - a.ys!.apps));
   return (
-    <div>
+    <div className="cols">
       <div className="page-title">
         <div className="kicker">{club.name} Academy</div>
         <h1>Youth Team</h1>

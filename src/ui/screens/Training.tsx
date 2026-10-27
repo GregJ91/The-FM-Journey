@@ -27,7 +27,7 @@ export function Training() {
   const movers = [...players].filter((p) => p.lastChange !== 0).sort((a, b) => b.lastChange - a.lastChange);
   const ages = Array.from({ length: 21 }, (_, i) => 16 + i);
   return (
-    <div>
+    <div className="cols">
       <div className="page-title">
         <div className="kicker">{club.name}</div>
         <h1>Training</h1>
