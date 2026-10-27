@@ -296,8 +296,18 @@ export interface Message {
   title: string;
   body: string;
   read: boolean;
-  kind: 'info' | 'offer' | 'board' | 'transfer' | 'injury' | 'development' | 'youth' | 'match' | 'season';
+  kind: 'info' | 'offer' | 'board' | 'transfer' | 'injury' | 'development' | 'youth' | 'match' | 'season' | 'news' | 'training' | 'preview' | 'report' | 'award';
   offerId?: number;
+  /** Routine reports don't stop Continue */
+  quiet?: boolean;
+}
+
+export interface Deduction {
+  clubId: number;
+  leagueId: string;
+  season: number;
+  pts: number;
+  reason: string;
 }
 
 export interface Offer {
@@ -373,6 +383,8 @@ export interface GameState {
   continental: number[]; // legacy (pre-Europe saves)
   europe?: Record<string, number[]>;
   intl?: IntlTournament[]; // international tournaments (current and recent)
-  youth?: YouthComp[]; // this season's youth competitions // qualified clubs for next season's European competitions
+  youth?: YouthComp[]; // this season's youth competitions
+  deductions?: Deduction[]; // points deductions (this and past seasons)
+  events?: string[]; // one-off scripted events that have already fired // qualified clubs for next season's European competitions
   ledgerMark?: { i: number; e: number };
 }

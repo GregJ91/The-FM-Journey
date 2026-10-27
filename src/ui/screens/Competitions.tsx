@@ -9,7 +9,7 @@ import { Card, FixtureRow, PlayerRow } from '../components/common';
 import { Crest } from '../components/Crest';
 import { luminance } from '../theme';
 import { SquadList } from './Squad';
-import type { Cup, Player } from '../../game/types';
+import type { Cup, Message, Player } from '../../game/types';
 import { EURO_PLACES } from '../../game/data/europe';
 import { europeFor, europeTable } from '../../game/europe';
 import { guestLeagueName } from '../../game/guests';
@@ -135,7 +135,7 @@ export function LeagueTableCard({ leagueId }: { leagueId: string }) {
                 <td className="r num">{r.p}</td>
                 <td className="r num small">{r.w}-{r.d}-{r.l}</td>
                 <td className="r num">{r.gf - r.ga > 0 ? '+' : ''}{r.gf - r.ga}</td>
-                <td className="r num bold">{r.pts}</td>
+                <td className="r num bold">{r.pts}{r.ded ? <span className="ded" title={`${r.ded} points deducted`}> −{r.ded}</span> : null}</td>
               </tr>
             );
           })}
@@ -339,13 +339,26 @@ export function ClubView() {
   );
 }
 
-const ICON: Record<string, string> = { info: 'ℹ️', offer: '💰', board: '💼', transfer: '🔁', injury: '🩹', development: '📈', youth: '🌱', match: '⚽', season: '🏆' };
+const ICON: Record<string, string> = { info: 'ℹ️', offer: '💰', board: '💼', transfer: '🔁', injury: '🩹', development: '📈', youth: '🌱', match: '⚽', season: '🏆', news: '📰', training: '🏋️', preview: '🔭', report: '📋', award: '🏅' };
+
+type InboxFilter = 'all' | 'news' | 'matches' | 'squad' | 'club';
+const FILTERS: [InboxFilter, string, Message['kind'][] | null][] = [
+  ['all', 'All', null],
+  ['news', 'News', ['news', 'award', 'season']],
+  ['matches', 'Matches', ['preview', 'report', 'match']],
+  ['squad', 'Squad', ['training', 'injury', 'development', 'youth']],
+  ['club', 'Club', ['board', 'transfer', 'offer', 'info']],
+];
+const isBreaking = (m: Message) => m.kind === 'news' && m.title.startsWith('🚨');
 
 export function Inbox() {
   const g = useGame();
   const ui = useUI();
   const [sel, setSel] = useState<number | null>(typeof ui.param === 'number' ? ui.param : null);
+  const [filter, setFilter] = useState<InboxFilter>('all');
   const msg = g.inbox.find((m) => m.id === sel);
+  const kinds = FILTERS.find((f) => f[0] === filter)![2];
+  const shown = kinds ? g.inbox.filter((m) => kinds.includes(m.kind)) : g.inbox;
   useEffect(() => {
     if (msg && !msg.read) mutate(() => { msg.read = true; });
   }, [msg]);
@@ -354,9 +367,10 @@ export function Inbox() {
     return (
       <div>
         <button className="btn sm" style={{ marginBottom: 12 }} onClick={() => setSel(null)}>← Inbox</button>
-        <Card>
+        <Card style={isBreaking(msg) ? { borderColor: 'rgba(251,113,133,0.5)', background: 'linear-gradient(135deg, rgba(251,113,133,0.16), var(--surface))' } : undefined}>
+          {isBreaking(msg) && <div className="breaking">BREAKING NEWS</div>}
           <div className="small muted bold">{fmtShort(msg.date)} · From {msg.from}</div>
-          <h2 style={{ margin: '6px 0 12px', fontSize: 23 }}>{ICON[msg.kind]} {msg.title}</h2>
+          <h2 style={{ margin: '6px 0 12px', fontSize: 23 }}>{isBreaking(msg) ? '' : `${ICON[msg.kind]} `}{msg.title}</h2>
           <div className="msg-body">{msg.body}</div>
           {msg.offerId && <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('transfers')}>Go to Transfers →</button>}
           {msg.kind === 'youth' && <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('youth')}>See youth team →</button>}
@@ -372,19 +386,25 @@ export function Inbox() {
         <h1>Inbox</h1>
         <div className="chips"><button className="chip" onClick={() => mutate((gg) => gg.inbox.forEach((m) => { m.read = true; }))}>Mark all read</button></div>
       </div>
+      <div className="tabs" style={{ marginBottom: 10 }}>
+        {FILTERS.map(([id, label, ks]) => {
+          const n = (ks ? g.inbox.filter((m) => ks.includes(m.kind)) : g.inbox).filter((m) => !m.read).length;
+          return <button key={id} className={`tab ${filter === id ? 'active' : ''}`} onClick={() => setFilter(id)}>{label}{n > 0 ? ` (${n})` : ''}</button>;
+        })}
+      </div>
       <Card style={{ paddingTop: 4, paddingBottom: 4 }}>
         <div className="list">
-          {g.inbox.map((m) => (
-            <div key={m.id} className="li" onClick={() => setSel(m.id)}>
-              <span style={{ fontSize: 20, width: 26, textAlign: 'center' }}>{ICON[m.kind] ?? '✉️'}</span>
+          {shown.map((m) => (
+            <div key={m.id} className={`li ${isBreaking(m) ? 'breaking-row' : ''}`} onClick={() => setSel(m.id)}>
+              <span style={{ fontSize: 20, width: 26, textAlign: 'center' }}>{isBreaking(m) ? '🚨' : ICON[m.kind] ?? '✉️'}</span>
               <div className="main">
-                <div className="t" style={{ fontWeight: m.read ? 600 : 800 }}>{!m.read && '🔵 '}{m.title}</div>
+                <div className="t" style={{ fontWeight: m.read ? 600 : 800 }}>{!m.read && '🔵 '}{isBreaking(m) ? m.title.replace('🚨 ', '') : m.title}</div>
                 <div className="s">{fmtShort(m.date)} · {m.from}</div>
               </div>
               <span className="muted">›</span>
             </div>
           ))}
-          {!g.inbox.length && <div className="empty">No messages.</div>}
+          {!shown.length && <div className="empty">No messages.</div>}
         </div>
       </Card>
     </div>

@@ -4,11 +4,12 @@ import { computeEntrants, ensureEurope, europeFor, initialEntrants, progressEuro
 import { guestLevel, isGuest } from './guests';
 import { intlDay } from './intl';
 import { setupYouth, youthDay } from './youth';
+import { leagueRoundup, matchPreview, matchReport, monthlyAwards, scriptedEvents, trainingReport } from './news';
 import { CWC_ID, progressClubWorldCup, setupClubWorldCup } from './world';
 import { addDays, dayOfMonth, diffDays, month, weekday } from './dates';
 import { LEAGUE_DEFS } from './data/leagues';
 import { START_SEASON, emptyStats, fillSquad, generatePlayer, generateYouth, leagueOf, squadOf } from './generate';
-import { sendMessage } from './inbox';
+import { sendMessage, unreadImportant } from './inbox';
 import { applyResult, createMatch, randomInjury, simulateFixture, simulateToEnd } from './match';
 import { monthlyDevelopment } from './progression';
 import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
@@ -129,6 +130,7 @@ export function postFixture(g: GameState, f: Fixture) {
 /** Play the user's live match result into the world (called after the UI finishes the match). */
 export function finishUserMatch(g: GameState, f: Fixture) {
   postFixture(g, f);
+  matchReport(g, f);
   playDayFixtures(g);
 }
 
@@ -177,13 +179,19 @@ function newDay(g: GameState) {
   const m = month(d);
   const day = dayOfMonth(d);
   if (day === 1) {
+    monthlyAwards(g);
     recordLedger(g);
     monthlyFinances(g);
     const dev = monthlyDevelopment(g);
     developmentReport(g, dev);
     boardMonthly(g);
   }
-  if (weekday(d) === 1) weeklyWages(g);
+  if (weekday(d) === 1) {
+    weeklyWages(g);
+    trainingReport(g);
+    leagueRoundup(g);
+  }
+  matchPreview(g);
   if (m === 7 && day === 1) startSeason(g);
   if (m === 6 && day === 5) endSeason(g);
   if (m === 3 && day === 15) youthIntake(g);
@@ -381,6 +389,7 @@ export function advanceDay(g: GameState): AdvanceResult {
   playDayFixtures(g);
   intlDay(g);
   youthDay(g);
+  scriptedEvents(g);
   daily(g);
   g.date = addDays(g.date, 1);
   newDay(g);
@@ -389,14 +398,14 @@ export function advanceDay(g: GameState): AdvanceResult {
 
 /** Continue: advance days until something needs the manager (match, new message) or a week passes. */
 export function continueGame(g: GameState, maxDays = 7): AdvanceResult & { days: number } {
-  const startUnread = g.inbox.filter((m) => !m.read).length;
+  const startUnread = unreadImportant(g);
   let days = 0;
   while (days < maxDays) {
     const r = advanceDay(g);
     if (!r.ok) return { ...r, days };
     days++;
     if (pendingUserFixture(g)) break;
-    if (g.inbox.filter((m) => !m.read).length > startUnread) break;
+    if (unreadImportant(g) > startUnread) break;
     if (g.sacked) break;
   }
   return { ok: true, days };

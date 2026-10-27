@@ -14,6 +14,7 @@ export interface TableRow {
   ga: number;
   pts: number;
   form: ('W' | 'D' | 'L')[];
+  ded?: number; // points deducted
 }
 
 /** Round-robin pairings (circle method), double round. */
@@ -87,6 +88,11 @@ export function leagueTable(g: GameState, league: League): TableRow[] {
     if (r.hg > r.ag) { h.w++; a.l++; h.pts += 3; h.form.push('W'); a.form.push('L'); }
     else if (r.hg < r.ag) { a.w++; h.l++; a.pts += 3; a.form.push('W'); h.form.push('L'); }
     else { h.d++; a.d++; h.pts++; a.pts++; h.form.push('D'); a.form.push('D'); }
+  }
+  for (const d of g.deductions ?? []) {
+    if (d.leagueId !== league.id || d.season !== g.season || !rows[d.clubId]) continue;
+    rows[d.clubId].pts -= d.pts;
+    rows[d.clubId].ded = (rows[d.clubId].ded ?? 0) + d.pts;
   }
   const out = Object.values(rows);
   for (const r of out) r.form = r.form.slice(-5);

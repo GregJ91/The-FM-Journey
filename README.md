@@ -157,6 +157,27 @@ The Club World Cup is held every four years (2029, 2033 …) in June, after the 
 - **15 Mar**: youth intake.
 - **5 Jun**: the season ends. Promotion and relegation (3 up/3 down in most English divisions), prize money, contract expiries, retirements and the season review.
 
+## Inbox
+
+The inbox works like Football Manager's:
+
+| Message | When | From |
+| --- | --- | --- |
+| Match preview: opponent's position, form, shape, danger man, top scorer, missing players, our team news, assistant's verdict | Match day | Assistant Manager |
+| Match report: goals with minutes, possession, shots, xG, corners, player of the match, our best/worst ratings, league position, assistant's view | After your match | Assistant Manager |
+| Weekly training report: stand-out and poor trainers (these nudge morale), best academy player, youngsters pushing for a chance, injuries, players needing a rest, unhappy players | Mondays | First-Team Coach |
+| League round-up: weekend results, biggest win, top four and your position | Mondays | Media |
+| Monthly awards: Player, Young Player and Manager of the Month in your league | 1st of the month | League |
+| Breaking news, transfers, injuries, board, youth, development and season reviews | As they happen | Various |
+
+- **Quiet messages**: routine reports (previews, match reports, training, round-ups, awards you didn't win) don't stop **Continue**. Breaking news and other important messages still do.
+- **Filters**: All, News, Matches, Squad and Club.
+
+## Scripted events
+
+- **Manchester City FFP ruling (2026/27)**: when City have five league games left, they're docked 60 points for breaching financial rules, announced as breaking news. In testing they dropped from 4th to 20th and were relegated.
+- **Deductions** show in the league tables as a red −60. The rules for deductions and one-off events live in `src/game/news.ts` (`scriptedEvents`).
+
 ## Meta players
 
 In the match engine, pace and composure matter more than the overall rating suggests. So do dribbling and finishing for attackers, and tackling and positioning for defenders. A player whose attributes in these areas are above his overall level adds up to 4% more to his team (and a player who is below it adds up to 4% less).

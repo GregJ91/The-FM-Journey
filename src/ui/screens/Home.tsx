@@ -139,7 +139,7 @@ export function Home() {
                 <td><span className="row" style={{ gap: 6 }}><Crest club={g.clubs[r.clubId]} size={18} /><span className="ellipsis" style={{ maxWidth: 170 }}>{g.clubs[r.clubId].name}</span></span></td>
                 <td className="r num">{r.p}</td>
                 <td className="r num">{r.gf - r.ga > 0 ? '+' : ''}{r.gf - r.ga}</td>
-                <td className="r num bold">{r.pts}</td>
+                <td className="r num bold">{r.pts}{r.ded ? <span className="ded"> −{r.ded}</span> : null}</td>
               </tr>
             ))}
           </tbody>
