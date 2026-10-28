@@ -3,6 +3,7 @@ import { nextId } from './generate';
 import { shuffle } from './rng';
 import { winnerOf } from './match';
 import type { Cup, Fixture, GameState, League } from './types';
+import { REAL_FIXTURES, REAL_FIXTURES_SEASON } from './data/realFixtures';
 
 export interface TableRow {
   clubId: number;
@@ -64,7 +65,25 @@ function leagueDates(season: number, n: number) {
   return [...sats, ...tues].sort();
 }
 
+/** The real fixture list for this league and season, if we have one and every club is still in it. */
+function realSchedule(g: GameState, league: League) {
+  const real = REAL_FIXTURES[league.id];
+  if (!real || g.season !== REAL_FIXTURES_SEASON) return null;
+  const byName = new Map(league.clubIds.map((id) => [g.clubs[id].name, id]));
+  const ids = real.clubs.map((n) => byName.get(n));
+  if (ids.some((id) => id === undefined) || ids.length !== league.clubIds.length) return null; // e.g. a created club took a place
+  return real.matches.map((m) => {
+    const [round, date, h, a] = m.split('|');
+    return { round: Number(round), date, home: ids[Number(h)]!, away: ids[Number(a)]! };
+  });
+}
+
 export function scheduleLeague(g: GameState, league: League) {
+  const real = realSchedule(g, league);
+  if (real) {
+    for (const m of real) g.fixtures.push({ id: nextId(g), comp: league.id, date: m.date, round: m.round, home: m.home, away: m.away, result: null });
+    return;
+  }
   const rounds = roundRobin(shuffle([...league.clubIds]));
   const dates = leagueDates(g.season, rounds.length);
   rounds.forEach((pairs, i) => {
@@ -168,6 +187,25 @@ export function drawCupRound(g: GameState, cup: Cup) {
       home: playing[i], away: playing[i + 1], result: null, knockout: true, neutral: final,
     };
     g.fixtures.push(f);
+    avoidLeagueClash(g, f);
+  }
+}
+
+/**
+ * A club can't play twice on one day. When a cup or European tie lands on the same date as one of its
+ * clubs' league matches (real fixture lists have midweek rounds), the league match moves a day earlier,
+ * or later, to the nearest day that's free for both of its clubs.
+ */
+export function avoidLeagueClash(g: GameState, f: Fixture) {
+  const busy = (club: number, date: string, except: Fixture) => g.fixtures.some((x) => x !== except && x.date === date && (x.home === club || x.away === club));
+  for (const club of [f.home, f.away]) {
+    const other = g.fixtures.find((x) => x !== f && !x.result && x.date === f.date && (x.home === club || x.away === club));
+    if (!other || !g.leagues.some((l) => l.id === other.comp)) continue;
+    for (const shift of [-1, 1, -2, 2, -3, 3]) {
+      const d = addDays(other.date, shift);
+      if (d <= g.date) continue;
+      if (!busy(other.home, d, other) && !busy(other.away, d, other)) { other.date = d; break; }
+    }
   }
 }
 

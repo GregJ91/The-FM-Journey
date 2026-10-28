@@ -3,7 +3,7 @@
 // Conference League) different opponents, then 1st-8th go to the round of 16, 9th-24th play
 // two-legged knockout play-offs, and 25th-36th are out. Knockout ties are two-legged; the final is one match.
 import { EURO_CLUBS, EURO_COMPS, EURO_ENTRANTS_2026, EURO_GUEST_LEAGUE, EURO_PLACES, EURO_PLAYERS, type EuroCompDef } from './data/europe';
-import { leagueTable, type TableRow } from './competitions';
+import { leagueTable, type TableRow, avoidLeagueClash } from './competitions';
 import { addDays, nextWeekday } from './dates';
 import { nextId } from './generate';
 import { addGuestClubs } from './guests';
@@ -167,17 +167,9 @@ function drawLeaguePhase(g: GameState, cup: Cup, def: EuroCompDef, dates: string
       homes[home] = (homes[home] ?? 0) + 1;
       const f: Fixture = { id: nextId(g), comp: cup.id, date: dates[r], round: r + 1, roundName: cup.rounds[r].name, home, away, result: null };
       g.fixtures.push(f);
-      avoidClash(g, f);
+      avoidLeagueClash(g, f);
     }
   });
-}
-
-/** A club can't play twice on one day: move a clashing league match to the day before. */
-function avoidClash(g: GameState, f: Fixture) {
-  for (const club of [f.home, f.away]) {
-    const other = g.fixtures.find((x) => x !== f && !x.result && x.date === f.date && (x.home === club || x.away === club));
-    if (other && g.leagues.some((l) => l.id === other.comp)) other.date = addDays(other.date, -1);
-  }
 }
 
 // ---------- Tables & progress ----------
@@ -214,14 +206,16 @@ function pay(g: GameState, clubId: number, amount: number) {
 function makeTie(g: GameState, cup: Cup, round: number, tie: number, high: number, low: number) {
   const r = cup.rounds[round - 1];
   if (r.name === 'Final') {
-    g.fixtures.push({ id: nextId(g), comp: cup.id, date: r.date, round, roundName: r.name, home: high, away: low, result: null, knockout: true, neutral: true, tie });
+    const fin: Fixture = { id: nextId(g), comp: cup.id, date: r.date, round, roundName: r.name, home: high, away: low, result: null, knockout: true, neutral: true, tie };
+    g.fixtures.push(fin);
+    avoidLeagueClash(g, fin);
     return;
   }
   const l1: Fixture = { id: nextId(g), comp: cup.id, date: r.date, round, roundName: `${r.name} · 1st leg`, home: low, away: high, result: null, leg: 1, tie };
   const l2: Fixture = { id: nextId(g), comp: cup.id, date: addDays(r.date, 7), round, roundName: `${r.name} · 2nd leg`, home: high, away: low, result: null, knockout: true, leg: 2, firstLeg: l1.id, tie };
   g.fixtures.push(l1, l2);
-  avoidClash(g, l1);
-  avoidClash(g, l2);
+  avoidLeagueClash(g, l1);
+  avoidLeagueClash(g, l2);
 }
 
 /** Winners of a knockout round, in bracket order. */
