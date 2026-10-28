@@ -13,7 +13,7 @@ import type { Cup, Message, Player } from '../../game/types';
 import { EURO_PLACES } from '../../game/data/europe';
 import { europeFor, europeTable } from '../../game/europe';
 import { guestLeagueName } from '../../game/guests';
-import { CwcView, IntlView, UpcomingCard } from './WorldViews';
+import { CwcView, IntlView, NationsCard, UpcomingCard } from './WorldViews';
 import { respondAction } from '../../game/actions';
 import { RegistrationSheet } from '../components/RegistrationSheet';
 import { YouthCompView } from './YouthViews';
@@ -87,6 +87,7 @@ export function Competitions() {
       {intl && <IntlView key={intl.id} t={intl} />}
       {youthComp && <YouthCompView key={youthComp.id} comp={youthComp} />}
       {(comp === 'MY' || intl) && <UpcomingCard />}
+      {(comp === 'MY' || intl) && <NationsCard />}
 
       {cup && cup.lp === undefined && cup.type !== 'world' && (
         <>

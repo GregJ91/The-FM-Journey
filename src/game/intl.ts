@@ -46,9 +46,9 @@ export function upcomingTournaments(g: GameState, n = 4) {
 interface Selection { squad: Player[]; xi: Player[]; strength: number }
 
 /** Best squad for a nation: the best keepers and outfield players of that nationality at clubs. */
-function selectSquad(code: string, pool: Record<string, Player[]>): Selection {
+function selectSquad(code: string, pool: Record<string, Player[]>, includeUnavailable = false): Selection {
   const base = NATION_DEFS[code]?.level ?? 60;
-  const all = (pool[code] ?? []).filter((p) => !p.injury && !p.away).sort((a, b) => overall(b) - overall(a));
+  const all = (pool[code] ?? []).filter((p) => includeUnavailable || (!p.injury && !p.away)).sort((a, b) => overall(b) - overall(a));
   const gks = all.filter((p) => p.pos === 'GK').slice(0, 3);
   const out = all.filter((p) => p.pos !== 'GK').slice(0, SQUAD_SIZE - gks.length);
   const squad = [...gks, ...out];
@@ -68,6 +68,13 @@ function natPool(g: GameState) {
     (pool[p.nat] ??= []).push(p);
   }
   return pool;
+}
+
+/** A nation's squad as it stands today (the players it would pick, injured ones included). */
+export function nationSquad(g: GameState, code: string) {
+  const pool: Record<string, Player[]> = { [code]: Object.values(g.players).filter((p) => p.nat === code && p.clubId !== null && p.squad !== 'youth') };
+  const sel = selectSquad(code, pool, true);
+  return { squad: sel.squad, xi: sel.xi, strength: Math.round(sel.strength * 10) / 10 };
 }
 
 // ---------- Draw & schedule ----------

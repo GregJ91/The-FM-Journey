@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { fmtShort } from '../../game/dates';
-import { groupTable, matchWinner, nationName, topScorers, upcomingTournaments } from '../../game/intl';
+import { groupTable, matchWinner, nationName, nationSquad, topScorers, upcomingTournaments } from '../../game/intl';
+import { NATION_DEFS } from '../../game/data/world';
 import { cwcGroupTable } from '../../game/world';
 import { winnerOf } from '../../game/match';
-import { fullName } from '../../game/ratings';
-import type { Cup, IntlMatch, IntlTournament } from '../../game/types';
+import { POS_GROUP, age, fullName } from '../../game/ratings';
+import type { Cup, IntlMatch, IntlTournament, Player } from '../../game/types';
 import { useGame } from '../../store';
 import { useUI } from '../context';
-import { Card, FixtureRow } from '../components/common';
+import { Card, FixtureRow, PlayerRow, Sheet } from '../components/common';
 import { Crest } from '../components/Crest';
 
 const letter = (i: number) => String.fromCharCode(65 + i);
@@ -75,7 +76,7 @@ export function CwcView({ cup }: { cup: Cup }) {
   );
 }
 
-function MatchLine({ m, t }: { m: IntlMatch; t: IntlTournament }) {
+function MatchLine({ m, t, onNation }: { m: IntlMatch; t: IntlTournament; onNation: (code: string) => void }) {
   const g = useGame();
   const played = m.ga !== undefined;
   const w = matchWinner(m);
@@ -85,9 +86,9 @@ function MatchLine({ m, t }: { m: IntlMatch; t: IntlTournament }) {
     <div className="tie">
       <div className="fx" style={{ gridTemplateColumns: '52px minmax(0,1fr) auto minmax(0,1fr) 0px' }}>
         <div className="when">{fmtShort(m.date)}</div>
-        <div className={`h ${mine(m.a) ? 'me' : ''}`} style={{ fontWeight: w === m.a ? 800 : 600 }}><span>{nationName(m.a)}</span></div>
+        <div className={`h ${mine(m.a) ? 'me' : ''}`} style={{ fontWeight: w === m.a ? 800 : 600, cursor: 'pointer' }} onClick={() => onNation(m.a)}><span>{nationName(m.a)}</span></div>
         <div className={`score ${played ? '' : 'tbd'}`}>{played ? `${m.ga} - ${m.gb}` : 'v'}{m.pens && <span className="agg">{m.pens[0]}-{m.pens[1]} pens</span>}{m.et && !m.pens && <span className="agg">aet</span>}</div>
-        <div className={`a ${mine(m.b) ? 'me' : ''}`} style={{ fontWeight: w === m.b ? 800 : 600 }}><span>{nationName(m.b)}</span></div>
+        <div className={`a ${mine(m.b) ? 'me' : ''}`} style={{ fontWeight: w === m.b ? 800 : 600, cursor: 'pointer' }} onClick={() => onNation(m.b)}><span>{nationName(m.b)}</span></div>
         <div />
       </div>
       {goals.length > 0 && <div className="through">⚽ {goals.map((s) => `${g.players[s.pid!].last} ${s.min}'`).join(', ')}</div>}
@@ -100,14 +101,16 @@ export function IntlView({ t }: { t: IntlTournament }) {
   const g = useGame();
   const ui = useUI();
   const [tab, setTab] = useState<'groups' | 'ko' | 'players'>(t.stage >= 3 ? 'ko' : 'groups');
+  const [nation, setNation] = useState<string | null>(null);
   const mine = t.teams.flatMap((c) => (t.squads[c] ?? []).map((id) => g.players[id]).filter((p) => p && p.clubId === g.userClubId).map((p) => ({ p, c })));
   const goalsOf = (id: number) => t.matches.reduce((s, m) => s + (m.scorers ?? []).filter((x) => x.pid === id).length, 0);
   return (
     <>
       {t.winner && <Winner label={`${t.name} winners`} name={nationName(t.winner)} />}
       <div className="small muted" style={{ marginBottom: 10 }}>
-        {t.teams.length} nations · hosts {t.hosts.map(nationName).join(', ')} · {t.stages[0].date} to {t.stages[t.stages.length - 1].date}. Squads are picked from the best players of each nationality in the game.
+        {t.teams.length} nations · hosts {t.hosts.map(nationName).join(', ')} · {t.stages[0].date} to {t.stages[t.stages.length - 1].date}. Squads are picked from the best players of each nationality in the game. Tap a nation to see its squad.
       </div>
+      {nation && <NationSheet code={nation} t={t} onClose={() => setNation(null)} />}
       <div className="seg" style={{ marginBottom: 12 }}>
         <button className={tab === 'groups' ? 'on' : ''} onClick={() => setTab('groups')}>Groups</button>
         <button className={tab === 'ko' ? 'on' : ''} onClick={() => setTab('ko')}>Knockouts</button>
@@ -119,7 +122,7 @@ export function IntlView({ t }: { t: IntlTournament }) {
             <thead><tr><th>#</th><th>Nation</th><th className="r">P</th><th className="r">GD</th><th className="r">Pts</th></tr></thead>
             <tbody>
               {groupTable(t, gi).map((r, i) => (
-                <tr key={r.nat} className={i < 2 ? 'zone-up' : i === 2 && t.teams.length > 16 ? 'zone-po' : ''}>
+                <tr key={r.nat} className={`click ${i < 2 ? 'zone-up' : i === 2 && t.teams.length > 16 ? 'zone-po' : ''}`} onClick={() => setNation(r.nat)}>
                   <td className="num bold">{i + 1}</td>
                   <td>{nationName(r.nat)} <span className="muted small">{t.strength[r.nat].toFixed(0)}</span></td>
                   <td className="r num">{r.p}</td>
@@ -129,14 +132,14 @@ export function IntlView({ t }: { t: IntlTournament }) {
               ))}
             </tbody>
           </table>
-          {t.matches.filter((m) => m.group === gi).map((m) => <MatchLine key={m.id} m={m} t={t} />)}
+          {t.matches.filter((m) => m.group === gi).map((m) => <MatchLine key={m.id} m={m} t={t} onNation={setNation} />)}
         </Card>
       ))}
       {tab === 'ko' && t.stages.slice(3).map((st, i) => {
         const ms = t.matches.filter((m) => m.stage === i + 3).sort((a, b) => (a.tie ?? 0) - (b.tie ?? 0));
         return (
           <Card key={st.name} title={st.name} tag={fmtShort(st.date)} tagColor="var(--muted)">
-            {ms.map((m) => <MatchLine key={m.id} m={m} t={t} />)}
+            {ms.map((m) => <MatchLine key={m.id} m={m} t={t} onNation={setNation} />)}
             {!ms.length && <div className="muted small">{t.stage < 3 ? 'After the group stage' : 'Decided by the previous round'}</div>}
           </Card>
         );
@@ -168,6 +171,72 @@ export function IntlView({ t }: { t: IntlTournament }) {
         </>
       )}
     </>
+  );
+}
+
+const GROUPS = [['GK', 'Goalkeepers'], ['DEF', 'Defenders'], ['MID', 'Midfielders'], ['ATT', 'Attackers']] as const;
+
+/** A national team's squad: the tournament squad when viewed from a tournament, otherwise its best players today. */
+export function NationSheet({ code, t, onClose }: { code: string; t?: IntlTournament; onClose: () => void }) {
+  const g = useGame();
+  const live = t?.squads[code] ? null : nationSquad(g, code);
+  const squad: Player[] = live ? live.squad : t!.squads[code].map((id) => g.players[id]).filter(Boolean);
+  const xi = new Set(live ? live.xi.map((p) => p.id) : t!.xi[code] ?? []);
+  const strength = live ? live.strength : t!.strength[code];
+  const goalsIn = (id: number) => (t ? t.matches.reduce((s, m) => s + (m.scorers ?? []).filter((x) => x.pid === id).length, 0) : 0);
+  const def = NATION_DEFS[code];
+  return (
+    <Sheet title={nationName(code)} onClose={onClose}>
+      <div className="chips" style={{ marginBottom: 10 }}>
+        {def && <span className="chip">{def.conf}</span>}
+        <span className="chip">Team rating {strength.toFixed(0)}</span>
+        <span className="chip">{t ? `${t.short} squad` : 'Current squad'} · {squad.length} players</span>
+      </div>
+      {squad.length < 23 && (
+        <div className="help" style={{ marginBottom: 10 }}>
+          Only {squad.length} {nationName(code)} player{squad.length === 1 ? ' is' : 's are'} in the game. The rest of the squad plays at the nation's usual level.
+        </div>
+      )}
+      {GROUPS.map(([grp, label]) => {
+        const ps = squad.filter((p) => POS_GROUP[p.pos] === grp);
+        if (!ps.length) return null;
+        return (
+          <div key={grp}>
+            <div className="section-label">{label}</div>
+            <div className="list">
+              {ps.map((p) => {
+                const club = p.clubId !== null ? g.clubs[p.clubId] : null;
+                const tg = goalsIn(p.id);
+                return (
+                  <PlayerRow key={p.id} p={p} me={p.clubId === g.userClubId}
+                    sub={<>{age(p, g.date)}y · {club?.name ?? 'Free agent'}{p.caps ? ` · ${p.caps} caps, ${p.intGoals ?? 0} goals` : ''}{tg ? ` · ${tg} at ${t!.short}` : ''}</>}
+                    end={xi.has(p.id) ? <span className="chip">XI</span> : undefined} />
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      {!squad.length && <div className="muted small">No players of this nationality are in the game.</div>}
+    </Sheet>
+  );
+}
+
+/** Browse any national team's current squad. */
+export function NationsCard() {
+  const nations = Object.values(NATION_DEFS).sort((a, b) => a.name.localeCompare(b.name));
+  const [code, setCode] = useState('ENG');
+  const [open, setOpen] = useState<string | null>(null);
+  return (
+    <Card title="National teams" tag="Squads" tagColor="var(--violet)">
+      <div className="row" style={{ gap: 8 }}>
+        <select className="input" value={code} onChange={(e) => setCode(e.target.value)} style={{ flex: 1 }}>
+          {nations.map((n) => <option key={n.code} value={n.code}>{n.name}</option>)}
+        </select>
+        <button className="btn primary" onClick={() => setOpen(code)}>View squad</button>
+      </div>
+      {open && <NationSheet code={open} onClose={() => setOpen(null)} />}
+    </Card>
   );
 }
 
