@@ -122,13 +122,28 @@ export const EURO_CLUBS: string[] = [
 /** Real players at guest clubs (summer 2026 moves out of the big five leagues; same format as REAL_PLAYERS). */
 export const EURO_PLAYERS: Record<string, string[]> = {
   'Trabzonspor': ['Mohamed Salah|AMR|34|EGY|87'],
-  'Beşiktaş': ['Dušan Vlahović|ST|26|SRB|81', 'Leandro Trossard|AML|31|BEL|80'],
+  'Beşiktaş': ['Ernest Poku|AMR|22|NED|74', 'Emmanuel Agbadou|DC|29|CIV|76', 'Dušan Vlahović|ST|26|SRB|81', 'Leandro Trossard|AML|31|BEL|80'],
   'Galatasaray': ['Rafael Leão|AML|27|POR|84', 'Lesley Ugochukwu|DM|22|FRA|73|79'],
   'Fenerbahçe': ['Mason Greenwood|AMR|24|ENG|83|85', 'Mattéo Guendouzi|MC|27|FRA|79', 'Romelu Lukaku|ST|33|BEL|79'],
-  'Benfica': ['João Palhinha|DM|30|POR|81'],
-  'Ajax': ['Marc-André ter Stegen|GK|34|GER|83', 'Tolu Arokodare|ST|25|NGA|74'],
+  'Benfica': ['Jakub Kamiński|AMR|24|POL|73', 'João Palhinha|DM|30|POR|81'],
+  'Ajax': ['Thilo Kehrer|DC|29|GER|77', 'Sofyan Amrabat|DM|29|MAR|78', 'Simon Adingra|AML|24|CIV|76', 'Marc-André ter Stegen|GK|34|GER|83', 'Tolu Arokodare|ST|25|NGA|74'],
   'Celtic': ['Sam Johnstone|GK|33|ENG|74'],
   'Panathinaikos': ['Stefan de Vrij|DC|34|NED|79'],
+  'Olympiacos': [
+    'Stefan Ortega|GK|33|GER|79',
+  ],
+  'Porto': [
+    'Seko Fofana|MC|31|CIV|76',
+    'Santiago Giménez|ST|25|MEX|79',
+    'André Silva|ST|30|POR|73',
+    'Borja Sainz|AML|24|ESP|71',
+  ],
+  'Red Bull Salzburg': [
+    'Haris Tabaković|ST|32|BIH|73',
+  ],
+  'Club Brugge': [
+    'Félix Lemaréchal|MC|23|FRA|73',
+  ],
 };
 
 /**

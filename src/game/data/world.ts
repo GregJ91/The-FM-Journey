@@ -48,14 +48,17 @@ export const WORLD_CLUBS: string[] = [
 
 /** Well-known players at these clubs (as of 2025/26; some may have moved since). */
 export const WORLD_PLAYERS: Record<string, string[]> = {
-  'Al Hilal': ['Ollie Watkins|ST|30|ENG|82', 'Gabriel Martinelli|AML|25|BRA|81', 'Crysencio Summerville|AML|24|NED|76', 'Theo Hernández|DL|28|FRA|82||p', 'Darwin Núñez|ST|27|URU|79||p', 'Rúben Neves|DM|29|POR|80'],
+  'Al Hilal': ['Mohamed Kader Meïté|ST|19|FRA|70|84', 'Ollie Watkins|ST|30|ENG|82', 'Gabriel Martinelli|AML|25|BRA|81', 'Crysencio Summerville|AML|24|NED|76', 'Theo Hernández|DL|28|FRA|82||p', 'Darwin Núñez|ST|27|URU|79||p', 'Rúben Neves|DM|29|POR|80'],
   'Al Nassr': ['Cristiano Ronaldo|ST|41|POR|80||f', 'João Félix|AMC|26|POR|79', 'Kingsley Coman|AMR|30|FRA|79||p', 'Sadio Mané|AML|34|SEN|76'],
   'Al Ahli': ['Riyad Mahrez|AMR|35|ALG|77', 'Ivan Toney|ST|30|ENG|80||f', 'Édouard Mendy|GK|34|SEN|77'],
   'Inter Miami': ['Lionel Messi|AMR|39|ARG|84||v', 'Rodrigo De Paul|MC|32|ARG|79'],
   'Los Angeles FC': ['Son Heung-min|AML|34|KOR|79'],
-  'Flamengo': ['Jorginho|DM|34|ITA|77||v', 'Giorgian de Arrascaeta|AMC|32|URU|78', 'Pedro|ST|29|BRA|77'],
-  'Palmeiras': ['Vitor Roque|ST|21|BRA|77|84'],
+  'Flamengo': ['Lucas Paquetá|AMC|28|BRA|82||t', 'Jorginho|DM|34|ITA|77||v', 'Giorgian de Arrascaeta|AMC|32|URU|78', 'Pedro|ST|29|BRA|77'],
+  'Palmeiras': ['Andreas Pereira|AMC|30|BRA|78', 'Vitor Roque|ST|21|BRA|77|84'],
   'Boca Juniors': ['Leandro Paredes|MC|32|ARG|77'],
+  'Club América': [
+    'Carlos Álvarez|AMC|23|ESP|72',
+  ],
 };
 
 /** Club World Cup places outside UEFA (UEFA has 12). One extra non-UEFA club is the host's. */
