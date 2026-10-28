@@ -1,6 +1,7 @@
 // Guest clubs: clubs outside the playable leagues that only appear in international club competitions
 // (the rest of Europe for UEFA competitions, the rest of the world for the Club World Cup).
 import { EURO_CLUBS, EURO_GUEST_LEAGUE } from './data/europe';
+import { SHIRT_NUMBERS } from './data/shirtNumbers';
 import { WORLD_CLUBS, WORLD_GUEST_LEAGUE } from './data/world';
 import { createPlayer, fillSquad, nextId, parseClub, parsePlayer, setClubFinances, squadOf, wageBill } from './generate';
 import { hash } from './rng';
@@ -38,6 +39,8 @@ export function addGuestClubs(g: GameState, lines: string[], players: Record<str
     for (const pl of players[name] ?? []) {
       const p = createPlayer(g, parsePlayer(pl), id, club.reputation);
       p.contractEnd = g.season + 1 + Math.floor(hash(p.id) * 3);
+      const num = SHIRT_NUMBERS[name]?.[pl.split('|')[0]];
+      if (num !== undefined) p.shirt = num;
     }
     fillSquad(g, club, level, 22);
     const squad = squadOf(g, id);
