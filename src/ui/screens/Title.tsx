@@ -12,6 +12,9 @@ import { BadgesSheet } from '../components/BadgesSheet';
 
 type Step = 'menu' | 'classic' | 'create' | 'load';
 
+/** Create a Club is switched off for now (existing create-a-club saves still load). */
+const CREATE_CLUB_ENABLED = false;
+
 const PALETTE = ['#e5484d', '#ff8a3d', '#ffd23f', '#c6f432', '#19b866', '#0f7a4a', '#3ec1f3', '#1d4ed8', '#0b1f5b', '#7b5cff', '#ff7ac6', '#7a1e3a', '#15120f', '#ffffff', '#9a9187', '#f5b700'];
 const SHAPES: CrestShape[] = ['shield', 'circle', 'diamond', 'badge'];
 const PATTERNS: CrestPattern[] = ['plain', 'stripes', 'halves', 'sash', 'hoops', 'chevron'];
@@ -38,11 +41,13 @@ export function Title() {
               <p>{saves[0].manager} · {fmtDate(saves[0].date)}</p>
             </button>
           )}
-          <button className="mode-card" style={{ '--glow': 'rgba(198,244,50,0.3)' } as React.CSSProperties} onClick={() => setStep('create')}>
-            <span className="chip">🌱 Start from the bottom</span>
-            <h2>Create a Club</h2>
-            <p>Design your own club and start in the National League. Climb five divisions to the top.</p>
-          </button>
+          {CREATE_CLUB_ENABLED && (
+            <button className="mode-card" style={{ '--glow': 'rgba(198,244,50,0.3)' } as React.CSSProperties} onClick={() => setStep('create')}>
+              <span className="chip">🌱 Start from the bottom</span>
+              <h2>Create a Club</h2>
+              <p>Design your own club and start in the National League. Climb five divisions to the top.</p>
+            </button>
+          )}
           <button className="mode-card" style={{ '--glow': 'rgba(56,189,248,0.32)' } as React.CSSProperties} onClick={() => setStep('classic')}>
             <span className="chip">⚽ Classic</span>
             <h2>Choose a Club</h2>
@@ -55,7 +60,7 @@ export function Title() {
         </div>
       )}
       {step === 'classic' && <ClassicSetup onBack={() => setStep('menu')} />}
-      {step === 'create' && <CreateSetup onBack={() => setStep('menu')} />}
+      {CREATE_CLUB_ENABLED && step === 'create' && <CreateSetup onBack={() => setStep('menu')} />}
       {step === 'load' && <LoadList saves={saves} onBack={() => setStep('menu')} onChange={() => listSaves().then(setSaves)} />}
     </div>
   );
