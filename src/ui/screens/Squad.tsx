@@ -10,6 +10,7 @@ import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { Card, CondBar, Ovr, OvrChange, PlayerRow, PosTag, Sheet, Spark, Stars, StatusIcons } from '../components/common';
 import { useLandscape } from '../useLandscape';
+import { Fit } from '../components/Fit';
 import { FormationPitch } from '../components/Pitch';
 
 type SortKey = 'pos' | 'ovr' | 'age' | 'value' | 'pot' | 'goals' | 'rating' | 'xg' | 'kp' | 'pass' | 'def';
@@ -62,7 +63,8 @@ export function SquadList({ g, players, own = true }: { g: GameState; players: P
       <div className="tabs">
         {SORTS.map(([k, label]) => <button key={k} className={`tab ${sort === k ? 'active' : ''}`} onClick={() => setSort(k)}>{label}</button>)}
       </div>
-      <div className="card" style={{ paddingTop: 4, paddingBottom: 4 }}>
+      <div className="card fill" style={{ paddingTop: 4, paddingBottom: 4 }}>
+        <Fit>
         <div className="list">
           {rows.map((p) => {
             const grp = POS_GROUP[p.pos];
@@ -76,6 +78,7 @@ export function SquadList({ g, players, own = true }: { g: GameState; players: P
             );
           })}
         </div>
+        </Fit>
       </div>
     </>
   );
@@ -93,6 +96,7 @@ function SquadTable({ g, rows, own, sort, setSort }: { g: GameState; rows: Playe
   ];
   return (
     <div className="card fill squad-table">
+      <Fit>
       <table className="t fm">
         <thead>
           <tr>{cols.map((c) => <th key={c.label} className={`${c.cls ?? ''} ${c.key ? 'sortable' : ''} ${c.key && c.key === sort ? 'sorted' : ''}`} onClick={c.key ? () => setSort(c.key!) : undefined}>{c.label}</th>)}</tr>
@@ -121,6 +125,7 @@ function SquadTable({ g, rows, own, sort, setSort }: { g: GameState; rows: Playe
           })}
         </tbody>
       </table>
+      </Fit>
     </div>
   );
 }

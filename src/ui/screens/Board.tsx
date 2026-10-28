@@ -34,7 +34,7 @@ function ManagerCard() {
           );
         })}
       </div>
-      <div className="small muted" style={{ marginTop: 8 }}>Your attributes (1–20) move on the 1st of each month towards how you manage: what you do improves, what you don't slowly fades. Tap one to see how to raise it and what it does.</div>
+      <div className="small muted" style={{ marginTop: 6 }}>Changes on the 1st of each month. Tap one for details.</div>
     </Card>
   );
 }

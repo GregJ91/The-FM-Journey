@@ -7,6 +7,7 @@ import { useUI } from '../context';
 import { getGame } from '../../store';
 import { isEligible } from '../../game/actions';
 import { Crest } from './Crest';
+import { Fit } from './Fit';
 
 export function Ovr({ value, lg }: { value: number; lg?: boolean }) {
   const tier = value >= 80 ? 'gold' : value >= 70 ? 'silver' : value >= 60 ? 'bronze' : 'plain';
@@ -90,7 +91,7 @@ export function Card({ title, tag, tagColor, right, children, className = '', st
           {right && <div className="right">{right}</div>}
         </div>
       )}
-      {children}
+      <Fit>{children}</Fit>
     </section>
   );
 }

@@ -9,6 +9,7 @@ import { ordinal } from '../../game/season';
 import { validateLineup } from '../../game/selection';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
+import { Fit } from '../components/Fit';
 import { Card, FixtureRow, Meter, PlayerRow, Spark } from '../components/common';
 import { Crest } from '../components/Crest';
 import { ChevronRight, Target } from 'lucide-react';
@@ -39,7 +40,7 @@ export function Home() {
 
   return (
     <div className="cols">
-      <div className="hero">
+      <div className="hero"><Fit>
         <div className="top">
           <Crest club={club} size={72} />
           <div style={{ minWidth: 0 }}>
@@ -69,7 +70,7 @@ export function Home() {
         ) : (
           <div className="next-match"><b>No fixtures scheduled</b><div className="small muted">The new season starts on 1 July.</div></div>
         )}
-      </div>
+      </Fit></div>
 
       <div className="grid2" style={{ marginBottom: 14 }}>
         <div className="tile" onClick={() => ui.go('board')}><div className="k">Board</div><div className="v">{g.board.confidence}%</div><Meter value={g.board.confidence} /></div>

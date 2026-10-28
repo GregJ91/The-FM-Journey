@@ -907,3 +907,57 @@ table.t.fm th.sorted { box-shadow: inset 0 -2px 0 var(--accent); }
 table.t.fm td.nm { max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
 table.t.fm .ovr { height: 22px; min-width: 28px; font-size: 12.5px; }
 table.t.fm tbody tr:hover td { background: rgba(255, 255, 255, 0.05); }
+
+/* =====================================================================
+   No scrolling anywhere (both orientations): pages are fixed panels,
+   long lists page with ‹ › (see components/Fit.tsx) instead of scrolling.
+   ===================================================================== */
+.content { overflow: hidden; padding-bottom: 8px; }
+.card { display: flex; flex-direction: column; min-height: 0; }
+.fit { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.fit-b { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.fit-pager { flex: none; display: flex; align-items: center; justify-content: center; gap: 12px; padding-top: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.fit-pager .btn.sm { min-height: 26px; padding: 2px 14px; font-size: 15px; line-height: 1; }
+
+/* Dashboard pages: panels flow down then across into columns; more columns than fit snap in sideways */
+.cols {
+  columns: auto; display: flex; flex-direction: column; flex-wrap: wrap; align-content: flex-start;
+  height: 100%; gap: 10px 12px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
+}
+.cols::-webkit-scrollbar { display: none; }
+.cols > * { width: calc(100% - 22px); max-height: 100%; min-height: 0; flex: 0 1 auto; margin: 0 !important; scroll-snap-align: start; overflow: hidden !important; }
+.cols > .page-title, .cols > .help, .cols > .seg, .cols > .tabs, .cols > .field, .cols > .row { flex: none; }
+.cols > .card:has(.fit-pager), .cols > .card.grow { flex: 1 1 auto; }
+
+/* List pages (First Team, Transfers, Inbox): header bits stay put, the list panel fills the rest */
+.content > div:not(.cols):not(.inbox-split):not(.split-page) { height: 100%; display: flex; flex-direction: column; gap: 8px; max-width: none; margin: 0; }
+.content > div:not(.cols):not(.inbox-split):not(.split-page) > * { flex: none; margin-top: 0; margin-bottom: 0; }
+.content > div:not(.cols):not(.inbox-split):not(.split-page) > .card:has(.fit), .content .card.fill { flex: 1 1 0; min-height: 0; overflow: hidden !important; }
+.content > div:not(.cols):not(.inbox-split):not(.split-page) > .tabs { overflow-x: auto; }
+.split-page { height: 100%; display: flex; flex-direction: column; gap: 8px; }
+.split-page > .sp-side { flex: none; }
+.split-page > .sp-main { flex: 1 1 0; min-height: 0; overflow: hidden; margin: 0; }
+.split-page > .sp-main > .card.fill { height: 100%; }
+.squad-table { overflow: hidden !important; }
+table.t.fm th { position: static; }
+
+/* Match panes and commentary */
+.pane-b { overflow: hidden; }
+.comm-feed { overflow: hidden; }
+.comm-ratings { overflow: hidden; }
+.pane-list { display: flex; flex-direction: column; }
+.comm-ratings .pane-list { gap: 3px; }
+
+/* Inbox */
+.inbox-list { display: flex; flex-direction: column; height: 100%; overflow: hidden !important; }
+.inbox-list > div { display: flex; flex-direction: column; gap: 8px; height: 100%; }
+.inbox-list > div > .card { flex: 1 1 0; min-height: 0; }
+
+@media (orientation: landscape) and (min-width: 640px) {
+  .cols > * { width: max(220px, calc((100% - 24px) / 3)); }
+  .content > .split-page { display: grid !important; grid-template-columns: minmax(250px, 34%) minmax(0, 1fr); gap: 12px; }
+  .split-page > .sp-side { overflow: hidden; }
+}
+table.t.fm td { padding: 3px 6px; }
+table.t.fm .ovr { height: 20px; }
+.hero { display: flex; flex-direction: column; }

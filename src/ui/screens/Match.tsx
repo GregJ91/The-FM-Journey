@@ -14,6 +14,7 @@ import { TacticsEditor } from '../components/TacticsEditor';
 import { statSummary } from '../components/PlayerStats';
 import { Crest, isLight } from '../components/Crest';
 import { useLandscape } from '../useLandscape';
+import { Fit } from '../components/Fit';
 
 const MS_PER_MIN = 667; // 90 minutes ≈ 60 seconds at 1x
 const SHOUTS = ['V.Defensive', 'Defensive', 'Balanced', 'Attacking', 'All-out attack'];
@@ -222,7 +223,7 @@ export function MatchScreen() {
                 <StatBar label="Cards" a={m.stats.yellows[0]} b={m.stats.yellows[1]} c={colors} />
               </div>
             ) : (
-              <div className="comm-ratings">
+              <Fit className="comm-ratings"><div className="pane-list">
                 {userTeam.onPitch.map((lp) => (
                   <div key={lp.id} className="cr">
                     <PosTag pos={lp.pos} />
@@ -231,7 +232,7 @@ export function MatchScreen() {
                     <b style={{ color: lp.rating >= 7 ? 'var(--lime)' : lp.rating < 6 ? 'var(--coral)' : '#fff' }}>{Math.max(3, Math.min(10, lp.rating)).toFixed(1)}</b>
                   </div>
                 ))}
-              </div>
+              </div></Fit>
             )}
           </div>
         </div>
@@ -353,13 +354,13 @@ function PreMatch({ g, fixture, onKick, onInstant, onTactics }: { g: GameState; 
         <div className="panes">
           <div className="pane">
             <div className="pane-h"><h3>Your XI</h3><span className="chip">{user.tactics.formation} · {MENTALITY[user.tactics.mentality + 2]}</span></div>
-            <div className="pane-b">
+            <Fit className="pane-b"><div className="pane-list">
               {xi.map(({ p, pos }) => (
                 <div key={p.id} className="row pane-row">
                   <PosTag pos={pos} /><b className="ellipsis" style={{ flex: 1 }}>{shortName(p)}</b><span className="small muted">{Math.round(p.condition)}%</span><Ovr value={Math.round(ratingAt(p, pos))} />
                 </div>
               ))}
-            </div>
+            </div></Fit>
           </div>
           <div className="pane">
             <div className="pane-h"><h3>Match info</h3></div>
@@ -418,7 +419,7 @@ function PostMatch({ g, fixture, m, onClose }: { g: GameState; fixture: Fixture;
           </div>
           <div className="pane">
             <div className="pane-h"><h3>Ratings</h3>{motm && <span className="chip" style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.12)', borderColor: 'rgba(251,191,36,0.3)' }}>★ MOTM {motm.last}</span>}</div>
-            <div className="pane-b">
+            <Fit className="pane-b"><div className="pane-list">
               {mine.map(({ lp, p, r: rt }) => (
                 <div key={lp.id} className="row pane-row">
                   <PosTag pos={lp.pos} />
@@ -430,7 +431,7 @@ function PostMatch({ g, fixture, m, onClose }: { g: GameState; fixture: Fixture;
                   <b style={{ fontFamily: 'var(--display)', fontSize: 17, width: 36, textAlign: 'right', color: rt >= 7.5 ? 'var(--good)' : rt < 6 ? 'var(--bad)' : undefined }}>{rt.toFixed(1)}</b>
                 </div>
               ))}
-            </div>
+            </div></Fit>
           </div>
         </div>
         <div className="comm-bottom">

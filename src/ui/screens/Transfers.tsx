@@ -6,6 +6,7 @@ import { acceptCounter, agreeTerms, askingPrice, respondIncoming, windowOpen } f
 import type { GameState, Offer, Player } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
+import { Fit } from '../components/Fit';
 import { Card, PlayerRow } from '../components/common';
 import { Crest } from '../components/Crest';
 
@@ -15,7 +16,8 @@ function Results({ g, players, free }: { g: GameState; players: Player[]; free?:
   const shown = [...players].sort((a, b) => overall(b) - overall(a)).slice(0, 80);
   if (!shown.length) return <div className="empty">No players match.</div>;
   return (
-    <div className="card" style={{ paddingTop: 4, paddingBottom: 4 }}>
+    <div className="card fill" style={{ paddingTop: 4, paddingBottom: 4 }}>
+      <Fit>
       <div className="list">
         {shown.map((p) => (
           <PlayerRow
@@ -27,6 +29,7 @@ function Results({ g, players, free }: { g: GameState; players: Player[]; free?:
           />
         ))}
       </div>
+      </Fit>
     </div>
   );
 }
