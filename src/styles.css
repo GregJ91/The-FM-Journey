@@ -1006,3 +1006,84 @@ table.t.fm .ovr { height: 20px; }
   .match-card { gap: 6px; }
 }
 .mc-count.today { font-size: 19px !important; padding: 4px 0 1px; }
+
+/* ---------- FM-style player profile (full screen) ---------- */
+.profile-screen {
+  position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: var(--bg);
+  padding: 0 max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  animation: fade 0.15s;
+}
+.pf-head {
+  flex: none; display: flex; align-items: center; gap: 12px; margin: 0 calc(-1 * max(8px, env(safe-area-inset-right))) 0 calc(-1 * max(8px, env(safe-area-inset-left)));
+  padding: calc(8px + var(--safe-t)) 12px 8px; color: #fff;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pc1) 85%, #000), color-mix(in srgb, var(--pc1) 45%, var(--pc2)));
+  border-bottom: 3px solid color-mix(in srgb, var(--pc2) 70%, #000);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+.pf-no { font-family: var(--display); font-size: 34px; font-weight: 900; line-height: 1; min-width: 44px; text-align: center; opacity: 0.9; }
+.pf-name { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.pf-first { font-size: 12px; font-weight: 700; opacity: 0.85; }
+.pf-last { font-size: 22px; font-weight: 850; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 0.01em; }
+.pf-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 650; margin-top: 3px; white-space: nowrap; overflow: hidden; }
+.pf-club { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 750; flex: none; max-width: 30%; }
+.pf-club span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-ability { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: none; text-shadow: none; }
+.pf-ability .ovr.lg { min-width: 50px; height: 40px; font-size: 22px; }
+.pf-close { flex: none; width: 34px; height: 34px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 15px; cursor: pointer; }
+.pf-tabs { flex: none; margin: 0 0 8px; padding: 0; align-items: center; }
+.pf-alert { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--coral); white-space: nowrap; padding-right: 4px; }
+.pf-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.pf-body > .cols { flex: 1; }
+.pf-actions { max-width: 560px; width: 100%; margin: 0 auto; }
+
+.pf-attrs { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 4px 14px; }
+.pf-attr-col h4 { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin: 2px 0 4px; font-weight: 800; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+.pf-attr { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12.5px; padding: 1.5px 0; }
+.pf-attr .attr { width: 26px; height: 20px; font-size: 12px; }
+/* FM attribute colours: 1-5 grey, 6-9 orange, 10-12 yellow, 13-15 light green, 16-20 green */
+.attr.a1 { background: rgba(148, 163, 184, 0.14); color: #9aa3b2; }
+.attr.a2 { background: rgba(251, 146, 60, 0.16); color: #fdba74; }
+.attr.a3 { background: rgba(250, 204, 21, 0.15); color: #fde047; }
+.attr.a4 { background: rgba(163, 230, 53, 0.16); color: #bef264; }
+.attr.a5 { background: rgba(34, 197, 94, 0.22); color: #4ade80; }
+
+.pf-pitch {
+  position: relative; width: 100%; max-width: 190px; aspect-ratio: 68 / 80; margin: 0 auto;
+  background: repeating-linear-gradient(180deg, #2f6b3f 0 10%, #2a6139 10% 20%); border: 2px solid rgba(255, 255, 255, 0.35); border-radius: 4px;
+}
+.pf-spot { position: absolute; transform: translate(-50%, -50%); min-width: 30px; height: 16px; padding: 0 3px; border-radius: 3px; font-size: 9px; font-weight: 800; display: grid; place-items: center; color: #0d1a10; background: rgba(255, 255, 255, 0.12); }
+.pf-spot:empty { min-width: 8px; width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.18); }
+.pf-spot.nat { background: #4ade80; }
+.pf-spot.acc { background: #bef264; }
+.pf-spot.unc { background: #fde047; }
+.pf-key { display: flex; justify-content: center; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); font-weight: 650; margin: 5px 0 2px; flex-wrap: wrap; }
+.pf-key i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.pf-key i.nat { background: #4ade80; } .pf-key i.acc { background: #bef264; } .pf-key i.unc { background: #fde047; }
+.pf-radar { display: block; width: 100%; max-width: 230px; margin: 0 auto; }
+.pf-radar .rg { fill: none; stroke: rgba(255, 255, 255, 0.12); stroke-width: 0.5; }
+.pf-radar .rs { fill: color-mix(in srgb, var(--accent) 35%, transparent); stroke: var(--accent); stroke-width: 1.2; }
+.pf-radar text { fill: var(--muted); font-size: 6px; font-weight: 700; }
+
+.pf-info { display: flex; flex-direction: column; }
+.pf-info > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 2px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.pf-info > div:nth-child(even) { background: rgba(255, 255, 255, 0.022); }
+.pf-info span { color: var(--muted); font-weight: 650; }
+.pf-info b { display: inline-flex; align-items: center; gap: 6px; text-align: right; }
+
+@media (orientation: portrait), (max-width: 639px) {
+  .pf-club span { display: none; }
+  .pf-last { font-size: 19px; }
+  .pf-no { font-size: 26px; min-width: 32px; }
+}
+.pf-head { background: linear-gradient(90deg, color-mix(in srgb, var(--pc1) 80%, #000), color-mix(in srgb, var(--pc1) 55%, #000) 70%, color-mix(in srgb, var(--pc2) 30%, #111)); }
+.pf-cols > .card.grow { width: 100% !important; }
+@media (orientation: landscape) and (min-width: 640px) {
+  .pf-cols > :nth-child(1) { width: calc(43% - 8px); }
+  .pf-cols > :nth-child(2) { width: calc(24% - 8px); }
+  .pf-cols > :nth-child(3) { width: calc(33% - 8px); }
+  .pf-attrs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 12px; }
+}
+.pf-attr-col .pf-radar { max-width: 150px; margin-top: 6px; }
+.pf-info > div { padding: 4px 2px; font-size: 12px; }
+.pf-pitch { max-width: 175px; }
+.pf-pitch { max-width: 158px; } .pf-key { font-size: 9.5px; gap: 4px; }
