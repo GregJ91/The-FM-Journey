@@ -961,3 +961,48 @@ table.t.fm th { position: static; }
 table.t.fm td { padding: 3px 6px; }
 table.t.fm .ovr { height: 20px; }
 .hero { display: flex; flex-direction: column; }
+
+/* ---------- Home dashboard ---------- */
+.match-card {
+  position: relative; overflow: hidden; cursor: pointer; padding: 12px 14px !important; justify-content: space-between; gap: 8px;
+  background:
+    linear-gradient(115deg, color-mix(in srgb, var(--h) 55%, #0d0f14) 0 49.6%, color-mix(in srgb, var(--a) 55%, #0d0f14) 50.4% 100%) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.match-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.45)); pointer-events: none; }
+.match-card > * { position: relative; z-index: 1; }
+.mc-comp { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.85); }
+.mc-teams { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; }
+.mc-side { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; font-size: 14px; font-weight: 800; letter-spacing: 0.04em; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5); }
+.mc-side img, .mc-side svg { filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45)); }
+.mc-mid { text-align: center; padding: 6px 10px; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; min-width: 76px; }
+.mc-count { font-family: var(--display); font-size: 30px; font-weight: 900; line-height: 1; color: #fff; }
+.mc-unit { font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255, 255, 255, 0.7); margin-top: 3px; }
+.mc-when { text-align: center; font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, 0.85); }
+.mc-compare { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: #fff; background: rgba(0, 0, 0, 0.35); border-radius: 4px; padding: 5px 8px; }
+.mc-compare > span { display: inline-flex; align-items: center; gap: 6px; }
+
+.form-strip { display: inline-flex; gap: 2px; vertical-align: middle; }
+.form-strip .res { width: 16px; height: 16px; min-width: 0; font-size: 9.5px; font-style: normal; border-radius: 2px; display: inline-grid; place-items: center; padding: 0; }
+
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.kpi { display: flex; flex-direction: column; gap: 2px; padding: 7px 9px; background: var(--surface-2); border-radius: 4px; border-top: 3px solid var(--k, var(--accent)); cursor: pointer; min-width: 0; }
+.kpi .kk { font-size: 10px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.kpi .kv { font-family: var(--display); font-size: 21px; font-weight: 850; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi .ks { font-size: 11px; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi .meter { margin-top: 4px; }
+.status-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.status-line > span:first-child { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
+.status-line .chip { cursor: pointer; padding: 2px 7px; }
+.objective { margin-top: 6px; font-size: 12px; font-weight: 650; color: var(--text); background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 5px 8px; border-radius: 0 4px 4px 0; }
+.mc-compare .form-strip .res { width: 14px; height: 14px; font-size: 8.5px; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .kpi { padding: 5px 7px; }
+  .kpi .kv { font-size: 18px; }
+  .kpi .ks { font-size: 10.5px; }
+  .status-line { margin-top: 6px; }
+  .objective { margin-top: 5px; padding: 4px 7px; font-size: 11.5px; }
+  .mc-count { font-size: 26px; }
+  .match-card { gap: 6px; }
+}
+.mc-count.today { font-size: 19px !important; padding: 4px 0 1px; }
