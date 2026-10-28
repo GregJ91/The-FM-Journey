@@ -6,7 +6,7 @@ import { leagueOf } from '../../game/generate';
 import { unreadCount } from '../../game/inbox';
 import { continueGame, ordinal, pendingUserFixture, seasonLabel } from '../../game/season';
 import { windowOpen } from '../../game/transfers';
-import { getGame, mutate, saveGame, setGame, useGame } from '../../store';
+import { getGame, mutate, autoSave, saveGame, setGame, useGame } from '../../store';
 import { openActions } from '../../game/actions';
 import { useUI, type Screen } from '../context';
 import { Sheet } from './common';
@@ -79,7 +79,7 @@ export function ContinueBar() {
     setBusy(false);
     if (!r.ok && r.reason === 'match') ui.setMatchOpen(true);
     if (!r.ok && r.reason === 'action') { const a = openActions(getGame()!); if (a.length) ui.go('inbox', a[a.length - 1].id); }
-    saveGame().catch(() => {});
+    autoSave().catch(() => {});
   };
   return (
     <div className="continue-bar">

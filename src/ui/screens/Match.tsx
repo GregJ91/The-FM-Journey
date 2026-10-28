@@ -7,7 +7,7 @@ import { overall, ratingAt, shortName } from '../../game/ratings';
 import { finishUserMatch, numberUserSquad, pendingUserFixture } from '../../game/season';
 import { validateLineup } from '../../game/selection';
 import type { Club, Fixture, GameState } from '../../game/types';
-import { getGame, mutate, saveGame, useGame } from '../../store';
+import { getGame, mutate, autoSave, useGame } from '../../store';
 import { useUI } from '../context';
 import { Ovr, PosTag, Sheet } from '../components/common';
 import { TacticsEditor } from '../components/TacticsEditor';
@@ -137,7 +137,7 @@ export function MatchScreen() {
       applyResult(game, m);
       finishUserMatch(game, fixture!);
     });
-    saveGame().catch(() => {});
+    autoSave().catch(() => {});
     setTimeout(() => setPhase('post'), 900);
   }
 

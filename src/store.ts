@@ -94,8 +94,22 @@ export async function listSaves(): Promise<SaveMeta[]> {
   }
 }
 
+// Game date of the last save per slot, so autosave only writes once a game week.
+const lastSaved: Record<string, string> = {};
+const AUTOSAVE_DAYS = 7;
+const daysBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
+
+/** Autosave: overwrites the career's single save file, at most once every 7 game days. */
+export async function autoSave(g: GameState | null = game, force = false) {
+  if (!g) return;
+  const last = lastSaved[g.slot];
+  if (!force && last && daysBetween(last, g.date) < AUTOSAVE_DAYS) return;
+  await saveGame(g);
+}
+
 export async function saveGame(g: GameState = game!) {
   if (!g) return;
+  lastSaved[g.slot] = g.date;
   g.rng = getSeed();
   const club = g.clubs[g.userClubId];
   await set(saveKey(g.slot), compact(g));
@@ -110,10 +124,18 @@ export async function loadGame(slot: string) {
   const g = expand(raw);
   if (g.saveVersion !== SAVE_VERSION) throw new Error('This save is from an incompatible version.');
   // JSON turns numeric record keys into strings; that's fine for lookups.
+  lastSaved[g.slot] = g.date;
   setGame(g);
 }
 
 export async function deleteSave(slot: string) {
   await del(saveKey(slot));
   await set(META_KEY, (await listSaves()).filter((m) => m.slot !== slot));
+}
+
+// Closing or backgrounding the app saves too, so weekly autosave never loses progress.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') autoSave(game, true).catch(() => {});
+  });
 }
