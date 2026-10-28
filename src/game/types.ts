@@ -376,6 +376,15 @@ export interface SeasonHistory {
   topScorer?: { playerId: number; name: string; goals: number; clubId: number };
 }
 
+export type ManagerAttr = 'attacking' | 'defending' | 'tactical' | 'youth' | 'motivating' | 'manManagement' | 'negotiating' | 'media';
+
+/** The user's manager profile: attributes 1-20 and this month's tendency points. */
+export interface ManagerProfile {
+  skills: Record<ManagerAttr, number>;
+  tally: Record<ManagerAttr, number>;
+  last: Partial<Record<ManagerAttr, number>>; // change at the last monthly update
+}
+
 export interface GameState {
   saveVersion: number;
   slot: string;
@@ -403,6 +412,7 @@ export interface GameState {
   ledger: { month: string; income: number; expense: number; balance: number }[];
   continental: number[]; // legacy (pre-Europe saves)
   europe?: Record<string, number[]>;
+  managerProfile?: ManagerProfile;
   intl?: IntlTournament[]; // international tournaments (current and recent)
   youth?: YouthComp[]; // this season's youth competitions
   deductions?: Deduction[]; // points deductions (this and past seasons)

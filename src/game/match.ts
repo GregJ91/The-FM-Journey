@@ -1,6 +1,7 @@
 import { FORMATIONS } from './formations';
 import { isEligible } from './actions';
 import { isMetaClub, META_TUNING } from './meta';
+import { mgr, noteMatch, noteTactics } from './manager';
 import { POS_GROUP, ratingAt, rawOverallAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
@@ -126,6 +127,12 @@ function computeStrength(g: GameState, side: Side) {
   if (t.tackling === 0) defM *= 0.98;
   // Playing out from the back only pays off with good passers at the back
   if (t.playOutBack && backN) midM *= 1 + Math.max(-0.05, Math.min(0.05, (backPass / backN - 12) * 0.008));
+  // The user's manager profile: a small edge where they're strong (±2%)
+  if (side.clubId === g.userClubId) {
+    attM *= 1 + 0.02 * mgr(g, 'attacking');
+    defM *= 1 + 0.02 * mgr(g, 'defending');
+    midM *= 1 + 0.015 * mgr(g, 'tactical');
+  }
   const edge = isMetaClub(g.clubs[side.clubId]) ? META_TUNING.edge : 1;
   side.str = { att: (att / 3.6) * attM * edge, mid: (mid / 4.5) * midM * edge, def: (def / 5.0) * defM * edge, gk };
 }
@@ -536,7 +543,7 @@ function sendOff(g: GameState, m: LiveMatch, side: 0 | 1, lp: LivePlayer) {
 }
 
 /** Bring on the best bench replacement for `off` (same position preferred). */
-export function makeSub(g: GameState, m: LiveMatch, side: 0 | 1, offId: number, onId: number): MatchEvent | null {
+export function makeSub(g: GameState, m: LiveMatch, side: 0 | 1, offId: number, onId: number, manual = true): MatchEvent | null {
   const s = m.sides[side];
   if (s.subsLeft <= 0) return null;
   const off = s.onPitch.find((x) => x.id === offId);
@@ -547,6 +554,7 @@ export function makeSub(g: GameState, m: LiveMatch, side: 0 | 1, offId: number, 
   s.out.push(off);
   s.bench = s.bench.filter((id) => id !== onId);
   s.subsLeft--;
+  if (manual && s.clubId === g.userClubId) noteTactics(g, undefined, false);
   computeStrength(g, s);
   return { minute: m.minute, type: 'sub', team: side, player: onId, text: `Substitution ${g.clubs[s.clubId].short}: ${name(g, onId)} replaces ${name(g, offId)}.` };
 }
@@ -570,7 +578,7 @@ function autoSub(g: GameState, m: LiveMatch, side: 0 | 1, lp: LivePlayer, injury
   if (club.isUser && !g.autoSubs && !injury) return null;
   const on = bestBenchFor(g, s, lp.pos);
   if (on === null) return null;
-  return makeSub(g, m, side, lp.id, on);
+  return makeSub(g, m, side, lp.id, on, false);
 }
 
 function aiSub(g: GameState, m: LiveMatch, side: 0 | 1): MatchEvent | null {
@@ -651,6 +659,7 @@ export function randomInjury(severity = 1) {
 
 /** Write the result back to the fixture and update player states. */
 export function applyResult(g: GameState, m: LiveMatch) {
+  noteMatch(g, m);
   const f = g.fixtures.find((x) => x.id === m.fixtureId)!;
   const ratings: Record<number, number> = {};
   const sides = m.sides;
@@ -751,6 +760,14 @@ export function winnerOf(f: Fixture): number | null {
 
 export function changeTactics(g: GameState, m: LiveMatch, side: 0 | 1, t: Partial<Tactics>) {
   const s = m.sides[side];
+  if (s.clubId === g.userClubId && !m.finished) {
+    noteTactics(g, t.mentality !== undefined && t.mentality !== s.tactics.mentality ? t.mentality : undefined, !!t.formation && t.formation !== s.tactics.formation);
+    // A good motivator's shouts lift the players a little
+    if (t.mentality !== undefined && t.mentality !== s.tactics.mentality) {
+      const lift = Math.max(0, 2 * mgr(g, 'motivating'));
+      for (const lp of s.onPitch) { const p = g.players[lp.id]; p.morale = Math.min(100, p.morale + lift); }
+    }
+  }
   if (t.formation && t.formation !== s.tactics.formation) changeFormation(g, m, side, t.formation);
   for (const [k, v] of Object.entries(t)) {
     if (k !== 'formation' && v !== undefined) (s.tactics as unknown as Record<string, unknown>)[k] = v;

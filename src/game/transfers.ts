@@ -10,6 +10,7 @@ import { FORMATIONS } from './formations';
 import type { Club, GameState, Offer, Player } from './types';
 import { POS_GROUP } from './ratings';
 import { sendMessage } from './inbox';
+import { mgr, note, noteSigning } from './manager';
 
 export function askingPrice(g: GameState, p: Player) {
   const v = marketValue(p, g.date);
@@ -70,7 +71,8 @@ export function respondToUserBids(g: GameState) {
     if (o.status !== 'pending' || o.from !== g.userClubId || (o.respondBy && o.respondBy > g.date)) continue;
     const p = g.players[o.playerId];
     if (!p || p.clubId !== o.to) { o.status = 'collapsed'; continue; }
-    const ask = askingPrice(g, p);
+    // A good negotiator gets deals done for a little less (up to 8%)
+    const ask = roundMoney(askingPrice(g, p) * (1 - 0.08 * mgr(g, 'negotiating')));
     const seller = g.clubs[o.to];
     if (o.fee >= ask) {
       o.status = 'accepted';
@@ -117,6 +119,8 @@ export function completeTransfer(g: GameState, playerId: number, toId: number, f
   const p = g.players[playerId];
   const fromId = p.clubId;
   const to = g.clubs[toId];
+  if (to.isUser) noteSigning(g, fee, marketValue(p, g.date));
+  else if (fromId === g.userClubId) note(g, 'negotiating', fee >= marketValue(p, g.date) ? 1.5 : 0.8);
   if (fromId !== null) {
     const from = g.clubs[fromId];
     from.balance += fee;

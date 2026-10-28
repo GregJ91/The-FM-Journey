@@ -6,6 +6,7 @@ import { squadOf } from './generate';
 import { sendMessage } from './inbox';
 import { age, fmtMoney, fullName, marketValue, overall, roundMoney } from './ratings';
 import { chance } from './rng';
+import { mgr, note } from './manager';
 import { completeTransfer, renewContract, renewDemand, respondIncoming, wageDemand, windowOpen } from './transfers';
 import type { ActionType, Fixture, GameState, Message, MessageAction, Player } from './types';
 
@@ -215,7 +216,7 @@ export function respondAction(g: GameState, messageId: number, option: string): 
   let result = '';
   switch (a.type) {
     case 'offer': {
-      if (option === 'counter') result = counterOffer(g, a.offerId!);
+      if (option === 'counter') { note(g, 'negotiating', 1); result = counterOffer(g, a.offerId!); }
       else result = respondIncoming(g, a.offerId!, option === 'accept').msg;
       break;
     }
@@ -226,6 +227,7 @@ export function respondAction(g: GameState, messageId: number, option: string): 
     }
     case 'contract': {
       if (!p || p.clubId !== g.userClubId) { result = 'The player has already left.'; break; }
+      note(g, 'manManagement', 0.6);
       if (option === 'offer') {
         const r = renewContract(g, p.id, 3);
         result = r.msg;
@@ -238,18 +240,21 @@ export function respondAction(g: GameState, messageId: number, option: string): 
     }
     case 'unhappy': {
       if (!p || p.clubId !== g.userClubId) { result = 'The player has already left.'; break; }
+      note(g, 'manManagement', option === 'list' ? 0.6 : 1.2);
       if (option === 'promise') { p.morale = Math.min(100, p.morale + 20); result = `${fullName(p)} is happier, and will expect to play more.`; }
       else if (option === 'list') { p.listed = true; p.morale = Math.min(100, p.morale + 8); result = `${fullName(p)} has been transfer-listed. Clubs will be told he's available.`; }
-      else if (chance(0.5)) { p.morale = Math.min(100, p.morale + 10); result = `${fullName(p)} took it well and is determined to prove you wrong.`; }
+      else if (chance(0.5 + 0.25 * mgr(g, 'manManagement'))) { p.morale = Math.min(100, p.morale + 10); result = `${fullName(p)} took it well and is determined to prove you wrong.`; }
       else { p.morale = Math.max(5, p.morale - 8); result = `${fullName(p)} didn't take it well.`; }
       break;
     }
     case 'press': {
       const squad = squadOf(g, g.userClubId);
-      const nudge = (d: number) => squad.forEach((x) => { x.morale = Math.max(5, Math.min(100, x.morale + d)); });
+      note(g, 'media', 1);
+      // Good motivators get more out of a lift; good media handlers' mind games land more often
+      const nudge = (d: number) => squad.forEach((x) => { x.morale = Math.max(5, Math.min(100, x.morale + (d > 0 ? d * (1 + 0.5 * mgr(g, 'motivating')) : d * (1 - 0.4 * mgr(g, 'media'))))); });
       if (option === 'confident') { nudge(4); result = 'The players liked the confidence. Morale is up.'; }
       else if (option === 'cautious') { nudge(1); result = 'A calm, measured answer. No headlines.'; }
-      else if (chance(0.65)) { nudge(3); result = 'The mind games made the back pages. The squad are fired up.'; }
+      else if (chance(0.62 + 0.2 * mgr(g, 'media'))) { note(g, 'media', 0.5); nudge(3); result = 'The mind games made the back pages. The squad are fired up.'; }
       else { nudge(-3); result = 'It backfired: the press turned it on you, and the squad are a little rattled.'; }
       break;
     }

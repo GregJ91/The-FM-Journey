@@ -14,6 +14,7 @@ import { START_SEASON, emptyStats, fillSquad, generatePlayer, generateYouth, lea
 import { sendMessage, unreadImportant } from './inbox';
 import { applyResult, createMatch, randomInjury, simulateFixture, simulateToEnd } from './match';
 import { monthlyDevelopment } from './progression';
+import { monthlyManager } from './manager';
 import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
 import { chance, int, normal, pick } from './rng';
 import { aiBidsForUser, aiTransfers, expireOffers, respondToUserBids } from './transfers';
@@ -189,6 +190,7 @@ function newDay(g: GameState) {
   const day = dayOfMonth(d);
   if (day === 1) {
     monthlyAwards(g);
+    monthlyManager(g);
     recordLedger(g);
     monthlyFinances(g);
     const dev = monthlyDevelopment(g);

@@ -1,6 +1,7 @@
 import { GUEST_LEAGUES } from './guests';
 import { ATTR_GROUPS, POS_WEIGHTS, age, clampAttr, overall, rawOverallAt } from './ratings';
 import { normal } from './rng';
+import { mgr } from './manager';
 import type { AttrKey, GameState, Player, TrainingFocus } from './types';
 
 /**
@@ -111,6 +112,8 @@ export function monthlyChange(g: GameState, p: Player) {
   } else {
     change += normal(0, 0.25);
   }
+  // A manager good with youngsters gets more out of their under-21s (up to +25%)
+  if (isUser && a <= 21 && change > 0) change *= 1 + 0.25 * mgr(g, 'youth');
   if (curve >= 0 && change > 0 && ovr + change > p.pa) change = Math.max(0, p.pa - ovr);
   return change;
 }

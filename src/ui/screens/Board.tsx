@@ -5,6 +5,39 @@ import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { Card, Meter } from '../components/common';
 import { ClubBadgeButton } from '../components/BadgesSheet';
+import { useState } from 'react';
+import { MANAGER_ATTRS, defaultProfile, managerStyle } from '../../game/manager';
+import type { ManagerAttr } from '../../game/types';
+
+/** The manager's attributes, which drift each month towards how they actually manage. */
+function ManagerCard() {
+  const g = useGame();
+  const [open, setOpen] = useState<ManagerAttr | null>(null);
+  // Read-only view of the profile (created with defaults for older saves)
+  const prof = g.managerProfile ?? defaultProfile();
+  return (
+    <Card title={`Manager: ${g.manager}`} tag={managerStyle(g)} tagColor="var(--violet)">
+      <div className="list">
+        {MANAGER_ATTRS.map((a) => {
+          const v = prof.skills[a.key];
+          const d = prof.last[a.key] ?? 0;
+          return (
+            <div key={a.key} className="li" onClick={() => setOpen(open === a.key ? null : a.key)} style={{ display: 'block' }}>
+              <div className="row" style={{ gap: 10 }}>
+                <div className="main" style={{ flex: 1 }}><div className="t">{a.label}</div></div>
+                <div className="mgr-bar"><i style={{ width: `${(v / 20) * 100}%` }} /></div>
+                <b className="num" style={{ width: 22, textAlign: 'right' }}>{Math.floor(v)}</b>
+                <span className={`small ${d > 0 ? 'up' : d < 0 ? 'down' : 'muted'}`} style={{ width: 14 }}>{d > 0.05 ? '▲' : d < -0.01 ? '▼' : '·'}</span>
+              </div>
+              {open === a.key && <div className="small muted" style={{ marginTop: 6 }}>📈 {a.how}<br />⚡ {a.effect}</div>}
+            </div>
+          );
+        })}
+      </div>
+      <div className="small muted" style={{ marginTop: 8 }}>Your attributes (1–20) move on the 1st of each month towards how you manage: what you do improves, what you don't slowly fades. Tap one to see how to raise it and what it does.</div>
+    </Card>
+  );
+}
 
 export function Board() {
   const g = useGame();
@@ -38,6 +71,8 @@ export function Board() {
         <div style={{ margin: '10px 0 6px' }}><Meter value={conf} /></div>
         <div className="small muted">Moves monthly with your league position against the target, and jumps at season end for trophies and promotions.</div>
       </Card>
+
+      <ManagerCard />
 
       <Card title="Finances" tag="£" tagColor="var(--grass)">
         <div className="col" style={{ gap: 7 }}>

@@ -668,3 +668,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .hud-paused { position: absolute; z-index: 6; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 12px 20px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(6, 8, 12, 0.8); color: #fff; font-weight: 800; cursor: pointer; }
 
 .shirt-no { flex: none; min-width: 22px; text-align: center; font-weight: 900; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Manager profile bars */
+.mgr-bar { width: 90px; height: 6px; border-radius: 3px; background: var(--line-2); overflow: hidden; flex-shrink: 0; }
+.mgr-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--violet), var(--sky)); border-radius: 3px; }
+.small.up { color: var(--lime); }
+.small.down { color: var(--coral); }
