@@ -12,9 +12,7 @@ import { useUI } from '../context';
 import { Ovr, PosTag, Sheet } from '../components/common';
 import { TacticsEditor } from '../components/TacticsEditor';
 import { statSummary } from '../components/PlayerStats';
-import { roleFor } from '../../game/tactics';
 import { Crest, isLight } from '../components/Crest';
-import { PitchLines } from '../components/Pitch';
 import { useLandscape } from '../useLandscape';
 
 const MS_PER_MIN = 667; // 90 minutes ≈ 60 seconds at 1x
@@ -70,7 +68,6 @@ export function MatchScreen() {
   const [tacticsOpen, setTacticsOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const histRef = useRef<Snap[]>([]);
-  const [ballPhase, setBallPhase] = useState(0);
   const landscape = useLandscape();
   const pauseUntil = useRef(0);
   const finished = matchRef.current?.finished ?? false;
@@ -82,7 +79,6 @@ export function MatchScreen() {
       const m = matchRef.current;
       if (!m || m.finished) return;
       if (Date.now() < pauseUntil.current) return;
-      setBallPhase((b) => b + 1);
       const evs = stepMinute(getGame()!, m);
       histRef.current.push({ min: m.minute, xg: [...m.stats.xg] as [number, number], shots: [...m.stats.shots] as [number, number], poss: [...m.stats.poss] as [number, number] });
       if (evs.some((e) => e.type === 'goal')) {
@@ -198,44 +194,6 @@ export function MatchScreen() {
     </div>
   );
 
-  const centre = (
-    <>
-      <div className="tabs dark-tabs" style={{ margin: '0 -12px', padding: '2px 12px 4px' }}>
-        {(['feed', 'stats', 'ratings'] as const).map((t) => (
-          <button key={t} className={`tab ${sideTab === t ? 'active' : ''}`} onClick={() => setSideTab(t)}>{t === 'feed' ? 'Commentary' : t === 'stats' ? 'Stats' : 'My Players'}</button>
-        ))}
-      </div>
-      {sideTab === 'feed' && <div className="feed">{[...m.events].reverse().map((e, i) => <EventRow key={m.events.length - i} e={e} />)}</div>}
-      {sideTab === 'stats' && (
-        <div className="mstats">
-          <StatBar label="Possession" a={Math.round((m.stats.poss[0] / total) * 100)} b={Math.round((m.stats.poss[1] / total) * 100)} c={colors} pct />
-          <StatBar label="Shots" a={m.stats.shots[0]} b={m.stats.shots[1]} c={colors} />
-          <StatBar label="On target" a={m.stats.onTarget[0]} b={m.stats.onTarget[1]} c={colors} />
-          <StatBar label="xG" a={Math.round(m.stats.xg[0] * 10) / 10} b={Math.round(m.stats.xg[1] * 10) / 10} c={colors} />
-          <StatBar label="Corners" a={m.stats.corners[0]} b={m.stats.corners[1]} c={colors} />
-          <StatBar label="Fouls" a={m.stats.fouls[0]} b={m.stats.fouls[1]} c={colors} />
-          <StatBar label="Yellow cards" a={m.stats.yellows[0]} b={m.stats.yellows[1]} c={colors} />
-        </div>
-      )}
-      {sideTab === 'ratings' && (
-        <div className="feed">
-          {userTeam.onPitch.map((lp) => (
-            <div key={lp.id} className="row" style={{ fontSize: 13.5, padding: '8px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--line)', borderRadius: 12 }}>
-              <PosTag pos={lp.pos} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <b className="ellipsis" style={{ display: 'block' }}>{shortName(g.players[lp.id])}{lp.goals ? ' ⚽'.repeat(lp.goals) : ''}{lp.assists ? ' 🅰️' : ''}{lp.yellow ? ' 🟨' : ''}</b>
-                <div className="statline">{roleFor(lp.pos, userTeam.tactics.roles[lp.slot]).name} · {statSummary(lp.s, lp.pos === 'GK')}</div>
-              </div>
-              <span className="mini-bar"><div style={{ width: `${lp.cond}%`, background: lp.cond > 70 ? 'var(--grass)' : lp.cond > 55 ? 'var(--yellow)' : 'var(--coral)' }} /></span>
-              <b style={{ width: 30, textAlign: 'right', color: lp.rating >= 7 ? 'var(--lime)' : lp.rating < 6 ? 'var(--coral)' : '#fff' }}>{Math.max(3, Math.min(10, lp.rating)).toFixed(1)}</b>
-            </div>
-          ))}
-        </div>
-      )}
-    </>
-  );
-
-  const clock = `${m.finished ? 'FT' : halfTime ? 'HT' : `${m.minute}'`}`;
   const tacticsSheet = tacticsOpen && (
     <Sheet title={`Tactics · ${m.minute}'`} onClose={() => { setTacticsOpen(false); setPaused(false); }} right={<span className="chip">{userTeam.tactics.formation}</span>}>
       <div className="sheet-b">
@@ -248,90 +206,82 @@ export function MatchScreen() {
   );
   const goalFlash = flash !== null && <div className="goal-flash" key={flash} onAnimationEnd={() => setFlash(null)}><div>GOAL!</div></div>;
 
-  // Landscape: the pitch fills the screen, with the match controls laid over it
-  if (landscape) {
-    const pct = (a: number) => Math.round((a / total) * 100);
-    return (
-      <div className="match-screen">
-        <div className="match-full">
-          <LivePitch g={g} m={m} kits={[hk, ak]} ballPhase={ballPhase} horizontal full />
-          <div className="hud-top">
-            <div className="hud-card hud-mom">
-              <div className={`mom-label ${mom.tone}`}>{mom.label}</div>
-              <div className="mom-bars">
-                <MomBars bars={mom.bars} />
-              </div>
-            </div>
-            <div className="hud-card hud-score">
-              <span className="hs-team"><Crest club={home} size={22} />{home.short}</span>
-              <b className="hs-score">{m.score[0]} - {m.score[1]}</b>
-              <span className="hs-team">{away.short}<Crest club={away} size={22} /></span>
-              <span className="hs-clock">{clock}{m.agg0 ? ` · agg ${aggGoals(m, 0)}-${aggGoals(m, 1)}` : ''}</span>
-            </div>
-            <button className="hud-card hud-stats" onClick={() => { setSideTab('stats'); setDrawer(true); }}>
-              <span>Poss <b>{pct(m.stats.poss[0])}-{pct(m.stats.poss[1])}</b></span>
-              <span>Shots <b>{m.stats.shots[0]}-{m.stats.shots[1]}</b></span>
-              <span>xG <b>{m.stats.xg[0].toFixed(1)}-{m.stats.xg[1].toFixed(1)}</b></span>
-            </button>
-          </div>
-          {lastEv && <div className={`hud-ticker ${lastEv.type}`} key={m.events.length}><b>{lastEv.minute}'</b> {lastEv.text}</div>}
-          <div className="hud-bottom">
-            {shouts}
-            <div className="hud-actions">
-              <button className="btn yellow" disabled={finished} onClick={() => { setPaused(true); setDrawer(true); }}>Subs</button>
-              <button className="btn" disabled={finished} onClick={() => { setPaused(true); setTacticsOpen(true); }}>Tactics</button>
-              <button className="btn" onClick={() => setDrawer(true)}>Match centre</button>
-              <div className="seg">
-                {[1, 2, 4].map((sp) => <button key={sp} className={speed === sp ? 'on' : ''} onClick={() => setSpeed(sp)}>{sp}x</button>)}
-              </div>
-              <button className="btn" disabled={finished} onClick={skipToEnd}>Skip</button>
-            </div>
-          </div>
-          {paused && !drawer && !tacticsOpen && !m.finished && <button className="hud-paused" onClick={() => setPaused(false)}>Paused · tap to resume</button>}
-        </div>
-        {drawer && (
-          <Sheet title={paused && !m.finished ? 'Substitutions & match centre' : 'Match centre'} onClose={() => { setDrawer(false); setPaused(false); }}>
-            <div className="sheet-b col" style={{ gap: 12 }}>
-              {subsPanel}
-              {centre}
-            </div>
-          </Sheet>
-        )}
-        {goalFlash}
-        {tacticsSheet}
-      </div>
-    );
-  }
-
+  // Commentary-only match view (Championship Manager style): everything fits the screen, nothing to scroll
+  const pct = (a: number) => Math.round((a / total) * 100);
+  const big = [...m.events].reverse().find((e) => e.type !== 'kickoff' && e.type !== 'sub') ?? lastEv;
+  const feed = [...m.events].reverse().filter((e) => e !== big);
   return (
     <div className="match-screen">
-      <div className="match-inner">
-        <Scoreboard home={home} away={away} score={`${m.score[0]} - ${m.score[1]}`} clock={`${m.finished ? 'FULL TIME' : halfTime ? 'HALF-TIME' : `${m.minute}'`} · ${m.agg0 ? `AGG ${aggGoals(m, 0)}-${aggGoals(m, 1)}` : compName(g, fixture.comp)}`} progress={(m.minute / 90) * 100} />
-        <div className="match-scroll live">
-          <div className="match-main">
-            <LivePitch g={g} m={m} kits={[hk, ak]} ballPhase={ballPhase} />
-            <div className={`mom-strip ${mom.tone}`}><b>{mom.label}</b><div className="mom-bars"><MomBars bars={mom.bars} /></div></div>
-            {shouts}
+      <div className={`comm ${landscape ? 'land' : ''}`}>
+        <div className="comm-top">
+          <span className="ct-team"><Crest club={home} size={landscape ? 26 : 30} /><b>{landscape ? home.name : home.short}</b></span>
+          <div className="ct-mid">
+            <b className="ct-score">{m.score[0]} - {m.score[1]}</b>
+            <span className="ct-clock">{m.finished ? 'FULL TIME' : halfTime ? 'HALF-TIME' : `${m.minute}'`} · {m.agg0 ? `agg ${aggGoals(m, 0)}-${aggGoals(m, 1)}` : compName(g, fixture.comp)}</span>
           </div>
-          <div className="match-side">
-            {subsPanel}
-            {centre}
+          <span className="ct-team r"><b>{landscape ? away.name : away.short}</b><Crest club={away} size={landscape ? 26 : 30} /></span>
+          <div className="ct-progress"><div style={{ width: `${(m.minute / 90) * 100}%` }} /></div>
+        </div>
+
+        <div className="comm-body">
+          <div className="comm-main">
+            {big && <div className={`comm-big ${big.type}`} key={m.events.length}><span className="m">{big.minute}'</span>{big.text}</div>}
+            <div className="comm-feed feed">{feed.map((e, i) => <EventRow key={feed.length - i} e={e} />)}</div>
+          </div>
+          <div className="comm-side">
+            <div className="seg comm-tabs">
+              <button className={sideTab !== 'ratings' ? 'on' : ''} onClick={() => setSideTab('stats')}>Stats</button>
+              <button className={sideTab === 'ratings' ? 'on' : ''} onClick={() => setSideTab('ratings')}>My players</button>
+            </div>
+            {sideTab !== 'ratings' ? (
+              <div className="comm-stats">
+                <div className={`mom-strip ${mom.tone}`}><b>{mom.label}</b><div className="mom-bars"><MomBars bars={mom.bars} /></div></div>
+                <StatBar label="Possession" a={pct(m.stats.poss[0])} b={pct(m.stats.poss[1])} c={colors} pct />
+                <StatBar label="Shots" a={m.stats.shots[0]} b={m.stats.shots[1]} c={colors} />
+                <StatBar label="On target" a={m.stats.onTarget[0]} b={m.stats.onTarget[1]} c={colors} />
+                <StatBar label="xG" a={Math.round(m.stats.xg[0] * 10) / 10} b={Math.round(m.stats.xg[1] * 10) / 10} c={colors} />
+                <StatBar label="Corners" a={m.stats.corners[0]} b={m.stats.corners[1]} c={colors} />
+                <StatBar label="Cards" a={m.stats.yellows[0]} b={m.stats.yellows[1]} c={colors} />
+              </div>
+            ) : (
+              <div className="comm-ratings">
+                {userTeam.onPitch.map((lp) => (
+                  <div key={lp.id} className="cr">
+                    <PosTag pos={lp.pos} />
+                    <span className="ellipsis">{shortName(g.players[lp.id])}{lp.goals ? ' ⚽'.repeat(lp.goals) : ''}{lp.yellow ? ' 🟨' : ''}</span>
+                    <span className="mini-bar"><div style={{ width: `${lp.cond}%`, background: lp.cond > 70 ? 'var(--grass)' : lp.cond > 55 ? 'var(--yellow)' : 'var(--coral)' }} /></span>
+                    <b style={{ color: lp.rating >= 7 ? 'var(--lime)' : lp.rating < 6 ? 'var(--coral)' : '#fff' }}>{Math.max(3, Math.min(10, lp.rating)).toFixed(1)}</b>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-        <div className="match-controls">
-          <button className="btn yellow" disabled={finished} onClick={() => setPaused(!paused)}>{paused ? '▶ Play' : '⏸ Subs'}</button>
-          <button className="btn" disabled={finished} onClick={() => { setPaused(true); setTacticsOpen(true); }}>Tactics</button>
-          <div className="seg" style={{ flex: 1 }}>
-            {[1, 2, 4].map((sp) => <button key={sp} className={speed === sp ? 'on' : ''} onClick={() => setSpeed(sp)}>{sp}x</button>)}
+
+        <div className="comm-bottom">
+          {shouts}
+          <div className="comm-actions">
+            <button className="btn yellow" disabled={finished} onClick={() => { setPaused(true); setDrawer(true); }}>Subs</button>
+            <button className="btn" disabled={finished} onClick={() => { setPaused(true); setTacticsOpen(true); }}>Tactics</button>
+            <button className="btn" disabled={finished} onClick={() => setPaused(!paused)}>{paused ? 'Play' : 'Pause'}</button>
+            <div className="seg">
+              {[1, 2, 4].map((sp) => <button key={sp} className={speed === sp ? 'on' : ''} onClick={() => setSpeed(sp)}>{sp}x</button>)}
+            </div>
+            <button className="btn" disabled={finished} onClick={skipToEnd}>Skip</button>
           </div>
-          <button className="btn" disabled={finished} onClick={skipToEnd}>⏭ Skip</button>
         </div>
       </div>
+      {drawer && (
+        <Sheet title="Substitutions" onClose={() => { setDrawer(false); setPaused(false); }}>
+          <div className="sheet-b col" style={{ gap: 12 }}>{subsPanel}</div>
+        </Sheet>
+      )}
       {goalFlash}
       {tacticsSheet}
     </div>
   );
 }
+
 
 /** Last 15 minutes: green bars up when we're on top, red down when they are. */
 function MomBars({ bars }: { bars: number[] }) {
@@ -388,42 +338,6 @@ function StatBar({ label, a, b, c, pct }: { label: string; a: number; b: number;
       <span className="r">{b}{pct ? '%' : ''}</span>
     </div>
   );
-}
-
-/** Live pitch with player names. Vertical: home attacks upward. Horizontal: home attacks right; `full` fills the screen. */
-function LivePitch({ g, m, kits: k, ballPhase, horizontal, full }: { g: GameState; m: LiveMatch; kits: [[string, string], [string, string]]; ballPhase: number; horizontal?: boolean; full?: boolean }) {
-  const poss = m.possTeam;
-  const dots: { key: number; left: number; top: number; fill: string; stroke: string; name: string; num?: number; mine: boolean }[] = [];
-  m.sides.forEach((side, si) => {
-    side.onPitch.forEach((lp) => {
-      const push = lp.pos === 'GK' ? 0 : poss === si ? 8 : -5;
-      const jx = Math.sin(m.minute * 1.7 + lp.id) * 3;
-      const jy = Math.cos(m.minute * 1.3 + lp.id * 2) * 3;
-      const fwd = Math.max(3, Math.min(95, lp.x * 0.9 + 4 + push + jx)); // 0 = own goal
-      const lat = Math.max(6, Math.min(94, lp.y + jy));
-      const top = horizontal ? (si === 0 ? lat : 100 - lat) : si === 0 ? 100 - fwd : fwd;
-      const left = horizontal ? (si === 0 ? fwd : 100 - fwd) : si === 0 ? lat : 100 - lat;
-      const p = g.players[lp.id];
-      dots.push({ key: lp.id, left, top, fill: k[si][0], stroke: k[si][1], name: p ? p.last : '', num: p?.shirt, mine: side.clubId === g.userClubId });
-    });
-  });
-  // Between minutes the ball drifts through midfield; on the minute it jumps to the action
-  const bx = ballPhase % 2 === 0 ? m.ball.x : 50 + (m.ball.x - 50) * 0.4;
-  const by = ballPhase % 2 === 0 ? m.ball.y : 50 + (m.ball.y - 50) * 0.6;
-  const field = (
-    <>
-      <PitchLines vertical={!horizontal} />
-      {dots.map((d) => (
-        <div key={d.key} className={`pl ${d.mine ? 'mine' : ''}`} style={{ left: `${d.left}%`, top: `${d.top}%` }}>
-          <i style={{ background: d.fill, borderColor: d.stroke, color: isLight(d.fill) ? '#15120f' : '#fff' }}>{d.num}</i>
-          <span className="pn">{d.name}</span>
-        </div>
-      ))}
-      <div className="ball" style={horizontal ? { left: `${Math.max(1, Math.min(99, bx))}%`, top: `${Math.max(2, Math.min(98, by))}%` } : { left: `${Math.max(2, Math.min(98, by))}%`, top: `${Math.max(1, Math.min(99, 100 - bx))}%` }} />
-    </>
-  );
-  if (full) return <div className="match-pitch full"><div className="field">{field}</div></div>;
-  return <div className={`match-pitch ${horizontal ? 'horizontal' : ''}`}>{field}</div>;
 }
 
 function PreMatch({ g, fixture, onKick, onInstant, onTactics }: { g: GameState; fixture: Fixture; onKick: () => void; onInstant: () => void; onTactics: () => void }) {

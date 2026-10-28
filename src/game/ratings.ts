@@ -69,8 +69,13 @@ export function familiarity(p: Player, pos: Pos) {
   return 0.72;
 }
 
+/** Positions that are really the same job one line apart: a real player is just as good in either. */
+const TWIN: Partial<Record<Pos, Pos[]>> = { AMC: ['MC'], MC: ['AMC', 'DM'], DM: ['MC'], AMR: ['MR'], MR: ['AMR'], AML: ['ML'], ML: ['AML'] };
+
 /** Effective rating of a player when played at `pos` (1-99). */
 export function ratingAt(p: Player, pos: Pos) {
+  // A real player's natural second position in the same job (Ødegaard AMC/MC) rates as highly as their main one
+  if (p.real && p.alt[0] === pos && TWIN[p.pos]?.includes(pos)) return Math.max(1, Math.min(99, Math.max(rawOverallAt(p.attrs, pos), rawOverallAt(p.attrs, p.pos))));
   return Math.max(1, Math.min(99, rawOverallAt(p.attrs, pos) * familiarity(p, pos)));
 }
 
