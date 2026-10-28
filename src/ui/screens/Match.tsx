@@ -36,20 +36,6 @@ function kits(home: Club, away: Club): [[string, string], [string, string]] {
   return [h, a];
 }
 
-function Scoreboard({ home, away, score, clock, progress }: { home: Club; away: Club; score: string; clock: string; progress?: number }) {
-  return (
-    <div className="scoreboard">
-      <div className="team"><Crest club={home} size={40} /><span>{home.name}</span></div>
-      <div>
-        <div className="score">{score}</div>
-        <div className="clock">{clock}</div>
-        {progress !== undefined && <div className="progress"><div style={{ width: `${progress}%` }} /></div>}
-      </div>
-      <div className="team"><Crest club={away} size={40} /><span>{away.name}</span></div>
-    </div>
-  );
-}
-
 export function MatchScreen() {
   const g = useGame();
   const ui = useUI();
@@ -213,15 +199,7 @@ export function MatchScreen() {
   return (
     <div className="match-screen">
       <div className={`comm ${landscape ? 'land' : ''}`}>
-        <div className="comm-top">
-          <span className="ct-team"><Crest club={home} size={landscape ? 26 : 30} /><b>{landscape ? home.name : home.short}</b></span>
-          <div className="ct-mid">
-            <b className="ct-score">{m.score[0]} - {m.score[1]}</b>
-            <span className="ct-clock">{m.finished ? 'FULL TIME' : halfTime ? 'HALF-TIME' : `${m.minute}'`} · {m.agg0 ? `agg ${aggGoals(m, 0)}-${aggGoals(m, 1)}` : compName(g, fixture.comp)}</span>
-          </div>
-          <span className="ct-team r"><b>{landscape ? away.name : away.short}</b><Crest club={away} size={landscape ? 26 : 30} /></span>
-          <div className="ct-progress"><div style={{ width: `${(m.minute / 90) * 100}%` }} /></div>
-        </div>
+        <CommTop home={home} away={away} mid={`${m.score[0]} - ${m.score[1]}`} sub={`${m.finished ? 'FULL TIME' : halfTime ? 'HALF-TIME' : `${m.minute}'`} · ${m.agg0 ? `agg ${aggGoals(m, 0)}-${aggGoals(m, 1)}` : compName(g, fixture.comp)}`} progress={(m.minute / 90) * 100} />
 
         <div className="comm-body">
           <div className="comm-main">
@@ -340,7 +318,24 @@ function StatBar({ label, a, b, c, pct }: { label: string; a: number; b: number;
   );
 }
 
+/** Scoreboard strip shared by the pre-match, live and full-time screens. */
+function CommTop({ home, away, mid, sub, progress }: { home: Club; away: Club; mid: string; sub: string; progress?: number }) {
+  const landscape = useLandscape();
+  return (
+    <div className="comm-top">
+      <span className="ct-team"><Crest club={home} size={landscape ? 26 : 30} /><b>{landscape ? home.name : home.short}</b></span>
+      <div className="ct-mid">
+        <b className="ct-score">{mid}</b>
+        <span className="ct-clock">{sub}</span>
+      </div>
+      <span className="ct-team r"><b>{landscape ? away.name : away.short}</b><Crest club={away} size={landscape ? 26 : 30} /></span>
+      {progress !== undefined && <div className="ct-progress"><div style={{ width: `${progress}%` }} /></div>}
+    </div>
+  );
+}
+
 function PreMatch({ g, fixture, onKick, onInstant, onTactics }: { g: GameState; fixture: Fixture; onKick: () => void; onInstant: () => void; onTactics: () => void }) {
+  const landscape = useLandscape();
   const home = g.clubs[fixture.home];
   const away = g.clubs[fixture.away];
   const user = g.clubs[g.userClubId];
@@ -348,39 +343,39 @@ function PreMatch({ g, fixture, onKick, onInstant, onTactics }: { g: GameState; 
   const slots = FORMATIONS[user.tactics.formation];
   const xi = user.lineup.map((id, i) => (id !== null && g.players[id] ? { p: g.players[id], pos: slots[i]?.pos } : null)).filter(Boolean) as { p: GameState['players'][number]; pos: (typeof slots)[number]['pos'] }[];
   const oppId = fixture.home === user.id ? fixture.away : fixture.home;
-  const opp = squadOf(g, oppId).sort((a, b) => overall(b) - overall(a)).slice(0, 3);
+  const opp = squadOf(g, oppId).sort((a, b) => overall(b) - overall(a)).slice(0, 4);
   const out = squad.filter((p) => p.injury || p.suspended > 0);
   const leg1 = fixture.leg === 2 ? g.fixtures.find((f) => f.id === fixture.firstLeg) : undefined;
   return (
     <div className="match-screen">
-      <div className="match-inner">
-        <Scoreboard home={home} away={away} score="VS" clock={`${compName(g, fixture.comp)}${fixture.roundName ? ` · ${fixture.roundName}` : ''}`} />
-        {leg1?.result && <div className="small bold" style={{ textAlign: 'center', color: '#a8c6b4', marginTop: -4 }}>First leg: {g.clubs[leg1.home].short} {leg1.result.hg}-{leg1.result.ag} {g.clubs[leg1.away].short}</div>}
-        <div className="match-scroll">
-          <div className="small" style={{ color: '#a8c6b4', textAlign: 'center' }}>{fixture.neutral ? 'Neutral venue' : home.stadium} · {user.tactics.formation} · {MENTALITY[user.tactics.mentality + 2]}</div>
-          <div className="panel">
-            <h3>Your XI</h3>
-            <div className="list" style={{ marginTop: 4 }}>
+      <div className={`comm ${landscape ? 'land' : ''}`}>
+        <CommTop home={home} away={away} mid="VS" sub={`${compName(g, fixture.comp)}${fixture.roundName ? ` · ${fixture.roundName}` : ''}`} />
+        <div className="panes">
+          <div className="pane">
+            <div className="pane-h"><h3>Your XI</h3><span className="chip">{user.tactics.formation} · {MENTALITY[user.tactics.mentality + 2]}</span></div>
+            <div className="pane-b">
               {xi.map(({ p, pos }) => (
-                <div key={p.id} className="row" style={{ padding: '5px 0', borderBottom: '1px solid var(--soft)' }}>
+                <div key={p.id} className="row pane-row">
                   <PosTag pos={pos} /><b className="ellipsis" style={{ flex: 1 }}>{shortName(p)}</b><span className="small muted">{Math.round(p.condition)}%</span><Ovr value={Math.round(ratingAt(p, pos))} />
                 </div>
               ))}
             </div>
-            {out.length > 0 && <div className="small" style={{ marginTop: 8, color: 'var(--bad)', fontWeight: 700 }}>Unavailable: {out.map((p) => `${p.last} ${p.injury ? '🩹' : '🟥'}`).join(', ')}</div>}
           </div>
-          <div className="panel">
-            <h3>Danger men</h3>
-            {opp.map((p) => <div key={p.id} className="row" style={{ padding: '5px 0' }}><PosTag pos={p.pos} /><b style={{ flex: 1 }}>{shortName(p)}</b><Ovr value={overall(p)} /></div>)}
+          <div className="pane">
+            <div className="pane-h"><h3>Match info</h3></div>
+            <div className="pane-b">
+              <div className="small muted" style={{ marginBottom: 8 }}>{fixture.neutral ? 'Neutral venue' : home.stadium}</div>
+              {leg1?.result && <div className="small bold" style={{ marginBottom: 8 }}>First leg: {g.clubs[leg1.home].short} {leg1.result.hg}-{leg1.result.ag} {g.clubs[leg1.away].short}</div>}
+              <div className="section-label" style={{ marginTop: 0 }}>Danger men</div>
+              {opp.map((p) => <div key={p.id} className="row pane-row"><PosTag pos={p.pos} /><b className="ellipsis" style={{ flex: 1 }}>{shortName(p)}</b><Ovr value={overall(p)} /></div>)}
+              {out.length > 0 && <div className="small" style={{ marginTop: 8, color: 'var(--bad)', fontWeight: 700 }}>Unavailable: {out.map((p) => `${p.last} ${p.injury ? '🩹' : '🟥'}`).join(', ')}</div>}
+            </div>
           </div>
-          <div className="small" style={{ color: '#a8c6b4', textAlign: 'center' }}>About a minute long. Tap ⏸ Subs to make changes, and use shouts to change mentality.</div>
         </div>
-        <div className="match-controls" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-          <button className="continue-btn match" onClick={onKick}>⚽ Kick off</button>
-          <div className="grid2">
-            <button className="btn" onClick={onTactics}>✏️ Tactics</button>
-            <button className="btn" onClick={onInstant}>⏭ Instant result</button>
-          </div>
+        <div className="comm-bottom">
+          <button className="btn" onClick={onTactics}>✏️ Tactics</button>
+          <button className="btn" onClick={onInstant}>⏭ Instant result</button>
+          <button className="continue-btn match comm-go" onClick={onKick}>⚽ Kick off</button>
         </div>
       </div>
     </div>
@@ -388,6 +383,7 @@ function PreMatch({ g, fixture, onKick, onInstant, onTactics }: { g: GameState; 
 }
 
 function PostMatch({ g, fixture, m, onClose }: { g: GameState; fixture: Fixture; m: LiveMatch; onClose: () => void }) {
+  const landscape = useLandscape();
   const home = g.clubs[fixture.home];
   const away = g.clubs[fixture.away];
   const r = fixture.result!;
@@ -398,43 +394,47 @@ function PostMatch({ g, fixture, m, onClose }: { g: GameState; fixture: Fixture;
   const lost = !won && r.hg !== r.ag;
   const motm = r.motm ? g.players[r.motm] : null;
   const [hk, ak] = kits(home, away);
+  const c: [string, string] = [hk[0], ak[0]];
   const scorerLine = (team: 0 | 1) => r.goals.filter((x) => x.team === team).map((x) => `${g.players[x.scorer] ? g.players[x.scorer].last : '?'} ${x.minute}'${x.pen ? ' (p)' : ''}`).join(', ');
+  const possT = r.stats ? Math.max(1, r.stats.poss[0] + r.stats.poss[1]) : 1;
   return (
     <div className="match-screen">
-      <div className="match-inner">
-        <Scoreboard home={home} away={away} score={`${r.hg} - ${r.ag}`} clock={`FULL TIME${r.agg ? ` · AGG ${r.agg[0]}-${r.agg[1]}` : ''}${r.pens ? ` · ${r.pens[0]}-${r.pens[1]} pens` : ''}`} />
-        <div className="match-scroll">
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: 40, color: won ? 'var(--lime)' : lost ? 'var(--coral)' : 'var(--yellow)' }}>{won ? 'VICTORY!' : lost ? 'DEFEAT' : 'DRAW'}</div>
-            <div className="small" style={{ color: '#a8c6b4' }}>{home.short}: {scorerLine(0) || '—'}<br />{away.short}: {scorerLine(1) || '—'}</div>
-          </div>
-          {r.stats && (
-            <div className="panel">
-              <div className="mstats">
-                <StatBar label="Possession" a={Math.round((r.stats.poss[0] / Math.max(1, r.stats.poss[0] + r.stats.poss[1])) * 100)} b={Math.round((r.stats.poss[1] / Math.max(1, r.stats.poss[0] + r.stats.poss[1])) * 100)} c={[hk[0], ak[0]]} pct />
-                <StatBar label="Shots" a={r.stats.shots[0]} b={r.stats.shots[1]} c={[hk[0], ak[0]]} />
-                <StatBar label="On target" a={r.stats.onTarget[0]} b={r.stats.onTarget[1]} c={[hk[0], ak[0]]} />
-                <StatBar label="xG" a={r.stats.xg[0]} b={r.stats.xg[1]} c={[hk[0], ak[0]]} />
-              </div>
-            </div>
-          )}
-          <div className="panel">
-            <div className="row"><h3>Ratings</h3>{motm && <span className="right chip" style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.12)', borderColor: 'rgba(251,191,36,0.3)' }}>★ MOTM {motm.last}</span>}</div>
-            {mine.map(({ lp, p, r: rt }) => (
-              <div key={lp.id} className="row" style={{ padding: '6px 0', borderBottom: '1px solid var(--soft)' }}>
-                <PosTag pos={lp.pos} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <b className="ellipsis" style={{ display: 'block' }}>{shortName(p)} {lp.goals ? '⚽'.repeat(lp.goals) : ''}{lp.assists ? '🅰️' : ''}{lp.yellow ? '🟨' : ''}{lp.red ? '🟥' : ''}{lp.injured ? '🩹' : ''}</b>
-                  <div className="statline">{statSummary(lp.s, lp.pos === 'GK')}</div>
+      <div className={`comm ${landscape ? 'land' : ''}`}>
+        <CommTop home={home} away={away} mid={`${r.hg} - ${r.ag}`} sub={`FULL TIME${r.agg ? ` · AGG ${r.agg[0]}-${r.agg[1]}` : ''}${r.pens ? ` · ${r.pens[0]}-${r.pens[1]} pens` : ''}`} />
+        <div className="panes">
+          <div className="pane">
+            <div className="pane-b">
+              <div className="post-verdict" style={{ color: won ? 'var(--lime)' : lost ? 'var(--coral)' : 'var(--yellow)' }}>{won ? 'VICTORY!' : lost ? 'DEFEAT' : 'DRAW'}</div>
+              <div className="small" style={{ color: '#a8c6b4', textAlign: 'center', marginBottom: 10 }}>{home.short}: {scorerLine(0) || '—'}<br />{away.short}: {scorerLine(1) || '—'}</div>
+              {r.stats && (
+                <div className="comm-stats">
+                  <StatBar label="Possession" a={Math.round((r.stats.poss[0] / possT) * 100)} b={Math.round((r.stats.poss[1] / possT) * 100)} c={c} pct />
+                  <StatBar label="Shots" a={r.stats.shots[0]} b={r.stats.shots[1]} c={c} />
+                  <StatBar label="On target" a={r.stats.onTarget[0]} b={r.stats.onTarget[1]} c={c} />
+                  <StatBar label="xG" a={r.stats.xg[0]} b={r.stats.xg[1]} c={c} />
                 </div>
-                <span className="small muted">{lp.on > 0 ? `${lp.on}'↑` : lp.off !== null && lp.off < 90 ? `${lp.off}'↓` : ''}</span>
-                <b style={{ fontFamily: 'var(--display)', fontSize: 17, width: 36, textAlign: 'right', color: rt >= 7.5 ? 'var(--good)' : rt < 6 ? 'var(--bad)' : undefined }}>{rt.toFixed(1)}</b>
-              </div>
-            ))}
+              )}
+            </div>
+          </div>
+          <div className="pane">
+            <div className="pane-h"><h3>Ratings</h3>{motm && <span className="chip" style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.12)', borderColor: 'rgba(251,191,36,0.3)' }}>★ MOTM {motm.last}</span>}</div>
+            <div className="pane-b">
+              {mine.map(({ lp, p, r: rt }) => (
+                <div key={lp.id} className="row pane-row">
+                  <PosTag pos={lp.pos} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <b className="ellipsis" style={{ display: 'block' }}>{shortName(p)} {lp.goals ? '⚽'.repeat(lp.goals) : ''}{lp.assists ? '🅰️' : ''}{lp.yellow ? '🟨' : ''}{lp.red ? '🟥' : ''}{lp.injured ? '🩹' : ''}</b>
+                    <div className="statline">{statSummary(lp.s, lp.pos === 'GK')}</div>
+                  </div>
+                  <span className="small muted">{lp.on > 0 ? `${lp.on}'↑` : lp.off !== null && lp.off < 90 ? `${lp.off}'↓` : ''}</span>
+                  <b style={{ fontFamily: 'var(--display)', fontSize: 17, width: 36, textAlign: 'right', color: rt >= 7.5 ? 'var(--good)' : rt < 6 ? 'var(--bad)' : undefined }}>{rt.toFixed(1)}</b>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-        <div className="match-controls">
-          <button className="continue-btn" onClick={onClose}>Continue ▶</button>
+        <div className="comm-bottom">
+          <button className="continue-btn comm-go" onClick={onClose}>Continue ▶</button>
         </div>
       </div>
     </div>

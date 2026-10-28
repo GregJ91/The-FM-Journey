@@ -789,3 +789,16 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   /* Tables need room for all their columns: they take two panel widths */
   .cols > .card:has(table.t), .cols > div:has(> .card table.t) { width: max(420px, calc((100% - 24px) * 2 / 3 + 12px)); }
 }
+
+/* Pre-match / full-time panels: side by side in landscape, stacked when upright; each scrolls inside */
+.panes { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; min-height: 0; }
+.comm.land .panes { grid-template-rows: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pane { display: flex; flex-direction: column; min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.pane-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 6px; flex: none; }
+.pane-h h3 { margin: 0; font-size: 15px; }
+.pane-b { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 0 12px 10px; }
+.pane-b::-webkit-scrollbar { display: none; }
+.pane-row { padding: 5px 0; border-bottom: 1px solid var(--soft); gap: 8px; }
+.post-verdict { font-family: var(--display); font-weight: 800; font-size: 34px; text-align: center; padding-top: 6px; }
+.comm-bottom .comm-go { flex: 1 1 200px; min-height: 46px; }
+@media (max-height: 420px) { .post-verdict { font-size: 26px; } .comm-bottom .comm-go { min-height: 40px; } }
