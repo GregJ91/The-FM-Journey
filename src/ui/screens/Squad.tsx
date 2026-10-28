@@ -8,7 +8,8 @@ import { pickLineup, validateLineup } from '../../game/selection';
 import type { Club, GameState, Player, Tactics as TacticsT } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
-import { Card, CondBar, OvrChange, PlayerRow, Sheet, Spark, Stars } from '../components/common';
+import { Card, CondBar, Ovr, OvrChange, PlayerRow, PosTag, Sheet, Spark, Stars, StatusIcons } from '../components/common';
+import { useLandscape } from '../useLandscape';
 import { FormationPitch } from '../components/Pitch';
 
 type SortKey = 'pos' | 'ovr' | 'age' | 'value' | 'pot' | 'goals' | 'rating' | 'xg' | 'kp' | 'pass' | 'def';
@@ -53,6 +54,8 @@ export function SquadList({ g, players, own = true }: { g: GameState; players: P
     return <Spark values={p.form} />;
   };
   const endSub = (p: Player) => (own ? <CondBar v={p.condition} /> : <>{p.contractEnd}</>);
+  const landscape = useLandscape();
+  if (landscape) return <SquadTable g={g} rows={rows} own={own} sort={sort} setSort={setSort} />;
   let lastGroup = '';
   return (
     <>
@@ -75,6 +78,50 @@ export function SquadList({ g, players, own = true }: { g: GameState; players: P
         </div>
       </div>
     </>
+  );
+}
+
+const MORALE = (m: number) => (m >= 80 ? ['Superb', 'var(--grass)'] : m >= 65 ? ['Good', 'var(--grass)'] : m >= 45 ? ['Okay', 'var(--yellow)'] : m >= 30 ? ['Poor', 'var(--orange)'] : ['Very poor', 'var(--coral)']);
+
+/** Landscape: an FM-style squad table; tap a column heading to sort by it. */
+function SquadTable({ g, rows, own, sort, setSort }: { g: GameState; rows: Player[]; own: boolean; sort: SortKey; setSort: (k: SortKey) => void }) {
+  const ui = useUI();
+  const cols: { label: string; key?: SortKey; cls?: string }[] = [
+    { label: 'No.' }, { label: 'Pos', key: 'pos' }, { label: 'Name' }, { label: 'Age', key: 'age', cls: 'r' }, { label: 'Nat' },
+    { label: 'Ovr', key: 'ovr', cls: 'c' }, { label: 'Pot', key: 'pot' }, { label: own ? 'Cond' : 'Contract' }, ...(own ? [{ label: 'Morale' }] : []),
+    { label: 'Apps', cls: 'r' }, { label: 'Gls', key: 'goals', cls: 'r' }, { label: 'Ast', cls: 'r' }, { label: 'Av Rat', key: 'rating', cls: 'r' }, { label: 'Value', key: 'value', cls: 'r' },
+  ];
+  return (
+    <div className="card fill squad-table">
+      <table className="t fm">
+        <thead>
+          <tr>{cols.map((c) => <th key={c.label} className={`${c.cls ?? ''} ${c.key ? 'sortable' : ''} ${c.key && c.key === sort ? 'sorted' : ''}`} onClick={c.key ? () => setSort(c.key!) : undefined}>{c.label}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => {
+            const [mood, moodC] = MORALE(p.morale);
+            return (
+              <tr key={p.id} className="click" onClick={() => ui.openPlayer(p.id)}>
+                <td className="muted num">{p.shirt ?? ''}</td>
+                <td><PosTag pos={p.pos} /></td>
+                <td className="nm"><b>{shortName(p)}</b> <StatusIcons p={p} /><OvrChange v={p.lastChange} /></td>
+                <td className="r num">{age(p, g.date)}</td>
+                <td className="muted">{p.nat}</td>
+                <td className="c"><Ovr value={overall(p)} /></td>
+                <td><Stars ovr={scoutedPotential(p, own)} /></td>
+                <td>{own ? <CondBar v={p.condition} /> : <span className="num">{p.contractEnd}</span>}</td>
+                {own && <td style={{ color: moodC, fontWeight: 650 }}>{mood}</td>}
+                <td className="r num">{p.stats.apps}</td>
+                <td className="r num">{p.stats.goals}</td>
+                <td className="r num">{p.stats.assists}</td>
+                <td className="r num">{p.stats.apps ? avgRating(p).toFixed(2) : '-'}</td>
+                <td className="r num">{fmtMoney(marketValue(p, g.date))}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
