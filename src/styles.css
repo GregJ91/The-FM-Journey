@@ -739,3 +739,53 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .comm > *, .comm-body > *, .comm-bottom > * { min-width: 0; }
 .comm-bottom .shouts { overflow-x: auto; }
 .comm:not(.land) .ct-team b { font-size: 14px; }
+
+/* ---------- Landscape: fixed panels, the page itself never scrolls ---------- */
+@media (orientation: landscape) and (min-width: 640px) {
+  .content { overflow: hidden; padding-bottom: 10px; }
+  /* Dashboard pages: cards flow down then across into columns; a card too tall scrolls inside itself */
+  .cols {
+    columns: auto; display: flex; flex-direction: column; flex-wrap: wrap; align-content: flex-start;
+    height: 100%; gap: 10px 12px;
+  }
+  .cols > * { width: calc((100% - 24px) / 3); max-height: 100%; min-height: 0; flex: 0 1 auto; margin: 0 !important; }
+  .cols > .card, .cols > .hero, .cols > div:not(.page-title) { overflow-y: auto; scrollbar-width: none; }
+  .cols > .page-title, .cols > .help { flex: none; }
+  .cols > .page-title h1 { font-size: 22px; }
+  /* List pages (First Team, Transfers): header bits stay put, the main list fills the rest and scrolls inside */
+  .content > div:not(.cols):not(.inbox-split), .content > .list-page {
+    max-width: none; height: 100%; display: flex; flex-direction: column; gap: 10px; margin: 0;
+  }
+  .content > div:not(.cols):not(.inbox-split) > * { flex: none; margin-top: 0; margin-bottom: 0; }
+  .content > div:not(.cols):not(.inbox-split) > .card:has(.list), .content > div:not(.cols):not(.inbox-split) > .fill {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none;
+  }
+}
+@media (orientation: landscape) and (min-width: 640px) {
+  /* More panels than fit: extra columns sit to the right and snap into view with a sideways swipe */
+  .cols { overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .cols::-webkit-scrollbar { display: none; }
+  .cols > * { width: max(220px, calc((100% - 24px) / 3)); scroll-snap-align: start; }
+  /* Compact one-line page titles */
+  .page-title { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 0; }
+  .page-title .kicker { display: none; }
+  .page-title h1 { font-size: 19px !important; margin: 0; }
+  .page-title .chips { margin: 0; }
+  .page-title .chip { padding-top: 3px; padding-bottom: 3px; }
+  .content > div:not(.cols):not(.inbox-split) { gap: 8px; }
+  .content .tabs .tab, .content .seg button { padding-top: 6px; padding-bottom: 6px; }
+}
+/* Split pages (Transfers): controls on one side, the long list fills the rest */
+.split-page > .sp-side, .split-page > .sp-main { display: flex; flex-direction: column; gap: 10px; }
+.split-page > .sp-main { margin-top: 10px; }
+@media (orientation: landscape) and (min-width: 640px) {
+  .content > .split-page { display: grid !important; grid-template-columns: minmax(250px, 34%) minmax(0, 1fr); gap: 12px; height: 100%; }
+  .split-page > .sp-side, .split-page > .sp-main { min-height: 0; overflow-y: auto; scrollbar-width: none; margin: 0; }
+  .split-page > .sp-side > *, .split-page > .sp-main > * { flex: none; margin: 0; }
+  .split-page .tabs { flex-wrap: wrap; overflow: visible; }
+  .split-page .banner { padding: 6px 10px; font-size: 12.5px; }
+}
+@media (orientation: landscape) and (min-width: 640px) {
+  /* Tables need room for all their columns: they take two panel widths */
+  .cols > .card:has(table.t), .cols > div:has(> .card table.t) { width: max(420px, calc((100% - 24px) * 2 / 3 + 12px)); }
+}

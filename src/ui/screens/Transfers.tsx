@@ -108,7 +108,8 @@ export function Transfers() {
   const TABS: [Tab, string][] = [['search', 'Search'], ['free', 'Free Agents'], ['shortlist', `Shortlist ${g.shortlist.length || ''}`], ['bids', 'My Bids'], ['incoming', `Offers${pendingIn ? ` (${pendingIn})` : ''}`], ['news', 'News']];
 
   return (
-    <div>
+    <div className="split-page">
+      <div className="sp-side">
       <div className="page-title">
         <div className="kicker">{club.name}</div>
         <h1>Transfers</h1>
@@ -125,7 +126,6 @@ export function Transfers() {
       </div>
 
       {(tab === 'search' || tab === 'free') && (
-        <>
           <div className="card" style={{ padding: 12 }}>
             <div className="row">
               <input className="input" placeholder="Search players…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -156,11 +156,13 @@ export function Transfers() {
                 )}
               </div>
             )}
+            <div className="small muted bold" style={{ marginTop: 8 }}>{results.length} players{results.length > 80 ? ' · top 80 shown' : ''}</div>
           </div>
-          <div className="small muted bold" style={{ margin: '0 2px 8px' }}>{results.length} players{results.length > 80 ? ' · top 80 shown' : ''}</div>
-          <Results g={g} players={results} free={tab === 'free'} />
-        </>
       )}
+      </div>
+
+      <div className="sp-main">
+      {(tab === 'search' || tab === 'free') && <Results g={g} players={results} free={tab === 'free'} />}
 
       {tab === 'shortlist' && <Results g={g} players={g.shortlist.map((id) => g.players[id]).filter(Boolean)} />}
 
@@ -184,6 +186,7 @@ export function Transfers() {
           </div>
         </Card>
       )}
+      </div>
     </div>
   );
 }
