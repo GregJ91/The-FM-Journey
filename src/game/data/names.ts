@@ -188,6 +188,6 @@ export const NATIONS: Record<string, string> = {
   CAF: 'Central African Rep.', BDI: 'Burundi', GUF: 'French Guiana', BEN: 'Benin', LUX: 'Luxembourg',
   GNB: 'Guinea-Bissau', SUR: 'Suriname', MDA: 'Moldova', PAN: 'Panama', EST: 'Estonia', PER: 'Peru', LBR: 'Liberia', UGA: 'Uganda', FRO: 'Faroe Islands', PAK: 'Pakistan',
   ATG: 'Antigua and Barbuda', BER: 'Bermuda', GRN: 'Grenada', GUY: 'Guyana', IRQ: 'Iraq', MSR: 'Montserrat', SLE: 'Sierra Leone', TRI: 'Trinidad and Tobago',
-  STK: 'St Kitts and Nevis', LCA: 'St Lucia', VIN: 'St Vincent', BRB: 'Barbados', DMA: 'Dominica', BAH: 'Bahamas', CAY: 'Cayman Islands', VGB: 'British Virgin Islands', MLT: 'Malta', LIE: 'Liechtenstein', SMR: 'San Marino',
+  AFG: 'Afghanistan', LBN: 'Lebanon', TAN: 'Tanzania', STK: 'St Kitts and Nevis', LCA: 'St Lucia', VIN: 'St Vincent', BRB: 'Barbados', DMA: 'Dominica', BAH: 'Bahamas', CAY: 'Cayman Islands', VGB: 'British Virgin Islands', MLT: 'Malta', LIE: 'Liechtenstein', SMR: 'San Marino',
   CUW: 'Curaçao', GLP: 'Guadeloupe', HON: 'Honduras', IRN: 'Iran', CRC: 'Costa Rica', PLE: 'Palestine', BLR: 'Belarus', KEN: 'Kenya', KGZ: 'Kyrgyzstan',
 };
