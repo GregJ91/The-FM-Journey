@@ -187,5 +187,5 @@ export const NATIONS: Record<string, string> = {
   MOZ: 'Mozambique', GAM: 'Gambia', EQG: 'Equatorial Guinea', MKD: 'North Macedonia', TOG: 'Togo', ANG: 'Angola',
   CAF: 'Central African Rep.', BDI: 'Burundi', GUF: 'French Guiana', BEN: 'Benin', LUX: 'Luxembourg',
   GNB: 'Guinea-Bissau', SUR: 'Suriname', MDA: 'Moldova', PAN: 'Panama', EST: 'Estonia', PER: 'Peru', LBR: 'Liberia', UGA: 'Uganda', FRO: 'Faroe Islands', PAK: 'Pakistan',
-  CUW: 'Curaçao', HON: 'Honduras', IRN: 'Iran', CRC: 'Costa Rica', PLE: 'Palestine', BLR: 'Belarus', KEN: 'Kenya', KGZ: 'Kyrgyzstan',
+  CUW: 'Curaçao', GLP: 'Guadeloupe', HON: 'Honduras', IRN: 'Iran', CRC: 'Costa Rica', PLE: 'Palestine', BLR: 'Belarus', KEN: 'Kenya', KGZ: 'Kyrgyzstan',
 };

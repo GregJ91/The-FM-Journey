@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from '../src/game/generate';
-import { autoResolveActions } from '../src/game/actions';
+import { autoResolveActions, openActions } from '../src/game/actions';
 import { advanceDay, pendingUserFixture, startSeason, finishUserMatch } from '../src/game/season';
 import { applyResult, changeTactics, createMatch, makeSub, stepMinute } from '../src/game/match';
 import { overall } from '../src/game/ratings';
@@ -35,8 +35,14 @@ describe('engine', () => {
     expect(f.result).toBeTruthy();
     expect(f.result!.ratings).toBeTruthy();
     // Anything that needs a response (bids, press conferences) blocks the calendar until answered
-    if (!advanceDay(g).ok) autoResolveActions(g);
-    expect(advanceDay(g).ok).toBe(true);
+    // (a new offer can arrive the next day, so keep answering until the day moves on)
+    let ok = false;
+    for (let i = 0; i < 5 && !ok; i++) {
+      const r = advanceDay(g);
+      ok = r.ok;
+      if (!ok) { expect(r.reason).toBe('action'); expect(openActions(g).length).toBeGreaterThan(0); autoResolveActions(g); }
+    }
+    expect(ok).toBe(true);
   });
 
   it('save round-trips and stays compact', () => {
