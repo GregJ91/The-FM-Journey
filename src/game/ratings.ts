@@ -59,6 +59,8 @@ export function rawOverallAt(attrs: Attrs, pos: Pos) {
 export function familiarity(p: Player, pos: Pos) {
   if (p.pos === pos) return 1;
   if (p.alt.includes(pos)) return 0.97;
+  // A step to a neighbouring position (e.g. AMC to MC) costs little, even across position groups
+  if (NEIGHBOURS[p.pos].includes(pos)) return 0.92;
   const g1 = POS_GROUP[p.pos];
   const g2 = POS_GROUP[pos];
   if (g1 === 'GK' || g2 === 'GK') return 0.45;
@@ -130,8 +132,8 @@ export function clampAttr(v: number) {
   return Math.max(1, Math.min(20, v));
 }
 
-export function altPositionsFor(pos: Pos): Pos[] {
-  const opts: Record<Pos, Pos[]> = {
+/** Positions next to each one on the pitch, most natural first. */
+export const NEIGHBOURS: Record<Pos, Pos[]> = {
     GK: [],
     DC: ['DM', 'DR', 'DL'],
     DL: ['ML', 'DC', 'DR'],
@@ -144,8 +146,10 @@ export function altPositionsFor(pos: Pos): Pos[] {
     AML: ['ML', 'AMR', 'ST', 'AMC'],
     AMR: ['MR', 'AML', 'ST', 'AMC'],
     ST: ['AMC', 'AML', 'AMR'],
-  };
-  const pool = opts[pos];
+};
+
+export function altPositionsFor(pos: Pos): Pos[] {
+  const pool = NEIGHBOURS[pos];
   const out: Pos[] = [];
   for (const p of pool) if (rand() < (out.length === 0 ? 0.6 : 0.25)) out.push(p);
   return out;

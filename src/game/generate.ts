@@ -3,7 +3,13 @@ import { YOUTH_PLAYERS } from './data/youthPlayers';
 import { ensureEurope } from './europe';
 import { NAME_POOLS, NAT_MIX } from './data/names';
 import { addDays, iso, toDate } from './dates';
-import { altPositionsFor, generateAttrs, overall, wageFor } from './ratings';
+import { NEIGHBOURS, altPositionsFor, generateAttrs, overall, wageFor } from './ratings';
+
+/** Real players can always play their most natural second position (an AMC like Ødegaard in midfield). */
+export function withNaturalAlt(alt: Pos[], pos: Pos, real?: boolean): Pos[] {
+  const first = NEIGHBOURS[pos][0];
+  return real && first && !alt.includes(first) ? [first, ...alt] : alt;
+}
 import { chance, hash, hashString, int, normal, pick, rand, seed, weighted } from './rng';
 import { bestFormation, pickLineup } from './selection';
 import { normaliseTactics } from './tactics';
@@ -85,7 +91,7 @@ export function createPlayer(g: GameState, spec: PlayerSpec, clubId: number | nu
     nat: spec.nat,
     dob: dobFromAge(spec.age, g.date),
     pos: spec.pos,
-    alt: spec.pos === 'GK' ? [] : altPositionsFor(spec.pos),
+    alt: spec.pos === 'GK' ? [] : withNaturalAlt(altPositionsFor(spec.pos), spec.pos, spec.real),
     foot,
     attrs,
     pa: Math.max(pa, spec.ovr),

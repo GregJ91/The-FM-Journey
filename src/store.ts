@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { del, get, set } from 'idb-keyval';
 import { getSeed, seed } from './game/rng';
 import { ATTR_KEYS, type Attrs, type GameState } from './game/types';
-import { SAVE_VERSION, emptyStats } from './game/generate';
+import { SAVE_VERSION, emptyStats, withNaturalAlt } from './game/generate';
 import { normaliseTactics } from './game/tactics';
 import { assignAllShirtNumbers } from './game/shirts';
 
@@ -79,6 +79,8 @@ export function expand(raw: string): GameState {
     if (Array.isArray(a)) p.attrs = Object.fromEntries(ATTR_KEYS.map((k, i) => [k, a[i]])) as Attrs;
     // saves from before detailed stats existed
     p.stats = { ...blank, ...p.stats };
+    // saves from before real players always had their natural second position
+    if (p.pos !== 'GK') p.alt = withNaturalAlt(p.alt ?? [], p.pos, p.real);
   }
   for (const c of Object.values(g.clubs)) c.tactics = normaliseTactics(c.tactics);
   // saves from before squad numbers existed
