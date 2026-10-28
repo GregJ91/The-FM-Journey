@@ -92,6 +92,7 @@ export interface Player {
   away?: string; // on international duty (tournament name) — not available to the club
   ys?: YouthStats; // this season's youth-team matches
   meta?: boolean; // has a meta attribute profile (see meta.ts)
+  shirt?: number; // squad number
 }
 
 export interface YouthStats { apps: number; mins: number; goals: number; assists: number; rs: number }

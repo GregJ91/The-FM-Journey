@@ -4,7 +4,7 @@ import { FORMATIONS, MENTALITY } from '../../game/formations';
 import { squadOf } from '../../game/generate';
 import { aggGoals, applyResult, changeTactics, createMatch, makeSub, simulateToEnd, stepMinute, type LiveMatch, type MatchEvent } from '../../game/match';
 import { overall, ratingAt, shortName } from '../../game/ratings';
-import { finishUserMatch, pendingUserFixture } from '../../game/season';
+import { finishUserMatch, numberUserSquad, pendingUserFixture } from '../../game/season';
 import { validateLineup } from '../../game/selection';
 import type { Club, Fixture, GameState } from '../../game/types';
 import { getGame, mutate, saveGame, useGame } from '../../store';
@@ -118,6 +118,7 @@ export function MatchScreen() {
     const game = getGame()!;
     const club = game.clubs[game.userClubId];
     validateLineup(club, squadOf(game, club.id));
+    numberUserSquad(game);
     const m = createMatch(game, fixture!);
     matchRef.current = m;
     if (instant) {
@@ -392,7 +393,7 @@ function StatBar({ label, a, b, c, pct }: { label: string; a: number; b: number;
 /** Live pitch with player names. Vertical: home attacks upward. Horizontal: home attacks right; `full` fills the screen. */
 function LivePitch({ g, m, kits: k, ballPhase, horizontal, full }: { g: GameState; m: LiveMatch; kits: [[string, string], [string, string]]; ballPhase: number; horizontal?: boolean; full?: boolean }) {
   const poss = m.possTeam;
-  const dots: { key: number; left: number; top: number; fill: string; stroke: string; name: string; mine: boolean }[] = [];
+  const dots: { key: number; left: number; top: number; fill: string; stroke: string; name: string; num?: number; mine: boolean }[] = [];
   m.sides.forEach((side, si) => {
     side.onPitch.forEach((lp) => {
       const push = lp.pos === 'GK' ? 0 : poss === si ? 8 : -5;
@@ -403,7 +404,7 @@ function LivePitch({ g, m, kits: k, ballPhase, horizontal, full }: { g: GameStat
       const top = horizontal ? (si === 0 ? lat : 100 - lat) : si === 0 ? 100 - fwd : fwd;
       const left = horizontal ? (si === 0 ? fwd : 100 - fwd) : si === 0 ? lat : 100 - lat;
       const p = g.players[lp.id];
-      dots.push({ key: lp.id, left, top, fill: k[si][0], stroke: k[si][1], name: p ? p.last : '', mine: side.clubId === g.userClubId });
+      dots.push({ key: lp.id, left, top, fill: k[si][0], stroke: k[si][1], name: p ? p.last : '', num: p?.shirt, mine: side.clubId === g.userClubId });
     });
   });
   // Between minutes the ball drifts through midfield; on the minute it jumps to the action
@@ -414,7 +415,7 @@ function LivePitch({ g, m, kits: k, ballPhase, horizontal, full }: { g: GameStat
       <PitchLines vertical={!horizontal} />
       {dots.map((d) => (
         <div key={d.key} className={`pl ${d.mine ? 'mine' : ''}`} style={{ left: `${d.left}%`, top: `${d.top}%` }}>
-          <i style={{ background: d.fill, borderColor: d.stroke }} />
+          <i style={{ background: d.fill, borderColor: d.stroke, color: isLight(d.fill) ? '#15120f' : '#fff' }}>{d.num}</i>
           <span className="pn">{d.name}</span>
         </div>
       ))}

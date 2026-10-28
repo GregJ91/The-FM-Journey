@@ -4,6 +4,7 @@ import { computeEntrants, ensureEurope, europeFor, initialEntrants, progressEuro
 import { guestLevel, isGuest } from './guests';
 import { intlDay } from './intl';
 import { setupYouth, youthDay } from './youth';
+import { assignAllShirtNumbers, assignShirtNumbers } from './shirts';
 import { contractTalks, openActions, pressConference, registrationDeadlines, resetRegistration, unhappyPlayers } from './actions';
 import { leagueRoundup, matchPreview, matchReport, monthlyAwards, scriptedEvents, trainingReport } from './news';
 import { CWC_ID, progressClubWorldCup, setupClubWorldCup } from './world';
@@ -29,6 +30,7 @@ export function startSeason(g: GameState) {
   // Keep this summer's Club World Cup results; everything else starts afresh
   g.fixtures = g.fixtures.filter((f) => f.comp === CWC_ID && diffDays(g.date, f.date) < 60);
   for (const league of g.leagues) scheduleLeague(g, league);
+  assignAllShirtNumbers(g); // new signings, regens and youth graduates
   ensureEurope(g);
   resetRegistration(g);
   setupCups(g);
@@ -56,6 +58,11 @@ export function startSeason(g: GameState) {
 
 export function userFixtureOn(g: GameState, date: string): Fixture | undefined {
   return g.fixtures.find((f) => f.date === date && (f.home === g.userClubId || f.away === g.userClubId));
+}
+
+/** Make sure the manager's players all have squad numbers (e.g. after promoting a youngster). */
+export function numberUserSquad(g: GameState) {
+  assignShirtNumbers(g, g.userClubId);
 }
 
 export function pendingUserFixture(g: GameState) {
@@ -200,7 +207,7 @@ function newDay(g: GameState) {
   unhappyPlayers(g);
   if (m === 7 && day === 1) startSeason(g);
   if (m === 6 && day === 5) endSeason(g);
-  if (m === 3 && day === 15) youthIntake(g);
+  if (m === 3 && day === 15) { youthIntake(g); assignAllShirtNumbers(g); }
   if (m === 1 && day === 1) sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: 'January transfer window open', body: 'The winter window is open until 31 January. Now is the time to strengthen for the second half of the season.' });
   if ((m === 9 || m === 2) && day === 1) sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: 'Transfer window closed', body: `The window has closed. Free agents can still be signed at any time.` });
   if (m === 1 && day === 15) contractWarnings(g);

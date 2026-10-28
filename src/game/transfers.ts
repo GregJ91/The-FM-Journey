@@ -1,3 +1,4 @@
+import { assignShirtNumbers, releaseShirt } from './shirts';
 import { applyMetaProfile, isMetaClub } from './meta';
 import { closeOfferAction, offerAction, registerNewSigning } from './actions';
 import { addDays, inTransferWindow, month } from './dates';
@@ -133,6 +134,11 @@ export function completeTransfer(g: GameState, playerId: number, toId: number, f
     p.stats = emptyStats();
   }
   p.clubId = toId;
+  // Keep the same number if it's free at the new club
+  const keep = p.shirt !== undefined && !Object.values(g.players).some((x) => x !== p && x.clubId === toId && x.shirt === p.shirt) ? p.shirt : undefined;
+  releaseShirt(p);
+  p.shirt = keep;
+  assignShirtNumbers(g, toId);
   // Signings for meta clubs get the meta attribute profile
   if (isMetaClub(to)) applyMetaProfile(p);
   registerNewSigning(g, p);

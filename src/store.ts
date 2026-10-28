@@ -4,6 +4,7 @@ import { getSeed, seed } from './game/rng';
 import { ATTR_KEYS, type Attrs, type GameState } from './game/types';
 import { SAVE_VERSION, emptyStats } from './game/generate';
 import { normaliseTactics } from './game/tactics';
+import { assignAllShirtNumbers } from './game/shirts';
 
 let game: GameState | null = null;
 let version = 0;
@@ -80,6 +81,8 @@ export function expand(raw: string): GameState {
     p.stats = { ...blank, ...p.stats };
   }
   for (const c of Object.values(g.clubs)) c.tactics = normaliseTactics(c.tactics);
+  // saves from before squad numbers existed
+  if (Object.values(g.players).some((p) => p.clubId !== null && p.shirt === undefined)) assignAllShirtNumbers(g);
   return g;
 }
 

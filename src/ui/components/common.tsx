@@ -196,7 +196,7 @@ export function PlayerRow({ p, sub, end, endSub, ovr, onClick, me }: { p: Player
   return (
     <div className={`li ${me ? 'me' : ''}`} onClick={onClick ?? (() => ui.openPlayer(p.id))}>
       <Ovr value={ovr ?? overall(p)} />
-      <PosTag pos={p.pos} />
+      {p.shirt !== undefined && <span className="shirt-no">{p.shirt}</span>}<PosTag pos={p.pos} />
       <div className="main">
         <div className="t">{p.first ? `${p.first[0]}. ${p.last}` : p.last}<StatusIcons p={p} /></div>
         {sub !== undefined && <div className="s">{sub}</div>}

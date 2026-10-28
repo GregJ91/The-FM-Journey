@@ -1,6 +1,7 @@
 import { squadOf } from '../../game/generate';
 import { age, shortName } from '../../game/ratings';
 import { youthCompsFor } from '../../game/youth';
+import { numberUserSquad } from '../../game/season';
 import type { Player, TrainingFocus } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
@@ -69,7 +70,7 @@ export function Youth() {
               key={p.id}
               p={p}
               sub={<>{age(p, g.date)}y · <Stars ovr={p.pa} />{p.pa >= 80 && ' 💎'}<OvrChange v={p.lastChange} />{youthLine(p)}</>}
-              end={<button className="btn sm primary" onClick={(e) => { e.stopPropagation(); mutate(() => { p.squad = 'first'; }); ui.toast(`${shortName(p)} promoted to the first team!`); }}>Promote</button>}
+              end={<button className="btn sm primary" onClick={(e) => { e.stopPropagation(); mutate((gg) => { p.squad = 'first'; numberUserSquad(gg); }); ui.toast(`${shortName(p)} promoted to the first team!`); }}>Promote</button>}
             />
           ))}
           {!youth.length && <div className="empty">No youth players. The next intake arrives on 15 March.</div>}

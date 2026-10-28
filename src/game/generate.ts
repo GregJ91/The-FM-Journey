@@ -8,6 +8,8 @@ import { chance, hash, hashString, int, normal, pick, rand, seed, weighted } fro
 import { bestFormation, pickLineup } from './selection';
 import { normaliseTactics } from './tactics';
 import { isMetaClub, metaStyle } from './meta';
+import { assignAllShirtNumbers } from './shirts';
+import { SHIRT_NUMBERS } from './data/shirtNumbers';
 import type { Club, CrestPattern, CrestShape, GameState, League, Player, Pos, SeasonStats } from './types';
 
 export const START_DATE = '2026-07-01';
@@ -323,6 +325,9 @@ export function createWorld(opts: NewGameOptions): GameState {
       const p = createPlayer(g, spec, club.id, club.reputation);
       // Stable, plausible contract lengths for real players
       p.contractEnd = g.season + 1 + Math.floor(hash(p.id) * 4);
+      // Real squad number where we know it
+      const num = SHIRT_NUMBERS[clubName]?.[line.split('|')[0]];
+      if (num !== undefined) p.shirt = num;
     }
   }
 
@@ -376,6 +381,7 @@ export function createWorld(opts: NewGameOptions): GameState {
   }
   // European competitions and the guest clubs from the rest of Europe
   ensureEurope(g);
+  assignAllShirtNumbers(g);
 
   return g;
 }
