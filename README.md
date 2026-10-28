@@ -38,7 +38,10 @@ The game is designed for a phone held sideways (it also works on tablets and des
 - **Screens:** they flow into two columns of cards.
 - **Inbox:** the message list and the open message sit side by side.
 - **Panels:** player profiles, tactics and other panels slide in from the right.
-- **Match:** a horizontal pitch with commentary, stats and subs beside it, and the controls along the bottom.
+- **Match:** the pitch fills the whole screen, with every player's name on it.
+  - **Top strip:** how you're playing (Attacking control / On top / Even contest / Under pressure / Pinned back) with a 15-minute momentum chart, the score and clock, and possession / shots / xG.
+  - **Bottom strip:** the five shouts, then Subs, Tactics, Match centre (commentary, stats, ratings), speed and Skip.
+  - **Latest event:** pops up just above the bottom strip.
 
 Turn the phone upright and the portrait layout takes over. The installed app opens in landscape.
 
