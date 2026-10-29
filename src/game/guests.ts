@@ -1,6 +1,6 @@
 // Guest clubs: clubs outside the playable leagues that only appear in international club competitions
 // (the rest of Europe for UEFA competitions, the rest of the world for the Club World Cup).
-import { EURO_CLUBS, EURO_GUEST_LEAGUE } from './data/europe';
+import { EURO_CLUBS, EURO_GUEST_LEAGUE, TRANSFER_ONLY_LEAGUE } from './data/europe';
 import { SHIRT_NUMBERS } from './data/shirtNumbers';
 import { WORLD_CLUBS, WORLD_GUEST_LEAGUE } from './data/world';
 import { createPlayer, fillSquad, nextId, parseClub, parsePlayer, setClubFinances, squadOf, wageBill } from './generate';
@@ -9,14 +9,19 @@ import { bestFormation, pickLineup } from './selection';
 import { normaliseTactics } from './tactics';
 import type { Club, GameState } from './types';
 
-export const GUEST_LEAGUES = [EURO_GUEST_LEAGUE, WORLD_GUEST_LEAGUE];
+export const GUEST_LEAGUES = [EURO_GUEST_LEAGUE, WORLD_GUEST_LEAGUE, TRANSFER_ONLY_LEAGUE];
+
+/** CM 01/02 clubs that only buy and sell players. */
+export function isTransferOnly(club: Club) {
+  return club.leagueId === TRANSFER_ONLY_LEAGUE;
+}
 
 export function isGuest(club: Club) {
   return GUEST_LEAGUES.includes(club.leagueId);
 }
 
 export function guestLeagueName(leagueId: string) {
-  return leagueId === WORLD_GUEST_LEAGUE ? 'Rest of the world' : 'Rest of Europe';
+  return leagueId === WORLD_GUEST_LEAGUE ? 'Rest of the world' : leagueId === TRANSFER_ONLY_LEAGUE ? 'Other clubs' : 'Rest of Europe';
 }
 
 /** Generated-player level for a guest club. */

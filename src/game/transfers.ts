@@ -2,6 +2,7 @@ import { budget, fee } from './economy';
 import { assignShirtNumbers, releaseShirt } from './shirts';
 import { applyMetaProfile, isMetaClub } from './meta';
 import { closeOfferAction, offerAction, registerNewSigning } from './actions';
+import { isTransferOnly } from './guests';
 import { addDays, inTransferWindow, month } from './dates';
 import { emptyStats, nextId, squadOf, wageBill } from './generate';
 import { age, fmtMoney, fullName, marketValue, overall, ratingAt, roundMoney, wageFor } from './ratings';
@@ -298,7 +299,8 @@ function weakestSlot(g: GameState, club: Club, squad: Player[]) {
 export function aiTransfers(g: GameState) {
   if (!windowOpen(g)) return;
   const attempts = month(g.date) === 1 ? 2 : 4;
-  const clubs = Object.values(g.clubs).filter((c) => !c.isUser && c.transferBudget > budget(50_000));
+  // Transfer-only clubs (CM 01/02) sell but never buy
+  const clubs = Object.values(g.clubs).filter((c) => !c.isUser && !isTransferOnly(c) && c.transferBudget > budget(50_000));
   if (!clubs.length) return;
   // Index players by position group once
   const all = Object.values(g.players);
@@ -320,18 +322,20 @@ export function aiTransfers(g: GameState) {
       if (a > 32) continue;
       const seller = p.clubId !== null ? g.clubs[p.clubId] : null;
       if (seller && seller.reputation > buyer.reputation + 8) continue;
-      const fee = p.clubId === null ? 0 : askingPrice(g, p);
+      // Cheap estimate while searching (the exact asking price scans the seller's squad)
+      const fee = p.clubId === null ? 0 : marketValue(p, g.date) * (p.listed ? 0.85 : 1.15);
       if (fee > buyer.transferBudget) continue;
       if (p.clubId === null && !playerInterest(g, p, buyer).ok) continue;
       const score = r - Math.max(0, a - 27) * 1.2 + (p.clubId === null ? 1 : 0);
       if (score > bestScore) { bestScore = score; best = p; }
     }
     if (!best) continue;
-    if (best.clubId !== null) {
+    if (best.clubId !== null && !isTransferOnly(g.clubs[best.clubId])) {
       const sellerSquad = all.filter((p) => p.clubId === best!.clubId && p.squad === 'first');
       if (sellerSquad.length <= 18) continue;
     }
     const fee = best.clubId === null ? 0 : askingPrice(g, best);
+    if (fee > buyer.transferBudget) continue;
     completeTransfer(g, best.id, buyer.id, fee, wageDemand(g, best, buyer));
   }
   // Squad trimming: AI clubs with bloated squads release their weakest

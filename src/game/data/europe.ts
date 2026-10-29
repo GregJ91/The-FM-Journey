@@ -34,6 +34,8 @@ export const EURO_PLACES: Record<string, { UCL: number; UEL: number; UECL: numbe
   SCO: { UCL: 1, UEL: 1, UECL: 1 },
 };
 
+/** CM 01/02 careers: clubs from anywhere in the world that only buy and sell players (they play no matches). */
+export const TRANSFER_ONLY_LEAGUE = 'CMX';
 export const EURO_GUEST_LEAGUE = 'EUR';
 
 export const EURO_CLUBS: string[] = [

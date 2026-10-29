@@ -1,10 +1,10 @@
 import { boardMonthly, checkFacilityUpgrade, clampConf, monthlyFinances, prizeMoney, recordLedger, setBoardObjective, setSeasonBudgets, weeklyWages } from './club';
 import { compName, leagueTable, progressCup, scheduleLeague, setupCups } from './competitions';
 import { computeEntrants, ensureEurope, europeFor, initialEntrants, progressEurope, setupEurope } from './europe';
-import { guestLevel, isGuest } from './guests';
+import { guestLevel, isGuest, isTransferOnly } from './guests';
 import { intlDay } from './intl';
 import { setupYouth, youthDay } from './youth';
-import { assignAllShirtNumbers, assignShirtNumbers } from './shirts';
+import { assignAllShirtNumbers, assignShirtNumbers, playersByClub } from './shirts';
 import { contractTalks, openActions, pressConference, registrationDeadlines, resetRegistration, unhappyPlayers } from './actions';
 import { leagueRoundup, matchPreview, matchReport, monthlyAwards, scriptedEvents, trainingReport } from './news';
 import { CWC_ID, progressClubWorldCup, setupClubWorldCup } from './world';
@@ -42,7 +42,11 @@ export function startSeason(g: GameState) {
   setupYouth(g);
   setSeasonBudgets(g);
   setBoardObjective(g);
-  for (const c of Object.values(g.clubs)) if (!c.isUser) c.tactics = normaliseTactics({ ...c.tactics, formation: bestFormation(c, squadOf(g, c.id)), roles: [] });
+  const byClub = playersByClub(g);
+  for (const c of Object.values(g.clubs)) {
+    if (c.isUser || isTransferOnly(c)) continue; // transfer-only clubs never play
+    c.tactics = normaliseTactics({ ...c.tactics, formation: bestFormation(c, (byClub.get(c.id) ?? []).filter((p) => p.squad === 'first')), roles: [] });
+  }
   for (const p of Object.values(g.players)) {
     p.stats = emptyStats();
     p.yellowAcc = 0;
@@ -249,7 +253,9 @@ function youthIntake(g: GameState) {
       sendMessage(g, { from: 'Head of Youth Development', kind: 'youth', title: `Youth intake: ${n} new prospects`, body: `This year's youth intake has arrived!\n\n${kids.map((p) => `• ${fullName(p)} (${p.pos}, ${age(p, g.date)}) — OVR ${overall(p)}`).join('\n')}\n\nThe pick of the bunch looks to be ${fullName(best)}. Visit the Youth Team page to have a look.` });
     } else if (g.era === 'cm0102') {
       // CM 01/02: every club's regens arrive each year, so the world never runs out of players
-      generateYouth(g, club, int(2, 4), true);
+      // (transfer-only clubs produce the odd one)
+      if (!isTransferOnly(club)) generateYouth(g, club, int(2, 4), true);
+      else if (chance(0.3)) generateYouth(g, club, 1, true);
     } else if (!isGuest(club) && chance(0.7)) {
       generateYouth(g, club, int(1, 3), true);
     }
@@ -373,7 +379,7 @@ export function endSeason(g: GameState) {
 
   // AI squads: trim to 28, fill to 22+
   for (const club of Object.values(g.clubs)) {
-    if (club.isUser) continue;
+    if (club.isUser || isTransferOnly(club)) continue;
     const squad = squadOf(g, club.id);
     if (squad.length > 28) {
       squad.sort((a, b) => overall(a) - overall(b)).slice(0, squad.length - 28).forEach((p) => { p.clubId = null; });
@@ -383,8 +389,9 @@ export function endSeason(g: GameState) {
   }
   // Refresh free-agent pool
   const free = Object.values(g.players).filter((p) => p.clubId === null);
-  if (free.length > 450) {
-    free.sort((a, b) => overall(a) - overall(b)).slice(0, free.length - 450).forEach((p) => delete g.players[p.id]);
+  const keep = g.era === 'cm0102' ? 1500 : 450;
+  if (free.length > keep) {
+    free.sort((a, b) => overall(a) - overall(b)).slice(0, free.length - keep).forEach((p) => delete g.players[p.id]);
   }
   for (let i = 0; i < (g.era === 'cm0102' ? 0 : 40); i++) {
     generatePlayer(g, { pos: pick(['GK', 'DC', 'DL', 'DR', 'DM', 'MC', 'AMC', 'AML', 'AMR', 'ST', 'ST', 'MC'] as const), ovr: Math.max(30, Math.round(normal(54, 9))), age: int(19, 30), country: pick(['ENG', 'ENG', 'ESP', 'ITA', 'GER', 'FRA']), clubId: null }).contractEnd = g.season;

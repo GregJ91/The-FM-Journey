@@ -57,14 +57,21 @@ export interface CmWorld {
   season: number; // the season the database is set in (2002 = 2002/03)
   leagues: { id: string; clubs: number[] }[];
   guests: number[]; // clubs from the rest of Europe (UEFA competitions only)
+  others?: number[]; // every other club with a good player (CM ability 100+): transfer-only, they play no matches
   clubs: CmClub[];
   players: CmPlayer[];
 }
 
 /** The database that ships with the game (in public/, built by tests/cm0102.test.ts with CM_EXPORT=1; see pack.ts). */
-export const CM_BUILTIN = 'cm0102-v2.txt';
-/** Bumped whenever the built-in database gains data (2: career histories, real squads only). */
-export const CM_REV = 2;
+export const CM_BUILTIN = 'cm0102-v3.txt';
+/** Bumped whenever the built-in database gains data (2: career histories, real squads only; 3: every decent player). */
+export const CM_REV = 3;
+/** CM current ability from which a player counts as "decent": included wherever he plays (about a 60 rating here). */
+const GOOD_CA = 100;
+/** …or a prospect with CM potential from here (the wonderkids). */
+const GOOD_PA = 140;
+const GOOD_PA_OVR = ovrFromCa(GOOD_PA);
+const isGood = (ca: number, pa: number) => ca >= GOOD_CA || pa >= GOOD_PA;
 
 /** Our league ids → CM 01/02 club_comp names. */
 export const CM_LEAGUES: Record<string, string> = {
@@ -310,6 +317,19 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
 
   // People
   const staff = new Reader(files['staff.dat']);
+  // Every other club in the world with a decent player (CM ability 100+) joins as a transfer-only club
+  const good = new Set<number>();
+  for (let i = 0; i < staffT.count; i++) {
+    const o = staffT.offset + i * staffSize;
+    const pd = staff.i32(o + 145);
+    const clubCm = staff.i32(o + 57);
+    if (pd < 0 || pd >= playerT.count || clubCm < 0 || picked.has(clubCm)) continue;
+    const po = playerT.offset + pd * playerSize;
+    if (isGood(staff.i16(po + 5), staff.i16(po + 7))) good.add(clubCm);
+  }
+  const others: number[] = [];
+  for (const c of raw) if (good.has(c.id) && !picked.has(c.id)) others.push(addClub(c));
+  const otherSet = new Set(others);
   const first = nameTable(files['first_names.dat']);
   const second = nameTable(files['second_names.dat']);
   const common = nameTable(files['common_names.dat']);
@@ -349,6 +369,7 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
     const po = playerT.offset + pd * playerSize;
     const ca = staff.i16(po + 5);
     if (ca <= 0) continue;
+    if (ci !== undefined && otherSet.has(ci) && !isGood(ca, staff.i16(po + 7))) continue; // transfer-only clubs: their good players and prospects only
     let dob = dateFrom(staff, o + 16);
     // A few records have no real birth date: assume mid-twenties
     if (!dob || dob < '1955') dob = `${1977 + (i % 6)}-0${1 + (i % 9)}-15`;
@@ -390,21 +411,21 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
   // Contracts that have run out (or were never set) get one to three more years
   for (const list of [free, ...byClub.values()]) for (const p of list) if (p.contractEnd <= season) p.contractEnd = season + 1 + (p.ca % 3);
 
-  // Squads: the best 30 make the first team, up to 8 more teenagers make the academy
+  // Squads: everyone at the club; outside the best 30, teenagers go to the academy
   const players: CmPlayer[] = [];
   const strip = ({ ca: _ca, ...p }: RawP) => p;
   for (const [ci, list] of byClub) {
     list.sort((x, y) => y.ca - x.ca);
-    const firstTeam = list.slice(0, 30);
-    const youth = list.slice(30).filter((p) => p.dob >= '1982-07-01').slice(0, 8);
+    const firstTeam = [...list.slice(0, 30), ...list.slice(30).filter((p) => p.dob < '1982-07-01')];
+    const youth = list.slice(30).filter((p) => p.dob >= '1982-07-01');
     const starters = firstTeam.slice(0, 11);
     clubs[ci].level = Math.round(starters.reduce((s, p) => s + ovrFromCa(p.ca), 0) / Math.max(1, starters.length)) - 3;
     for (const p of firstTeam) players.push(strip(p));
     for (const p of youth) players.push({ ...strip(p), youth: true });
   }
   free.sort((x, y) => y.ca - x.ca);
-  // A deep pool of real free agents: clubs short of players sign these before anyone is invented
-  for (const p of free.slice(0, 400)) players.push(strip(p));
+  // Free agents: every good one, and a deep pool of the rest for clubs short of players
+  for (const p of free.filter((x, i) => x.ca >= GOOD_CA || x.pa >= GOOD_PA_OVR || i < 800)) players.push(strip(p));
   // Only the clubs someone in the game actually played for
   const used = new Set<number>();
   for (const p of players) for (const h of p.past ?? []) used.add(h[1]);
@@ -412,7 +433,7 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
   const keptClubs: string[] = [];
   for (const i of [...used].sort((a, b) => a - b)) { remap.set(i, keptClubs.length); keptClubs.push(pastClubs[i]); }
   for (const p of players) for (const h of p.past ?? []) h[1] = remap.get(h[1])!;
-  return { version: 1, rev: CM_REV, season, leagues, guests, clubs, players, pastClubs: keptClubs };
+  return { version: 1, rev: CM_REV, season, leagues, guests, others, clubs, players, pastClubs: keptClubs };
 }
 
 /** Three-letter club code: "Manchester Utd" → MUN, "Arsenal" → ARS. */

@@ -21,8 +21,7 @@ const PREFERRED: Record<Pos, number[]> = {
 };
 
 /** Give a number to every player at the club who doesn't have one, best players first. */
-export function assignShirtNumbers(g: GameState, clubId: number) {
-  const squad = Object.values(g.players).filter((p) => p.clubId === clubId);
+export function assignShirtNumbers(g: GameState, clubId: number, squad = Object.values(g.players).filter((p) => p.clubId === clubId)) {
   const taken = new Set(squad.map((p) => p.shirt).filter((n): n is number => n !== undefined));
   const need = squad.filter((p) => p.shirt === undefined).sort((a, b) => Number(a.squad === 'youth') - Number(b.squad === 'youth') || overall(b) - overall(a));
   for (const p of need) {
@@ -37,7 +36,19 @@ export function assignShirtNumbers(g: GameState, clubId: number) {
 }
 
 export function assignAllShirtNumbers(g: GameState) {
-  for (const id of Object.keys(g.clubs)) assignShirtNumbers(g, Number(id));
+  for (const [id, squad] of playersByClub(g)) assignShirtNumbers(g, id, squad);
+}
+
+/** Every club's players (first team and academy), grouped in one pass over the world. */
+export function playersByClub(g: GameState) {
+  const out = new Map<number, Player[]>();
+  for (const p of Object.values(g.players)) {
+    if (p.clubId === null) continue;
+    const list = out.get(p.clubId);
+    if (list) list.push(p);
+    else out.set(p.clubId, [p]);
+  }
+  return out;
 }
 
 /** A player changing clubs gives up their old number. */

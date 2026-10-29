@@ -8,6 +8,7 @@ import { leagueOf, squadOf, wageBill } from './generate';
 import { sendMessage } from './inbox';
 import { fmtMoney, overall } from './ratings';
 import type { Club, GameState, League } from './types';
+import { playersByClub } from './shirts';
 
 const TICKET: Record<number, number> = { 1: 48, 2: 28, 3: 22, 4: 18, 5: 14 };
 const TV_MONTHLY: Record<number, number> = { 1: 9_000_000, 2: 1_400_000, 3: 330_000, 4: 190_000, 5: 75_000 };
@@ -186,9 +187,10 @@ export function checkFacilityUpgrade(g: GameState) {
 }
 
 export function setSeasonBudgets(g: GameState) {
+  const byClub = playersByClub(g);
   for (const club of Object.values(g.clubs)) {
     const tier = tierOf(g, club);
-    const bill = wageBill(g, club.id);
+    const bill = (byClub.get(club.id) ?? []).reduce((t, p) => t + p.wage, 0);
     const tierMult = [0, 1, 0.12, 0.035, 0.015, 0.005][tier] ?? 0.005;
     const base = budget(Math.pow(club.reputation / 100, 2.2) * 250_000_000 * tierMult);
     const fromBalance = Math.max(0, club.balance) * 0.35;

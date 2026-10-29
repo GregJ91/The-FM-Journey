@@ -15,10 +15,10 @@ import { chance, hash, hashString, int, normal, pick, rand, seed, weighted } fro
 import { bestFormation, pickLineup } from './selection';
 import { normaliseTactics } from './tactics';
 import { applyMetaProfile, isMetaClub, metaStyle } from './meta';
-import { assignAllShirtNumbers, assignShirtNumbers } from './shirts';
+import { assignAllShirtNumbers, assignShirtNumbers, playersByClub } from './shirts';
 import { SHIRT_NUMBERS } from './data/shirtNumbers';
 import type { Attrs, Club, CrestPattern, CrestShape, GameState, League, Player, Pos, SeasonStats } from './types';
-import { EURO_GUEST_LEAGUE } from './data/europe';
+import { EURO_GUEST_LEAGUE, TRANSFER_ONLY_LEAGUE } from './data/europe';
 import type { CmWorld } from './cm0102/parse';
 
 export const START_DATE = '2026-07-01';
@@ -426,6 +426,16 @@ export function createWorld(opts: NewGameOptions): GameState {
       cmIndex[id] = i;
       setClubFinances(club, 2);
     }
+    // Every other club with a decent player: transfer-only (no league, no matches)
+    for (const i of cm.others ?? []) {
+      const c = cm.clubs[i];
+      const id = nextId(g);
+      const { level, ...club } = parseClub(cmClubLine(c), TRANSFER_ONLY_LEAGUE, c.country, id);
+      g.clubs[id] = club;
+      levels[id] = level;
+      cmIndex[id] = i;
+      setClubFinances(club, 3);
+    }
     g.pastClubs = cm.pastClubs;
     for (const [id, i] of Object.entries(cmIndex)) addCmPlayers(g, cm, i, Number(id));
     addCmPlayers(g, cm, -1, null);
@@ -464,6 +474,7 @@ export function createWorld(opts: NewGameOptions): GameState {
   const youthCount: Record<number, number> = {};
   for (const p of Object.values(g.players)) if (p.squad === 'youth' && p.clubId !== null) youthCount[p.clubId] = (youthCount[p.clubId] ?? 0) + 1;
   for (const club of Object.values(g.clubs)) {
+    if (club.leagueId === TRANSFER_ONLY_LEAGUE) continue;
     fillSquad(g, club, levels[club.id]);
     // CM 01/02: squads and academies are the database's; new names only arrive through yearly intakes
     if (cm) continue;
@@ -485,9 +496,13 @@ export function createWorld(opts: NewGameOptions): GameState {
     g.userClubId = club.id;
   }
 
+  // Group players by club once (a CM 01/02 world has 2,000+ clubs and 20,000+ players)
+  const byClub = playersByClub(g);
   for (const club of Object.values(g.clubs)) {
-    club.wageBudget = Math.round(wageBill(g, club.id) * (club.custom ? 1.4 : 1.12));
-    const squad = squadOf(g, club.id);
+    const all = byClub.get(club.id) ?? [];
+    club.wageBudget = Math.round(all.reduce((t, p) => t + p.wage, 0) * (club.custom ? 1.4 : 1.12));
+    if (club.leagueId === TRANSFER_ONLY_LEAGUE) continue; // never plays: no tactics or line-up
+    const squad = all.filter((p) => p.squad === 'first');
     club.tactics = normaliseTactics({ ...club.tactics, formation: bestFormation(club, squad), roles: [] });
     const { lineup, subs } = pickLineup(club, squad);
     club.lineup = lineup;
