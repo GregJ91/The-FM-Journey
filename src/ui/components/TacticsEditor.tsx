@@ -131,3 +131,72 @@ export function TacticsEditor({ g, tactics, lineup, onChange, live }: { g: GameS
     </div>
   );
 }
+
+const SEL = <T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) => (
+  <label className="ti-field">
+    <span>{label}</span>
+    <select className="input" value={String(value)} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); if (o) onChange(o[0]); }}>
+      {options.map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
+    </select>
+  </label>
+);
+const YES_NO: [number, string][] = [[1, 'Yes'], [0, 'No']];
+
+/** CM 01/02-style team instructions: every setting is a dropdown, all on one screen; player roles on a second page. */
+export function TeamInstructions({ g, tactics, lineup, onChange, autoSubs, onAutoSubs }: { g: GameState; tactics: Tactics; lineup?: (number | null)[]; onChange: (t: Partial<Tactics>) => void; autoSubs: boolean; onAutoSubs: (v: boolean) => void }) {
+  const [page, setPage] = useState<'team' | 'roles'>('team');
+  const slots = FORMATIONS[tactics.formation];
+  return (
+    <div className="ti">
+      <div className="seg">
+        <button className={page === 'team' ? 'on' : ''} onClick={() => setPage('team')}>Team</button>
+        <button className={page === 'roles' ? 'on' : ''} onClick={() => setPage('roles')}>Player roles</button>
+      </div>
+      {page === 'team' ? (
+        <div className="ti-grid">
+          <label className="ti-field wide">
+            <span>Tactic name</span>
+            <input id="tactic-name" className="input" maxLength={24} placeholder="Name your tactic" value={tactics.name ?? ''} onChange={(e) => onChange({ name: e.target.value })} />
+          </label>
+          <label className="ti-field wide">
+            <span>Load a preset</span>
+            <select className="input" value="" onChange={(e) => { const p = PRESETS.find((x) => x.id === e.target.value); if (p) onChange(applyPreset(p)); }}>
+              <option value="">Choose…</option>
+              {PRESETS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+          <SEL label="Formation" value={tactics.formation} options={FORMATION_NAMES.map((f) => [f, f] as [string, string])} onChange={(v) => onChange({ formation: v })} />
+          <SEL label="Mentality" value={tactics.mentality} options={MENTALITY.map((m, i) => [i - 2, m] as [number, string])} onChange={(v) => onChange({ mentality: v })} />
+          <SEL label="Passing" value={tactics.style} options={[['short', 'Short'], ['mixed', 'Mixed'], ['direct', 'Direct']]} onChange={(v) => onChange({ style: v })} />
+          <SEL label="Tempo" value={tactics.tempo} options={[[0, 'Slow'], [1, 'Normal'], [2, 'Fast']]} onChange={(v) => onChange({ tempo: v })} />
+          <SEL label="Width" value={tactics.width} options={[[0, 'Narrow'], [1, 'Balanced'], [2, 'Wide']]} onChange={(v) => onChange({ width: v })} />
+          <SEL label="Attacking focus" value={tactics.focus} options={[['mixed', 'Mixed'], ['left', 'Left'], ['centre', 'Centre'], ['right', 'Right']]} onChange={(v) => onChange({ focus: v })} />
+          <SEL label="Pressing" value={tactics.pressing} options={[[0, 'Low block'], [1, 'Mid'], [2, 'High press']]} onChange={(v) => onChange({ pressing: v })} />
+          <SEL label="Defensive line" value={tactics.line} options={[[0, 'Deep'], [1, 'Standard'], [2, 'High']]} onChange={(v) => onChange({ line: v })} />
+          <SEL label="Tackling" value={tactics.tackling} options={[[0, 'Stay on feet'], [1, 'Normal'], [2, 'Get stuck in']]} onChange={(v) => onChange({ tackling: v })} />
+          <SEL label="Counter-attack" value={tactics.counter ? 1 : 0} options={YES_NO} onChange={(v) => onChange({ counter: v === 1 })} />
+          <SEL label="Offside trap" value={tactics.offsideTrap ? 1 : 0} options={YES_NO} onChange={(v) => onChange({ offsideTrap: v === 1 })} />
+          <SEL label="Play out from back" value={tactics.playOutBack ? 1 : 0} options={YES_NO} onChange={(v) => onChange({ playOutBack: v === 1 })} />
+          <SEL label="Time-wasting" value={tactics.timeWasting ? 1 : 0} options={YES_NO} onChange={(v) => onChange({ timeWasting: v === 1 })} />
+          <SEL label="Assistant subs" value={autoSubs ? 1 : 0} options={YES_NO} onChange={(v) => onAutoSubs(v === 1)} />
+        </div>
+      ) : (
+        <div className="ti-roles">
+          {slots.map((s, i) => {
+            const pid = lineup?.[i];
+            const rl = roleFor(s.pos, tactics.roles[i]);
+            return (
+              <label key={i} className="ti-role">
+                <PosTag pos={s.pos} />
+                <span className="ellipsis">{pid != null && g.players[pid] ? shortName(g.players[pid]) : '—'}</span>
+                <select className="input" value={rl.id} disabled={ROLES[s.pos].length < 2} onChange={(e) => { const roles = [...tactics.roles]; roles[i] = e.target.value; onChange({ roles }); }}>
+                  {ROLES[s.pos].map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

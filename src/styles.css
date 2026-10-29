@@ -1539,3 +1539,14 @@ table.t.dense td.nm { max-width: 140px; overflow: hidden; text-overflow: ellipsi
 /* Competitions: the chosen table, fixtures or cup fills the screen */
 .comp-page > .card { flex: 1 1 0; min-height: 0; margin: 0 !important; overflow: hidden !important; }
 .comp-page > .seg { margin: 0 !important; }
+
+/* Team instructions: CM-style dropdowns, all on one screen */
+.ti { display: flex; flex-direction: column; gap: 8px; }
+.ti-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+.ti-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ti-field.wide { grid-column: span 2; }
+.ti-field > span { font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.ti-field .input { min-height: 30px; padding: 3px 6px; font-size: 13px; font-weight: 700; }
+.ti-roles { display: flex; flex-direction: column; gap: 4px; }
+.ti-role { display: grid; grid-template-columns: 38px minmax(0, 1fr) minmax(0, 1.3fr); align-items: center; gap: 6px; font-weight: 700; font-size: 12.5px; }
+.ti-role .input { min-height: 30px; padding: 3px 6px; font-size: 12.5px; }

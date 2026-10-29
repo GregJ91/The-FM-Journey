@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FORMATIONS } from '../../game/formations';
 import { normaliseTactics } from '../../game/tactics';
-import { TacticsEditor } from '../components/TacticsEditor';
+import { TeamInstructions } from '../components/TacticsEditor';
 import { activateCheat } from '../../game/cheats';
 import { squadOf } from '../../game/generate';
 import { POS_GROUP, age, avgRating, familiarity, fmtMoney, marketValue, overall, ratingAt, scoutedPotential, shortName } from '../../game/ratings';
@@ -263,11 +263,7 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
       {instr && (
         <Sheet title="Team instructions" onClose={() => setInstr(false)}>
           <div className="sheet-b">
-            <TacticsEditor g={g} tactics={club.tactics} lineup={lineup} onChange={updateTactics} />
-            <button className="li" style={{ width: '100%', background: 'none', border: 'none', color: 'inherit', textAlign: 'left', padding: '10px 4px' }} onClick={() => mutate((gg) => { gg.autoSubs = !gg.autoSubs; })}>
-              <div className="main"><div className="t">Assistant makes substitutions</div><div className="s">Tired or struggling players are swapped automatically during matches.</div></div>
-              <span className={`switch ${g.autoSubs ? 'on' : ''}`}><span /></span>
-            </button>
+            <TeamInstructions g={g} tactics={club.tactics} lineup={lineup} onChange={updateTactics} autoSubs={g.autoSubs} onAutoSubs={(v) => mutate((gg) => { gg.autoSubs = v; })} />
           </div>
         </Sheet>
       )}
