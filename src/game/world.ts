@@ -67,7 +67,7 @@ function entrants(g: GameState, year: number): number[] {
 /** Called when the season ends (5 June). Sets up the tournament in Club World Cup years. */
 export function setupClubWorldCup(g: GameState) {
   const year = Number(g.date.slice(0, 4));
-  if (!isCwcYear(year)) return;
+  if (!isCwcYear(year) || g.era) return; // no Club World Cup in the CM 01/02 era
   addGuestClubs(g, WORLD_CLUBS, WORLD_PLAYERS, WORLD_GUEST_LEAGUE);
   const teams = entrants(g, year);
   if (teams.length < 32) return;

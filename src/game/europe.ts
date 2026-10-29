@@ -18,15 +18,20 @@ export function euroDef(id: string) {
   return EURO_COMPS.find((c) => c.id === id);
 }
 
+/** What the competitions were called in the early 2000s. */
+const OLD_NAMES: Record<string, [string, string]> = { UEL: ['UEFA Cup', 'UEFA'], UECL: ['Intertoto Cup', 'UIC'] };
+
 /** Add the rest-of-Europe clubs and the three competitions if they're missing (new games and older saves). */
 export function ensureEurope(g: GameState) {
-  addGuestClubs(g, EURO_CLUBS, EURO_PLAYERS, EURO_GUEST_LEAGUE);
+  // CM 01/02 careers bring their own guest clubs from the database
+  if (!g.era) addGuestClubs(g, EURO_CLUBS, EURO_PLAYERS, EURO_GUEST_LEAGUE);
   // Replace the old single knockout cup from earlier versions
   g.cups = g.cups.filter((c) => c.type !== 'continental' || c.lp !== undefined);
   for (const def of EURO_COMPS) {
     if (g.cups.some((c) => c.id === def.id && c.lp !== undefined)) continue;
     g.cups = g.cups.filter((c) => c.id !== def.id);
-    g.cups.push({ id: def.id, name: def.name, short: def.short, type: 'continental', country: null, color: def.color, alive: [], rounds: [], current: 0, winner: null, runnerUp: null, teams: [], lp: def.games });
+    const [name, short] = g.era ? OLD_NAMES[def.id] ?? [def.name, def.short] : [def.name, def.short];
+    g.cups.push({ id: def.id, name, short, type: 'continental', country: null, color: def.color, alive: [], rounds: [], current: 0, winner: null, runnerUp: null, teams: [], lp: def.games });
   }
 }
 

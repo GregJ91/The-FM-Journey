@@ -2,7 +2,7 @@ import { CUP_DEFS, LEAGUE_DEFS, REAL_PLAYERS } from './data/leagues';
 import { YOUTH_PLAYERS } from './data/youthPlayers';
 import { ensureEurope } from './europe';
 import { NAME_POOLS, NAT_MIX } from './data/names';
-import { addDays, iso, toDate } from './dates';
+import { addDays, ageOn, iso, toDate } from './dates';
 import { NEIGHBOURS, altPositionsFor, generateAttrs, overall, wageFor } from './ratings';
 
 /** Real players can always play their most natural second position (an AMC like Ødegaard in midfield). */
@@ -16,7 +16,9 @@ import { normaliseTactics } from './tactics';
 import { isMetaClub, metaStyle } from './meta';
 import { assignAllShirtNumbers } from './shirts';
 import { SHIRT_NUMBERS } from './data/shirtNumbers';
-import type { Club, CrestPattern, CrestShape, GameState, League, Player, Pos, SeasonStats } from './types';
+import type { Attrs, Club, CrestPattern, CrestShape, GameState, League, Player, Pos, SeasonStats } from './types';
+import { EURO_GUEST_LEAGUE } from './data/europe';
+import type { CmWorld } from './cm0102/parse';
 
 export const START_DATE = '2026-07-01';
 export const START_SEASON = 2026;
@@ -75,23 +77,28 @@ export interface PlayerSpec {
   pa?: number;
   style?: string;
   real?: boolean;
+  // Exact details (CM 01/02 database)
+  attrs?: Attrs;
+  dob?: string;
+  alt?: Pos[];
+  foot?: 'L' | 'R' | 'B';
 }
 
 export function createPlayer(g: GameState, spec: PlayerSpec, clubId: number | null, rep = 50): Player {
   // Meta clubs' players (real, generated and academy intakes) get meta attribute profiles
-  const meta = clubId !== null && isMetaClub(g.clubs[clubId]);
-  const attrs = generateAttrs(spec.pos, spec.ovr, meta ? (spec.style ?? '') + metaStyle(spec.pos) : spec.style);
+  const meta = !spec.attrs && clubId !== null && isMetaClub(g.clubs[clubId]);
+  const attrs = spec.attrs ? { ...spec.attrs } : generateAttrs(spec.pos, spec.ovr, meta ? (spec.style ?? '') + metaStyle(spec.pos) : spec.style);
   const id = nextId(g);
   const pa = spec.pa ?? potentialFor(spec.ovr, spec.age);
-  const foot = spec.pos.endsWith('L') ? (chance(0.75) ? 'L' : 'R') : chance(0.2) ? 'L' : chance(0.08) ? 'B' : 'R';
+  const foot = spec.foot ?? (spec.pos.endsWith('L') ? (chance(0.75) ? 'L' : 'R') : chance(0.2) ? 'L' : chance(0.08) ? 'B' : 'R');
   const p: Player = {
     id,
     first: spec.first,
     last: spec.last,
     nat: spec.nat,
-    dob: dobFromAge(spec.age, g.date),
+    dob: spec.dob ?? dobFromAge(spec.age, g.date),
     pos: spec.pos,
-    alt: spec.pos === 'GK' ? [] : withNaturalAlt(altPositionsFor(spec.pos), spec.pos, spec.real),
+    alt: spec.pos === 'GK' ? [] : withNaturalAlt(spec.alt ?? altPositionsFor(spec.pos), spec.pos, spec.real),
     foot,
     attrs,
     pa: Math.max(pa, spec.ovr),
@@ -115,7 +122,7 @@ export function createPlayer(g: GameState, spec: PlayerSpec, clubId: number | nu
     lastChange: 0,
     joined: g.date,
   };
-  p.wage = wageFor(overall(p), rep);
+  p.wage = wageFor(spec.attrs ? Math.max(overall(p), Math.round(p.pa * 0.3 + overall(p) * 0.7)) : overall(p), rep);
   g.players[id] = p;
   if (meta) p.meta = true;
   return p;
@@ -249,17 +256,51 @@ export interface NewGameOptions {
   };
   slot: string;
   seed?: number;
+  /** Build the world from the player's CM 01/02 database instead of today's. */
+  cm?: CmWorld;
+}
+
+/** League names and codes as they were in the early 2000s. */
+export const CM_LEAGUE_NAMES: Record<string, [string, string]> = {
+  ENG1: ['Premier League', 'PL'], ENG2: ['First Division', 'D1'], ENG3: ['Second Division', 'D2'], ENG4: ['Third Division', 'D3'], ENG5: ['Conference', 'CNF'],
+  SCO1: ['Scottish Premier League', 'SPL'], SCO2: ['Scottish First Division', 'SD1'], SCO3: ['Scottish Second Division', 'SD2'], SCO4: ['Scottish Third Division', 'SD3'],
+  ESP1: ['La Liga', 'LL'], ITA1: ['Serie A', 'SA'], GER1: ['Bundesliga', 'BL'], FRA1: ['Division 1', 'D1'],
+};
+
+/** Club line ("Name|SHORT|c1|c2|rep|level|Stadium|cap|pattern") for a CM club. */
+export function cmClubLine(c: CmWorld['clubs'][number]) {
+  return [c.name, c.short, c.colors[0], c.colors[1], c.rep, c.level, c.stadium, c.capacity, 'plain'].join('|');
+}
+
+/** CM players for one club (or free agents when clubId is null). */
+function addCmPlayers(g: GameState, cm: CmWorld, idx: number, clubId: number | null) {
+  const club = clubId !== null ? g.clubs[clubId] : null;
+  const taken = new Set<number>();
+  for (const sp of cm.players) {
+    if (sp.club !== idx) continue;
+    const age = Math.max(16, ageOn(sp.dob, g.date));
+    const p = createPlayer(g, { ...sp, age, ovr: 0, real: true }, clubId, club?.reputation ?? 40);
+    p.pa = Math.max(sp.pa, overall(p));
+    p.personality = sp.personality;
+    p.contractEnd = clubId === null ? g.season : sp.contractEnd;
+    p.caps = sp.caps || undefined;
+    p.intGoals = sp.intGoals || undefined;
+    if (sp.youth) { p.squad = 'youth'; p.wage = Math.max(100, Math.round(p.wage * 0.3)); }
+    if (sp.shirt !== undefined && !sp.youth && !taken.has(sp.shirt)) { p.shirt = sp.shirt; taken.add(sp.shirt); }
+  }
 }
 
 export function createWorld(opts: NewGameOptions): GameState {
   seed(opts.seed ?? (Date.now() % 2147483647));
+  const cm = opts.cm;
   const g: GameState = {
     saveVersion: SAVE_VERSION,
     slot: opts.slot,
     mode: opts.mode,
+    ...(cm ? { era: 'cm0102' as const } : {}),
     manager: opts.manager,
-    date: START_DATE,
-    season: START_SEASON,
+    date: cm ? `${cm.season}-07-01` : START_DATE,
+    season: cm ? cm.season : START_SEASON,
     userClubId: -1,
     rng: 0,
     nextId: 1,
@@ -282,25 +323,29 @@ export function createWorld(opts: NewGameOptions): GameState {
   };
 
   const levels: Record<number, number> = {};
+  const cmIndex: Record<number, number> = {}; // our club id → CM club index
   for (const def of LEAGUE_DEFS) {
+    const [name, short] = cm ? CM_LEAGUE_NAMES[def.id] ?? [def.name, def.short] : [def.name, def.short];
     const league: League = {
-      id: def.id, name: def.name, short: def.short, country: def.country, tier: def.tier,
+      id: def.id, name, short, country: def.country, tier: def.tier,
       clubIds: [], up: def.up, down: def.down, color: def.color,
     };
-    let lines = def.clubs;
+    const cmClubs = cm?.leagues.find((l) => l.id === def.id)?.clubs ?? [];
+    let lines = cm ? cmClubs.map((i) => cmClubLine(cm.clubs[i])) : def.clubs;
     // Create-a-club: the new club takes the place of the lowest-reputation National League side
     if (opts.mode === 'create' && def.id === 'ENG5') {
       const sorted = [...lines].sort((a, b) => Number(a.split('|')[4]) - Number(b.split('|')[4]));
       lines = lines.filter((l) => l !== sorted[0]);
     }
-    for (const line of lines) {
+    lines.forEach((line, i) => {
       const id = nextId(g);
       const { level, ...club } = parseClub(line, def.id, def.country, id);
       g.clubs[id] = club;
       levels[id] = level;
       league.clubIds.push(id);
       setClubFinances(club, def.tier);
-    }
+      if (cm) cmIndex[id] = cmClubs[i];
+    });
     if (opts.mode === 'create' && def.id === 'ENG5' && opts.custom) {
       const id = nextId(g);
       const c = opts.custom;
@@ -320,10 +365,25 @@ export function createWorld(opts: NewGameOptions): GameState {
     g.leagues.push(league);
   }
 
+  // CM 01/02: the rest of Europe's best clubs (UEFA competitions only), then every player from the database
+  if (cm) {
+    for (const i of cm.guests) {
+      const c = cm.clubs[i];
+      const id = nextId(g);
+      const { level, ...club } = parseClub(cmClubLine(c), EURO_GUEST_LEAGUE, c.country, id);
+      g.clubs[id] = club;
+      levels[id] = level;
+      cmIndex[id] = i;
+      setClubFinances(club, 2);
+    }
+    for (const [id, i] of Object.entries(cmIndex)) addCmPlayers(g, cm, i, Number(id));
+    addCmPlayers(g, cm, -1, null);
+  }
+
   // Real players
   const byName: Record<string, Club> = {};
   for (const c of Object.values(g.clubs)) byName[c.name] = c;
-  for (const [clubName, lines] of Object.entries(REAL_PLAYERS)) {
+  for (const [clubName, lines] of Object.entries(cm ? {} : REAL_PLAYERS)) {
     const club = byName[clubName];
     if (!club) continue;
     for (const line of lines) {
@@ -338,7 +398,7 @@ export function createWorld(opts: NewGameOptions): GameState {
   }
 
   // Real academy prospects
-  for (const [clubName, lines] of Object.entries(YOUTH_PLAYERS)) {
+  for (const [clubName, lines] of Object.entries(cm ? {} : YOUTH_PLAYERS)) {
     const club = byName[clubName];
     if (!club) continue;
     for (const line of lines) {
@@ -358,7 +418,7 @@ export function createWorld(opts: NewGameOptions): GameState {
   }
 
   // Free agents
-  for (let i = 0; i < 160; i++) {
+  for (let i = 0; i < (cm ? 0 : 160); i++) {
     const ovr = Math.max(30, Math.round(normal(55, 9)));
     const age = int(19, 34);
     const p = generatePlayer(g, { pos: pick(SQUAD_TEMPLATE), ovr, age, country: pick(['ENG', 'ENG', 'ENG', 'ESP', 'ITA', 'GER', 'FRA']), clubId: null });

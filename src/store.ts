@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { del, get, set } from 'idb-keyval';
+import type { CmWorld } from './game/cm0102/parse';
 import { getSeed, seed } from './game/rng';
 import { ATTR_KEYS, type Attrs, type GameState } from './game/types';
 import { SAVE_VERSION, emptyStats, withNaturalAlt } from './game/generate';
@@ -57,6 +58,7 @@ export interface SaveMeta {
   colors: [string, string];
   date: string;
   mode: GameState['mode'];
+  era?: GameState['era'];
   savedAt: number;
 }
 
@@ -116,7 +118,7 @@ export async function saveGame(g: GameState = game!) {
   const club = g.clubs[g.userClubId];
   await set(saveKey(g.slot), compact(g));
   const metas = (await listSaves()).filter((m) => m.slot !== g.slot);
-  metas.unshift({ slot: g.slot, manager: g.manager, club: club.name, colors: club.colors, date: g.date, mode: g.mode, savedAt: Date.now() });
+  metas.unshift({ slot: g.slot, manager: g.manager, club: club.name, colors: club.colors, date: g.date, mode: g.mode, era: g.era, savedAt: Date.now() });
   await set(META_KEY, metas);
 }
 
@@ -140,4 +142,20 @@ if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') autoSave(game, true).catch(() => {});
   });
+}
+
+// The player's imported CM 01/02 database (kept on this device only)
+const CM_KEY = 'fmj-cm0102';
+
+export async function loadCmWorld(): Promise<CmWorld | null> {
+  try {
+    return ((await get(CM_KEY)) as CmWorld | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveCmWorld(w: CmWorld | null) {
+  if (w) await set(CM_KEY, w);
+  else await del(CM_KEY);
 }

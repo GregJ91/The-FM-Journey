@@ -429,6 +429,7 @@ export interface GameState {
   saveVersion: number;
   slot: string;
   mode: 'classic' | 'create' | 'journey';
+  era?: 'cm0102'; // built from the player's own Championship Manager 01/02 database
   manager: string;
   date: string;
   season: number; // year season started

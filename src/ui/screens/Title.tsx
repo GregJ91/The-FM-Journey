@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react';
 import { LEAGUE_DEFS } from '../../game/data/leagues';
 import { fmtDate } from '../../game/dates';
-import { createWorld } from '../../game/generate';
+import { CM_LEAGUE_NAMES, cmClubLine, createWorld } from '../../game/generate';
+import { missingFiles, parseCm0102, type CmWorld } from '../../game/cm0102/parse';
+import { unzip } from '../../game/cm0102/unzip';
 import { hashString } from '../../game/rng';
 import { startSeason } from '../../game/season';
 import type { CrestPattern, CrestShape } from '../../game/types';
-import { deleteSave, listSaves, loadGame, saveGame, setGame, type SaveMeta } from '../../store';
+import { deleteSave, listSaves, loadCmWorld, loadGame, saveCmWorld, saveGame, setGame, type SaveMeta } from '../../store';
 import { CrestSvg } from '../components/Crest';
 import { ConfirmButton } from '../components/common';
 import { BadgesSheet } from '../components/BadgesSheet';
 import { JourneySetup } from './JourneySetup';
 import { Fit } from '../components/Fit';
 
-type Step = 'menu' | 'classic' | 'create' | 'load' | 'journey';
+type Step = 'menu' | 'classic' | 'create' | 'load' | 'journey' | 'cm';
 
 /** Create a Club is switched off for now (existing create-a-club saves still load). */
 const CREATE_CLUB_ENABLED = false;
@@ -60,6 +62,11 @@ export function Title() {
               <h2>Choose a Club</h2>
               <p>Any club in England, Scotland, Spain, Italy, Germany or France.</p>
             </button>
+            <button className="mode-card cm-card" style={{ '--glow': 'rgba(52,255,106,0.22)' } as React.CSSProperties} onClick={() => setStep('cm')}>
+              <span className="chip">💾 Retro</span>
+              <h2>CM 01/02</h2>
+              <p>Your own Championship Manager 01/02 database.</p>
+            </button>
             <div className="title-small">
               {saves.length > 0 && <button className="btn" onClick={() => setStep('load')}>💾 Saves ({saves.length})</button>}
               <button className="btn" onClick={() => setBadgesOpen(true)}>🛡️ Club badges</button>
@@ -70,6 +77,7 @@ export function Title() {
       )}
       {step === 'classic' && <ClassicSetup onBack={() => setStep('menu')} />}
       {step === 'journey' && <JourneySetup onBack={() => setStep('menu')} />}
+      {step === 'cm' && <CmSetup onBack={() => setStep('menu')} />}
       {CREATE_CLUB_ENABLED && step === 'create' && <CreateSetup onBack={() => setStep('menu')} />}
       {step === 'load' && <LoadList saves={saves} onBack={() => setStep('menu')} onChange={() => listSaves().then(setSaves)} />}
     </div>
@@ -95,12 +103,15 @@ function Back({ onBack, title }: { onBack: () => void; title: string }) {
   );
 }
 
-function ClassicSetup({ onBack }: { onBack: () => void }) {
-  const [league, setLeague] = useState(LEAGUE_DEFS[0].id);
+function ClassicSetup({ onBack, cm, onReimport }: { onBack: () => void; cm?: CmWorld; onReimport?: () => void }) {
+  const defs = cm
+    ? cm.leagues.map((l) => ({ id: l.id, name: CM_LEAGUE_NAMES[l.id]?.[0] ?? l.id, clubs: l.clubs.map((i) => cmClubLine(cm.clubs[i])) }))
+    : LEAGUE_DEFS;
+  const [league, setLeague] = useState(defs[0].id);
   const [club, setClub] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
-  const def = LEAGUE_DEFS.find((l) => l.id === league)!;
+  const def = defs.find((l) => l.id === league)!;
   const clubs = def.clubs.map((line) => {
     const [n, short, c1, c2, rep, , , , pattern] = line.split('|');
     return { n, short, colors: [c1, c2] as [string, string], rep: Number(rep), pattern: (pattern || 'plain') as CrestPattern };
@@ -109,14 +120,17 @@ function ClassicSetup({ onBack }: { onBack: () => void }) {
     if (!club) return;
     setBusy(true);
     await new Promise((r) => setTimeout(r, 30));
-    await begin(createWorld({ mode: 'classic', manager: name.trim() || 'The Gaffer', clubName: club, slot: slotId() }));
+    await begin(createWorld({ mode: 'classic', manager: name.trim() || 'The Gaffer', clubName: club, slot: slotId(), cm }));
   };
   return (
     <div className="setup-page">
-      <Back onBack={onBack} title="Choose a club" />
-      <select className="input" value={league} onChange={(e) => { setLeague(e.target.value); setClub(null); }} style={{ marginBottom: 12 }}>
-        {LEAGUE_DEFS.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-      </select>
+      <Back onBack={onBack} title={cm ? `CM 01/02 · ${cm.season}/${String(cm.season + 1).slice(2)}` : 'Choose a club'} />
+      <div className="row" style={{ marginBottom: 12, gap: 8 }}>
+        <select className="input" style={{ flex: 1 }} value={league} onChange={(e) => { setLeague(e.target.value); setClub(null); }}>
+          {defs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+        </select>
+        {onReimport && <ConfirmButton className="btn sm" label="Re-import" confirmLabel="Replace database?" onConfirm={onReimport} />}
+      </div>
       <Fit className="setup-fill"><div className="list club-list">
         {clubs.map((c) => (
           <button key={c.n} className={`club-pick ${club === c.n ? 'sel' : ''}`} onClick={() => setClub(c.n)}>
@@ -196,7 +210,7 @@ function LoadList({ saves, onBack, onChange }: { saves: SaveMeta[]; onBack: () =
               <div style={{ width: 14, height: 40, borderRadius: 5, background: `linear-gradient(${s.colors[0]} 50%, ${s.colors[1]} 50%)`, flex: 'none' }} />
               <div style={{ minWidth: 0 }}>
                 <div className="bold ellipsis">{s.club}</div>
-                <div className="small muted">{s.mode === 'create' ? 'Create-a-club' : s.mode === 'journey' ? 'The Journey' : 'Classic'} · {s.manager} · {fmtDate(s.date, false)}</div>
+                <div className="small muted">{s.era === 'cm0102' ? 'CM 01/02' : s.mode === 'create' ? 'Create-a-club' : s.mode === 'journey' ? 'The Journey' : 'Classic'} · {s.manager} · {fmtDate(s.date, false)}</div>
               </div>
             </div>
             <div className="grid2" style={{ marginTop: 10 }}>
@@ -206,6 +220,57 @@ function LoadList({ saves, onBack, onChange }: { saves: SaveMeta[]; onBack: () =
           </div>
         ))}
       </div></Fit>
+    </div>
+  );
+}
+
+/** CM 01/02: import the player's own database once, then pick a club from it. */
+function CmSetup({ onBack }: { onBack: () => void }) {
+  const [world, setWorld] = useState<CmWorld | null | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  useEffect(() => { loadCmWorld().then(setWorld); }, []);
+  if (world) return <ClassicSetup cm={world} onBack={onBack} onReimport={async () => { await saveCmWorld(null); setWorld(null); }} />;
+  const onFiles = async (list: FileList | null) => {
+    if (!list?.length) return;
+    setBusy(true);
+    setErr('');
+    try {
+      const files: Record<string, Uint8Array> = {};
+      for (const f of Array.from(list)) {
+        const name = f.name.toLowerCase();
+        const buf = new Uint8Array(await f.arrayBuffer());
+        if (name.endsWith('.zip')) Object.assign(files, await unzip(buf, (n) => n.endsWith('.dat')));
+        else if (name.endsWith('.dat')) files[name] = buf;
+      }
+      const miss = missingFiles(files);
+      if (miss.length) throw new Error(`Missing ${miss.join(', ')}. Pick every file in CM's Data folder, or a zip of the folder.`);
+      await new Promise((r) => setTimeout(r, 30));
+      const w = parseCm0102(files);
+      await saveCmWorld(w);
+      setWorld(w);
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+    }
+    setBusy(false);
+  };
+  return (
+    <div className="setup-page">
+      <Back onBack={onBack} title="CM 01/02" />
+      <Fit className="setup-fill">
+        <section className="card cm-import">
+          <div className="card-h"><h3>Import your database</h3></div>
+          <p>Play with every club and player from your copy of Championship Manager 01/02: the English, Scottish, Spanish, Italian, German and French leagues, plus Europe's best clubs in the UEFA competitions.</p>
+          <p className="muted small">Pick the files in CM's <b>Data</b> folder (staff.dat, club.dat, nation.dat, the name files and the rest), or a .zip of the folder. Your database stays on this device and isn't uploaded anywhere.</p>
+          {err && <div className="banner closed">{err}</div>}
+        </section>
+      </Fit>
+      <div className="setup-cta">
+        <label className={`continue-btn ${busy ? 'disabled' : ''}`} style={{ flex: 1 }}>
+          {busy ? 'Reading your database…' : world === undefined ? 'Checking…' : '📂 Choose files'}
+          <input type="file" multiple accept=".dat,.zip" hidden disabled={busy} onChange={(e) => onFiles(e.target.files)} />
+        </label>
+      </div>
     </div>
   );
 }

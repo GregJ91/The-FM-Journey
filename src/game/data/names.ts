@@ -190,4 +190,17 @@ export const NATIONS: Record<string, string> = {
   ATG: 'Antigua and Barbuda', BER: 'Bermuda', GRN: 'Grenada', GUY: 'Guyana', IRQ: 'Iraq', MSR: 'Montserrat', SLE: 'Sierra Leone', TRI: 'Trinidad and Tobago',
   AFG: 'Afghanistan', ERI: 'Eritrea', IDN: 'Indonesia', NAM: 'Namibia', LBN: 'Lebanon', TAN: 'Tanzania', STK: 'St Kitts and Nevis', LCA: 'St Lucia', VIN: 'St Vincent', BRB: 'Barbados', DMA: 'Dominica', BAH: 'Bahamas', CAY: 'Cayman Islands', VGB: 'British Virgin Islands', MLT: 'Malta', LIE: 'Liechtenstein', SMR: 'San Marino',
   CUW: 'Curaçao', GLP: 'Guadeloupe', HON: 'Honduras', IRN: 'Iran', CRC: 'Costa Rica', PLE: 'Palestine', BLR: 'Belarus', KEN: 'Kenya', KGZ: 'Kyrgyzstan',
+  // Older and smaller nations that appear in the CM 01/02 database
+  YUG: 'Yugoslavia', ZAI: 'Zaire', CHN: 'China', IND: 'India', CUB: 'Cuba', BOL: 'Bolivia', GUA: 'Guatemala', SLV: 'El Salvador',
+  QAT: 'Qatar', SYR: 'Syria', JOR: 'Jordan', THA: 'Thailand', SIN: 'Singapore', MAS: 'Malaysia', VIE: 'Vietnam', HKG: 'Hong Kong',
+  SUD: 'Sudan', ETH: 'Ethiopia', RWA: 'Rwanda', BOT: 'Botswana', NIG: 'Niger', CGO: 'Congo', CTA: 'Central African Republic',
+  CHA: 'Chad', MTN: 'Mauritania', DOM: 'Dominican Republic', PUR: 'Puerto Rico', LBY: 'Libya', KUW: 'Kuwait', OMA: 'Oman',
+  BHR: 'Bahrain', YEM: 'Yemen', PHI: 'Philippines', PRK: 'North Korea', TJK: 'Tajikistan', TKM: 'Turkmenistan', TPE: 'Chinese Taipei',
+  FIJ: 'Fiji', NCL: 'New Caledonia', TAH: 'Tahiti', MAD: 'Madagascar', MRI: 'Mauritius', SEY: 'Seychelles', LES: 'Lesotho',
+  SWZ: 'Swaziland', SOM: 'Somalia', DJI: 'Djibouti', NIC: 'Nicaragua', BLZ: 'Belize', ANT: 'Netherlands Antilles', ARU: 'Aruba',
+  CIS: 'CIS', USR: 'Soviet Union', TCH: 'Czechoslovakia', GDR: 'East Germany', FRG: 'West Germany', BAN: 'Bangladesh', NEP: 'Nepal',
+  SRI: 'Sri Lanka', MYA: 'Myanmar', LAO: 'Laos', CAM: 'Cambodia', MGL: 'Mongolia', MAC: 'Macau', BRU: 'Brunei', PNG: 'Papua New Guinea',
+  SAM: 'Samoa', TGA: 'Tonga', SOL: 'Solomon Islands', VAN: 'Vanuatu', COK: 'Cook Islands', ASA: 'American Samoa', TLS: 'Timor',
+  STP: 'São Tomé and Príncipe', SKN: 'St Kitts and Nevis', ISV: 'US Virgin Islands', TCA: 'Turks and Caicos',
+  AIA: 'Anguilla', BHU: 'Bhutan', MDV: 'Maldives', BAS: 'Basque Country',
 };
