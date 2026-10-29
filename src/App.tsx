@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { setGame, useGame, useVersion } from './store';
 import { UIProvider, useUI } from './ui/context';
 import { applyTheme, clubTheme } from './ui/theme';
-import { ContinueBar, Header, TabBar } from './ui/components/Layout';
+import { ContinueBar, Header, TabBar, Ticker } from './ui/components/Layout';
 import { Home } from './ui/screens/Home';
 import { Squad } from './ui/screens/Squad';
 import { Youth } from './ui/screens/Youth';
@@ -63,6 +63,7 @@ function Game() {
       <Header />
       <main className="content">{screen}</main>
       <ContinueBar />
+      <Ticker />
       <TabBar />
       <PlayerModal />
       {ui.matchOpen && <MatchScreen />}

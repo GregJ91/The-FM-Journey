@@ -45,6 +45,13 @@ function inkOn(c: string) {
   return vsInk >= vsWhite ? INK : WHITE;
 }
 
+/** Darken c towards black until white text on it reads (luminance <= maxL). */
+function darkTo(c: string, maxL: number) {
+  let out = c;
+  for (let t = 0.1; luminance(out) > maxL && t <= 1; t += 0.1) out = mix(c, INK, t);
+  return out;
+}
+
 export interface Theme {
   [cssVar: string]: string;
 }
@@ -72,10 +79,13 @@ export function clubTheme(colors: [string, string]): Theme {
     '--team-2': other,
     '--accent': accent,
     '--accent-ink': inkOn(accent),
+    // Championship Manager-style title bars: a gradient in the club's colour, dark enough for white text
+    '--cm-1': darkTo(team, 0.045),
+    '--cm-2': darkTo(team, 0.16),
   };
 }
 
-const KEYS = ['--team', '--team-ink', '--team-2', '--accent', '--accent-ink'];
+const KEYS = ['--team', '--team-ink', '--team-2', '--accent', '--accent-ink', '--cm-1', '--cm-2'];
 
 export function applyTheme(t: Theme | null) {
   const root = document.documentElement.style;

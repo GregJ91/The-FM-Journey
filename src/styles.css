@@ -1,4 +1,9 @@
 @import '@fontsource-variable/inter';
+@import '@fontsource/pt-sans/400.css';
+@import '@fontsource/pt-sans/700.css';
+@import '@fontsource/vt323/400.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/600.css';
 
 /* Modern dark, mobile-first. The game lives in a phone-width column; on wider
    screens that column is centred. Club colours arrive at runtime as
@@ -1201,3 +1206,140 @@ table.t.fm .ovr { height: 20px; }
   .js-field { grid-template-columns: 1fr; gap: 4px; }
 }
 .journey-setup > .continue-btn { flex: 0 0 auto; }
+
+/* =====================================================================
+   "Night shift" skin: dark slate tiles (FM-style) wearing Championship
+   Manager 01/02 chrome: navy title bars, bevelled buttons, striped tables
+   with a yellow highlight row, typewriter commentary, a teletext ticker.
+   ===================================================================== */
+:root {
+  --bg: #0f141c;
+  --surface: #18202c;
+  --surface-2: #1e2836;
+  --surface-3: #2b3747;
+  --line: #2a3546;
+  --line-2: #364357;
+  --text: #dbe3ee;
+  --muted: #8b9ab0;
+  --faint: #66768c;
+  --radius: 0px;
+  --radius-sm: 0px;
+  --cm-1: #0a246a;
+  --cm-2: #3a6ea5;
+  --bev-hi: #44536a;
+  --bev-lo: #070a0f;
+  --hl: #ffe866;
+  --hl-bg: #3b3a14;
+  --led: #ffe866;
+  --tele: #34ff6a;
+  --mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --pixel: 'VT323', 'Courier New', monospace;
+  --display: 'PT Sans', Tahoma, Verdana, system-ui, sans-serif;
+  --body: 'PT Sans', Tahoma, Verdana, system-ui, sans-serif;
+}
+body { font-family: var(--body); background: #0a0d12; }
+h1, h2, h3, h4 { font-family: var(--display); letter-spacing: 0; font-weight: 700; }
+.phone { background: var(--bg); }
+
+/* Title bar */
+.header { background: linear-gradient(90deg, var(--cm-1), var(--cm-2)); color: #fff; border-bottom: 3px solid var(--team-2); padding-top: calc(8px + var(--safe-t)); padding-bottom: 7px; }
+.header .club b { font-size: 16px; letter-spacing: 0; }
+.header .club span { color: rgba(255, 255, 255, 0.78); }
+.icon-btn { width: 34px; height: 34px; border-radius: 0; background: var(--surface-3); color: #fff; border: 2px solid; border-color: var(--bev-hi) var(--bev-lo) var(--bev-lo) var(--bev-hi); }
+.icon-btn.on { background: var(--cm-1); color: #fff; border-color: var(--bev-lo) var(--cm-2) var(--cm-2) var(--bev-lo); }
+.icon-btn .dot { border-radius: 0; border-color: var(--cm-1); }
+
+/* Bevelled buttons */
+.btn, .seg button, .tab, .chip.btnlike {
+  border-radius: 0; border: 2px solid; border-color: var(--bev-hi) var(--bev-lo) var(--bev-lo) var(--bev-hi);
+  background: var(--surface-3); color: #fff; box-shadow: none; font-family: var(--body); font-weight: 700;
+}
+.btn:active:not(:disabled), .seg button:active, .tab:active { border-color: var(--bev-lo) var(--bev-hi) var(--bev-hi) var(--bev-lo); }
+.btn.primary { background: var(--cm-1); color: #fff; border-color: var(--cm-2) #000 #000 var(--cm-2); }
+.btn.coral, .btn.danger { background: #7a1c1c; color: #fff; border-color: #b04040 #2a0505 #2a0505 #b04040; }
+.btn.sm { border-radius: 0; }
+.btn:disabled { opacity: 0.5; }
+.seg { border-radius: 0; background: var(--bg); padding: 2px; gap: 2px; border: 1px solid var(--line); }
+.seg button.on { background: var(--cm-1); color: #fff; border-color: var(--bev-lo) var(--cm-2) var(--cm-2) var(--bev-lo); }
+.tabs { gap: 3px; border-bottom: none; }
+.tab { padding: 5px 10px; color: var(--text); }
+.tab.active { background: var(--cm-1); color: #fff; border-color: var(--bev-lo) var(--cm-2) var(--cm-2) var(--bev-lo); }
+.input, select.input { border-radius: 0; background: var(--bg); color: var(--text); border: 2px solid; border-color: var(--bev-lo) var(--bev-hi) var(--bev-hi) var(--bev-lo); font-family: var(--body); }
+.chip { border-radius: 0; background: var(--surface-2); border: 1px solid var(--line-2); }
+
+/* Continue */
+.continue-bar { background: var(--bg); border-top: 1px solid var(--line); padding-top: 7px; padding-bottom: 6px; }
+.continue-btn {
+  border-radius: 0; background: var(--cm-1); color: #fff; font-family: var(--body); font-weight: 700; text-transform: none; letter-spacing: 0.02em; font-size: 15px;
+  border: 2px solid; border-color: var(--cm-2) #000 #000 var(--cm-2); box-shadow: none; min-height: 42px;
+}
+.continue-btn:active:not(:disabled) { border-color: #000 var(--cm-2) var(--cm-2) #000; }
+.continue-btn.match { background: #8b1a1a; border-color: #c44a4a #1a0000 #1a0000 #c44a4a; border-radius: 0; }
+.continue-btn.respond { background: #7a5a00; border-color: #c9a227 #1d1500 #1d1500 #c9a227; color: #fff; }
+.continue-bar .when b { font-family: var(--pixel); font-size: 21px; font-weight: 400; color: var(--led); letter-spacing: 0.02em; }
+
+/* Teletext ticker */
+.ticker { flex: none; display: flex; gap: 8px; align-items: center; height: 22px; padding: 0 10px; background: #000; color: var(--tele); font: 16px/1 var(--pixel); white-space: nowrap; overflow: hidden; border-top: 1px solid var(--line); }
+.ticker b { color: var(--hl); font-weight: 400; flex: none; }
+.ticker .marq { flex: 1; min-width: 0; overflow: hidden; }
+.ticker .marq span { display: inline-block; padding-left: 4px; animation: ticker 40s linear infinite; }
+@keyframes ticker { 0%, 8% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+@media (prefers-reduced-motion: reduce) { .ticker .marq span { animation: none; } }
+
+/* Navigation: a row of bevelled buttons */
+.tabbar { background: var(--surface); border-top: 1px solid var(--line); padding: 4px 4px calc(4px + var(--safe-b)); gap: 3px; }
+.tabbar button { border-radius: 0; color: var(--text); background: var(--surface-3); border: 2px solid; border-color: var(--bev-hi) var(--bev-lo) var(--bev-lo) var(--bev-hi); padding: 5px 0 4px; font-family: var(--body); font-weight: 700; }
+.tabbar button svg { width: 18px; height: 18px; }
+.tabbar button.on { color: #fff; background: var(--cm-1); box-shadow: none; border-color: var(--bev-lo) var(--cm-2) var(--cm-2) var(--bev-lo); }
+
+/* Panels are windows: navy title bar on top */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 0; padding: 0 8px 8px; }
+.card:not(:has(> .card-h)) { padding-top: 8px; }
+.card-h { margin: 0 -8px 6px; padding: 3px 8px; min-height: 26px; background: linear-gradient(90deg, var(--cm-1), var(--cm-2)); border-bottom: none; border-radius: 0; color: #fff; }
+.card-h h3 { font-size: 12px; text-transform: none; letter-spacing: 0.01em; color: #fff; font-weight: 700; }
+.card-h .tag { border-radius: 0; background: rgba(0, 0, 0, 0.3) !important; color: #fff !important; font-weight: 700; }
+.card-h .muted, .card-h .small { color: rgba(255, 255, 255, 0.8); }
+.card.flat { background: var(--surface-2); }
+.hero { border-radius: 0 !important; }
+.sheet { border-radius: 0; border-top: 3px solid var(--cm-2); }
+.panel, .pane, .comm-main, .comm-side, .comm-top { border-radius: 0; }
+
+/* Tables and lists: striped, your club in yellow */
+table.t th { background: var(--surface-2); color: var(--muted); font-weight: 700; border-bottom: 1px solid var(--line-2); }
+table.t tbody tr:nth-child(even) td, .list > .li:nth-child(even) { background: rgba(255, 255, 255, 0.035); }
+table.t tr.me td, table.t tbody tr.me:nth-child(even) td { background: var(--hl-bg) !important; color: var(--hl); font-weight: 700; }
+.li.me { background: var(--hl-bg) !important; color: var(--hl); border-radius: 0; }
+.li.me .t, .li.me .s { color: var(--hl); }
+.ovr, .ovr.lg, .pos, .attr { border-radius: 0; }
+
+/* Match: score on an LED board, commentary on a typewriter */
+.comm-top { background: linear-gradient(90deg, var(--cm-1), var(--cm-2)); border: none; color: #fff; }
+.ct-score { font-family: var(--pixel); font-weight: 400; font-size: 40px; color: var(--led); background: #000; padding: 0 12px; border: 2px solid; border-color: var(--bev-lo) var(--bev-hi) var(--bev-hi) var(--bev-lo); }
+.ct-clock { color: rgba(255, 255, 255, 0.85); }
+.ct-progress { background: rgba(0, 0, 0, 0.35); border-radius: 0; }
+.comm-big { font-family: var(--mono); font-weight: 600; font-size: 17px; }
+.comm-big.goal { background: var(--hl-bg); color: var(--hl); font-size: 19px; }
+.comm-big .m { font-family: var(--mono); }
+.feed .ev { font-family: var(--mono); font-size: 12.5px; border-radius: 0; background: transparent; border: none; border-bottom: 1px dashed var(--line); padding: 5px 4px; color: var(--text); animation: none; }
+.feed .ev .m { color: var(--muted); }
+.feed .ev.goal { background: transparent; color: var(--hl); font-weight: 600; }
+.feed .ev.yellow { box-shadow: none; color: #f5c451; }
+.feed .ev.red { background: transparent; color: #ff6b62; }
+.feed .ev.ft, .feed .ev.ht, .feed .ev.pens { background: rgba(255, 255, 255, 0.06); color: #fff; }
+@media (max-height: 420px) { .ct-score { font-size: 32px; } }
+
+@media (orientation: landscape) and (min-width: 640px) {
+  .phone { grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "rail header continue" "rail content content" "rail ticker ticker"; background: var(--bg); }
+  .ticker { grid-area: ticker; }
+  .header { border-bottom-width: 3px; }
+  .continue-bar { background: linear-gradient(90deg, var(--cm-2), var(--cm-1)); border-top: none; border-bottom: 3px solid var(--team-2); color: #fff; }
+  .continue-bar .when span { color: rgba(255, 255, 255, 0.78); }
+  .tabbar { margin: 0; border-top: none; border-right: 1px solid var(--line); padding: calc(5px + var(--safe-t)) 5px calc(5px + var(--safe-b)) max(5px, env(safe-area-inset-left, 0px)); gap: 3px; justify-content: flex-start; }
+  .tabbar button { padding: 7px 2px 5px; }
+  .tabbar button.on { box-shadow: none; }
+}
+.pane-h { background: linear-gradient(90deg, var(--cm-1), var(--cm-2)); padding: 4px 8px; color: #fff; }
+.pane-h h3 { font-size: 12.5px; color: #fff; }
+.pane-h .chip { background: rgba(0, 0, 0, 0.3); border-color: transparent; color: #fff; }
+.toast { border-radius: 0; background: #000; border: 2px solid var(--cm-2); border-left-width: 2px; font-family: var(--mono); font-weight: 600; font-size: 13px; color: var(--hl); backdrop-filter: none; }
+.toast.err, .toast.bad { color: #ff6b62; border-color: #b04040; }

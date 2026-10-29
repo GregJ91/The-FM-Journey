@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from 'react';
+import { useMemo, useState, type ComponentType } from 'react';
 import { ArrowLeftRight, Briefcase, Dumbbell, House, LoaderCircle, LogOut, Mail, Menu, Play, Save, Shield, Shirt, Sprout, Trophy } from 'lucide-react';
 import { leaguePosition } from '../../game/competitions';
 import { fmtShort } from '../../game/dates';
@@ -106,5 +106,22 @@ export function TabBar() {
         </button>
       ))}
     </nav>
+  );
+}
+
+/** Teletext-style strip with the latest results from the user's league. */
+export function Ticker() {
+  const g = useGame();
+  const league = leagueOf(g, g.userClubId);
+  const items = useMemo(() => {
+    const played = g.fixtures.filter((f) => f.comp === league.id && f.result && f.date <= g.date);
+    const last = played.reduce((d, f) => (f.date > d ? f.date : d), '');
+    return played.filter((f) => f.date === last).map((f) => `${g.clubs[f.home].name} ${f.result!.hg}-${f.result!.ag} ${g.clubs[f.away].name}`);
+  }, [g.date, g.fixtures.length, league.id]);
+  return (
+    <div className="ticker" aria-label="Latest results">
+      <b>{items.length ? 'LATEST' : league.short}</b>
+      <div className="marq"><span>{items.length ? items.join(' · ') : `${league.name}: no results yet this season`}</span></div>
+    </div>
   );
 }
