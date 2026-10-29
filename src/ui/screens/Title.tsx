@@ -10,6 +10,7 @@ import { CrestSvg } from '../components/Crest';
 import { ConfirmButton } from '../components/common';
 import { BadgesSheet } from '../components/BadgesSheet';
 import { JourneySetup } from './JourneySetup';
+import { Fit } from '../components/Fit';
 
 type Step = 'menu' | 'classic' | 'create' | 'load' | 'journey';
 
@@ -29,39 +30,41 @@ export function Title() {
   return (
     <div className="title-screen">
       {step === 'menu' && (
-        <div className="title-menu" style={{ paddingBottom: 28 }}>
+        <div className="title-menu">
           <div className="title-intro">
-          <div className="title-logo" style={{ margin: '10px 0 16px' }}>The <span>FM</span><br />Journey<em>.</em></div>
-          <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 22 }}>Football management, fast. Real leagues, real players, one-minute matches.</p>
+            <div className="title-logo">The <span>FM</span><br />Journey<em>.</em></div>
+            <p>Football management, fast. Real leagues, real players, one-minute matches.</p>
           </div>
           <div className="title-actions">
-          {saves.length > 0 && (
-            <button className="mode-card" style={{ '--glow': 'rgba(251,191,36,0.3)' } as React.CSSProperties} onClick={() => loadGame(saves[0].slot)}>
-              <span className="chip">▶ Continue</span>
-              <h2>{saves[0].club}</h2>
-              <p>{saves[0].manager} · {fmtDate(saves[0].date)}</p>
+            {saves.length > 0 && (
+              <button className="mode-card" style={{ '--glow': 'rgba(251,191,36,0.3)' } as React.CSSProperties} onClick={() => loadGame(saves[0].slot)}>
+                <span className="chip">▶ Continue</span>
+                <h2>{saves[0].club}</h2>
+                <p>{saves[0].manager} · {fmtDate(saves[0].date)}</p>
+              </button>
+            )}
+            {CREATE_CLUB_ENABLED && (
+              <button className="mode-card" style={{ '--glow': 'rgba(198,244,50,0.3)' } as React.CSSProperties} onClick={() => setStep('create')}>
+                <span className="chip">🌱 Start from the bottom</span>
+                <h2>Create a Club</h2>
+                <p>Design your own club and climb five divisions.</p>
+              </button>
+            )}
+            <button className="mode-card journey-card" style={{ '--glow': 'rgba(250,204,21,0.32)' } as React.CSSProperties} onClick={() => setStep('journey')}>
+              <span className="chip">🧭 Career</span>
+              <h2>The Journey</h2>
+              <p>Random bottom-league club. Your DoF finds the players.</p>
             </button>
-          )}
-          {CREATE_CLUB_ENABLED && (
-            <button className="mode-card" style={{ '--glow': 'rgba(198,244,50,0.3)' } as React.CSSProperties} onClick={() => setStep('create')}>
-              <span className="chip">🌱 Start from the bottom</span>
-              <h2>Create a Club</h2>
-              <p>Design your own club and start in the National League. Climb five divisions to the top.</p>
+            <button className="mode-card" style={{ '--glow': 'rgba(56,189,248,0.32)' } as React.CSSProperties} onClick={() => setStep('classic')}>
+              <span className="chip">⚽ Classic</span>
+              <h2>Choose a Club</h2>
+              <p>Any club in England, Scotland, Spain, Italy, Germany or France.</p>
             </button>
-          )}
-          <button className="mode-card journey-card" style={{ '--glow': 'rgba(250,204,21,0.32)' } as React.CSSProperties} onClick={() => setStep('journey')}>
-            <span className="chip">🧭 Career mode</span>
-            <h2>The Journey</h2>
-            <p>Create your manager and get drawn a random bottom-league club in England or Scotland. Your director of football finds the players. Climb as far as your reputation takes you.</p>
-          </button>
-          <button className="mode-card" style={{ '--glow': 'rgba(56,189,248,0.32)' } as React.CSSProperties} onClick={() => setStep('classic')}>
-            <span className="chip">⚽ Classic</span>
-            <h2>Choose a Club</h2>
-            <p>Manage any club in England, Spain, Italy, Germany or France.</p>
-          </button>
-          {saves.length > 0 && <button className="btn block" onClick={() => setStep('load')}>💾 All saves ({saves.length})</button>}
-          <button className="btn block" style={{ marginTop: 10 }} onClick={() => setBadgesOpen(true)}>🛡️ Club badges</button>
-          {badgesOpen && <BadgesSheet onClose={() => setBadgesOpen(false)} />}
+            <div className="title-small">
+              {saves.length > 0 && <button className="btn" onClick={() => setStep('load')}>💾 Saves ({saves.length})</button>}
+              <button className="btn" onClick={() => setBadgesOpen(true)}>🛡️ Club badges</button>
+            </div>
+            {badgesOpen && <BadgesSheet onClose={() => setBadgesOpen(false)} />}
           </div>
         </div>
       )}
@@ -109,12 +112,12 @@ function ClassicSetup({ onBack }: { onBack: () => void }) {
     await begin(createWorld({ mode: 'classic', manager: name.trim() || 'The Gaffer', clubName: club, slot: slotId() }));
   };
   return (
-    <div>
+    <div className="setup-page">
       <Back onBack={onBack} title="Choose a club" />
       <select className="input" value={league} onChange={(e) => { setLeague(e.target.value); setClub(null); }} style={{ marginBottom: 12 }}>
         {LEAGUE_DEFS.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
       </select>
-      <div className="col" style={{ gap: 8 }}>
+      <Fit className="setup-fill"><div className="list club-list">
         {clubs.map((c) => (
           <button key={c.n} className={`club-pick ${club === c.n ? 'sel' : ''}`} onClick={() => setClub(c.n)}>
             <CrestSvg name={c.n} short={c.short} colors={c.colors} crest={{ shape: SHAPES[hashString(c.n) % 4], pattern: c.pattern }} size={36} />
@@ -125,8 +128,8 @@ function ClassicSetup({ onBack }: { onBack: () => void }) {
             {club === c.n && <span>✓</span>}
           </button>
         ))}
-      </div>
-      <div className="sticky-cta col" style={{ gap: 8 }}>
+      </div></Fit>
+      <div className="setup-cta">
         <input className="input" value={name} placeholder="Manager name (optional)" onChange={(e) => setName(e.target.value)} />
         <button className="continue-btn" disabled={!club || busy} onClick={start}>{busy ? 'Building the world…' : club ? `Manage ${club} ▶` : 'Pick a club'}</button>
       </div>
@@ -183,17 +186,17 @@ function CreateSetup({ onBack }: { onBack: () => void }) {
 function LoadList({ saves, onBack, onChange }: { saves: SaveMeta[]; onBack: () => void; onChange: () => void }) {
   const [err, setErr] = useState('');
   return (
-    <div style={{ paddingBottom: 28 }}>
+    <div className="setup-page">
       <Back onBack={onBack} title="Saved games" />
       {err && <div className="banner closed">{err}</div>}
-      <div className="col">
+      <Fit className="setup-fill"><div className="list save-list">
         {saves.map((s) => (
           <div key={s.slot} className="card" style={{ marginBottom: 0 }}>
             <div className="row">
               <div style={{ width: 14, height: 40, borderRadius: 5, background: `linear-gradient(${s.colors[0]} 50%, ${s.colors[1]} 50%)`, flex: 'none' }} />
               <div style={{ minWidth: 0 }}>
                 <div className="bold ellipsis">{s.club}</div>
-                <div className="small muted">{s.mode === 'create' ? 'Create-a-club' : 'Classic'} · {s.manager} · {fmtDate(s.date, false)}</div>
+                <div className="small muted">{s.mode === 'create' ? 'Create-a-club' : s.mode === 'journey' ? 'The Journey' : 'Classic'} · {s.manager} · {fmtDate(s.date, false)}</div>
               </div>
             </div>
             <div className="grid2" style={{ marginTop: 10 }}>
@@ -202,7 +205,7 @@ function LoadList({ saves, onBack, onChange }: { saves: SaveMeta[]; onBack: () =
             </div>
           </div>
         ))}
-      </div>
+      </div></Fit>
     </div>
   );
 }

@@ -24,9 +24,19 @@ function Crest({ c, size }: { c: ClubCard; size: number }) {
   return <CrestSvg name={c.n} short={c.short} colors={c.colors} crest={{ shape: SHAPES[hashString(c.n) % 4], pattern: c.pattern }} size={size} />;
 }
 
-/** The Journey: create your manager, then the randomiser draws your first club. */
+const STEPS = ['Manager', 'Background', 'Coaching style', 'Your club'];
+
+function Steps({ at }: { at: number }) {
+  return (
+    <div className="js-steps">
+      {STEPS.map((s, i) => <span key={s} className={i === at ? 'on' : i < at ? 'done' : ''}><b>{i + 1}</b>{s}</span>)}
+    </div>
+  );
+}
+
+/** The Journey: four pages, no scrolling: manager, background, coaching style, then the club draw. */
 export function JourneySetup({ onBack }: { onBack: () => void }) {
-  const [step, setStep] = useState<'manager' | 'draw'>('manager');
+  const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [nat, setNat] = useState('ENG');
   const [mgrAge, setAge] = useState(36);
@@ -40,29 +50,39 @@ export function JourneySetup({ onBack }: { onBack: () => void }) {
     return { ...b, [k]: v };
   });
 
-  if (step === 'draw') return <Draw manager={name.trim() || 'The Gaffer'} bg={bg} bonus={bonus} nat={nat} mgrAge={mgrAge} onBack={() => setStep('manager')} />;
+  if (step === 3) return <Draw manager={name.trim() || 'The Gaffer'} bg={bg} bonus={bonus} nat={nat} mgrAge={mgrAge} onBack={() => setStep(2)} />;
 
   return (
     <div className="journey-setup">
-      <div className="row" style={{ marginBottom: 12 }}>
-        <button className="btn sm" onClick={onBack}>←</button>
-        <h1 style={{ fontSize: 26 }}>The Journey</h1>
-        <span className="chip right">Step 1 of 2 · Your manager</span>
+      <div className="js-top">
+        <button className="btn sm" onClick={() => (step === 0 ? onBack() : setStep(step - 1))}>←</button>
+        <h1>The Journey</h1>
+        <Steps at={step} />
       </div>
-      <div className="js-grid">
-        <section className="card">
-          <div className="card-h"><h3>Manager</h3></div>
-          <div className="col" style={{ gap: 8 }}>
-            <input className="input" value={name} placeholder="Your name" onChange={(e) => setName(e.target.value)} />
-            <div className="row" style={{ gap: 8 }}>
-              <select className="input" value={nat} onChange={(e) => setNat(e.target.value)}>
-                {[...HOME_NATIONS, ...Object.keys(NATIONS).filter((c) => !HOME_NATIONS.includes(c)).sort((a, b) => NATIONS[a].localeCompare(NATIONS[b]))].map((c) => <option key={c} value={c}>{NATIONS[c]}</option>)}
-              </select>
-              <select className="input" value={mgrAge} onChange={(e) => setAge(Number(e.target.value))} style={{ maxWidth: 110 }}>
-                {Array.from({ length: 36 }, (_, i) => 28 + i).map((a) => <option key={a} value={a}>{a} years</option>)}
-              </select>
+
+      <div className="js-page">
+        {step === 0 && (
+          <section className="card js-panel">
+            <div className="card-h"><h3>Who are you?</h3></div>
+            <div className="col" style={{ gap: 10 }}>
+              <label className="js-field"><span>Name</span><input className="input" value={name} placeholder="Your name" onChange={(e) => setName(e.target.value)} /></label>
+              <label className="js-field"><span>Nationality</span>
+                <select className="input" value={nat} onChange={(e) => setNat(e.target.value)}>
+                  {[...HOME_NATIONS, ...Object.keys(NATIONS).filter((c) => !HOME_NATIONS.includes(c)).sort((a, b) => NATIONS[a].localeCompare(NATIONS[b]))].map((c) => <option key={c} value={c}>{NATIONS[c]}</option>)}
+                </select>
+              </label>
+              <label className="js-field"><span>Age</span>
+                <select className="input" value={mgrAge} onChange={(e) => setAge(Number(e.target.value))}>
+                  {Array.from({ length: 36 }, (_, i) => 28 + i).map((a) => <option key={a} value={a}>{a} years old</option>)}
+                </select>
+              </label>
             </div>
-            <div className="section-label" style={{ margin: '6px 0 0' }}>Playing background</div>
+          </section>
+        )}
+
+        {step === 1 && (
+          <section className="card js-panel wide">
+            <div className="card-h"><h3>Playing background</h3></div>
             <div className="js-bgs">
               {BACKGROUNDS.map((b) => (
                 <button key={b.id} className={`js-bg ${bg === b.id ? 'on' : ''}`} onClick={() => setBg(b.id)}>
@@ -70,27 +90,30 @@ export function JourneySetup({ onBack }: { onBack: () => void }) {
                 </button>
               ))}
             </div>
-          </div>
-        </section>
-        <section className="card">
-          <div className="card-h"><h3>Coaching style</h3><span className="chip right" style={{ marginLeft: 'auto' }}>{left} points left</span></div>
-          <div className="js-attrs">
-            {MANAGER_ATTRS.map((a) => {
-              const v = base + (bonus[a.key] ?? 0);
-              return (
-                <div key={a.key} className="js-attr">
-                  <span>{a.label}</span>
-                  <button className="btn sm" onClick={() => bump(a.key, -1)} disabled={!bonus[a.key]}>−</button>
-                  <b className={(bonus[a.key] ?? 0) > 0 ? 'up' : ''}>{v}</b>
-                  <button className="btn sm" onClick={() => bump(a.key, 1)} disabled={left <= 0 || (bonus[a.key] ?? 0) >= 3}>+</button>
-                </div>
-              );
-            })}
-          </div>
-          <div className="small muted" style={{ marginTop: 8 }}>Spend {BONUS_POINTS} points (up to 3 per attribute). They grow with how you manage, as in every mode.</div>
-        </section>
+          </section>
+        )}
+
+        {step === 2 && (
+          <section className="card js-panel wide">
+            <div className="card-h"><h3>Coaching style</h3><span className="chip right" style={{ marginLeft: 'auto' }}>{left} of {BONUS_POINTS} points left</span></div>
+            <div className="js-attrs">
+              {MANAGER_ATTRS.map((a) => {
+                const v = base + (bonus[a.key] ?? 0);
+                return (
+                  <div key={a.key} className="js-attr">
+                    <span>{a.label}</span>
+                    <button className="btn sm" onClick={() => bump(a.key, -1)} disabled={!bonus[a.key]}>−</button>
+                    <b className={(bonus[a.key] ?? 0) > 0 ? 'up' : ''}>{v}</b>
+                    <button className="btn sm" onClick={() => bump(a.key, 1)} disabled={left <= 0 || (bonus[a.key] ?? 0) >= 3}>+</button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
-      <button className="continue-btn" style={{ marginTop: 12, width: '100%' }} onClick={() => setStep('draw')}>Next: draw your club 🎲</button>
+
+      <button className="continue-btn js-next" onClick={() => setStep(step + 1)}>{step === 2 ? 'Next: draw your club 🎲' : 'Next ▶'}</button>
     </div>
   );
 }
@@ -131,10 +154,10 @@ function Draw({ manager, bg, bonus, nat, mgrAge, onBack }: { manager: string; bg
   const c = POOL[shown] ?? POOL[0];
   return (
     <div className="journey-setup">
-      <div className="row" style={{ marginBottom: 12 }}>
+      <div className="js-top">
         <button className="btn sm" onClick={onBack} disabled={phase === 'spinning' || busy}>←</button>
-        <h1 style={{ fontSize: 26 }}>The Journey</h1>
-        <span className="chip right">Step 2 of 2 · Your first club</span>
+        <h1>The Journey</h1>
+        <Steps at={3} />
       </div>
       <div className={`js-slot ${phase}`} style={{ '--c1': c.colors[0], '--c2': c.colors[1] } as React.CSSProperties}>
         {phase === 'ready' ? (
