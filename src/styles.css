@@ -1348,7 +1348,7 @@ table.t tr.me td, table.t tbody tr.me:nth-child(even) td { background: var(--hl-
 .pane-h { background: linear-gradient(90deg, var(--cm-1), var(--cm-2)); padding: 4px 8px; color: #fff; }
 .pane-h h3 { font-size: 12.5px; color: #fff; }
 .pane-h .chip { background: rgba(0, 0, 0, 0.3); border-color: transparent; color: #fff; }
-.toast { border-radius: 0; background: #000; border: 2px solid var(--cm-2); border-left-width: 2px; font-family: var(--mono); font-weight: 600; font-size: 13px; color: var(--hl); backdrop-filter: none; }
+.toast { border-radius: 0; background: #000; border: 2px solid var(--cm-2); border-left-width: 2px; font-family: var(--mono); font-weight: 600; font-size: 13px; color: #ffe866; backdrop-filter: none; }
 .toast.err, .toast.bad { color: #ff6b62; border-color: #b04040; }
 
 /* =====================================================================

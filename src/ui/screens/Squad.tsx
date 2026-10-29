@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FORMATIONS } from '../../game/formations';
 import { normaliseTactics } from '../../game/tactics';
 import { TacticsEditor } from '../components/TacticsEditor';
+import { activateCheat } from '../../game/cheats';
 import { squadOf } from '../../game/generate';
 import { POS_GROUP, age, avgRating, familiarity, fmtMoney, marketValue, overall, ratingAt, scoutedPotential, shortName } from '../../game/ratings';
 import { pickLineup, validateLineup } from '../../game/selection';
@@ -157,6 +158,7 @@ export function Squad() {
 }
 
 function Tactics({ g, club, squad }: { g: GameState; club: Club; squad: Player[] }) {
+  const ui = useUI();
   const [sel, setSel] = useState<number | null>(null);
   const [benchPick, setBenchPick] = useState(false);
   const slots = FORMATIONS[club.tactics.formation];
@@ -178,12 +180,16 @@ function Tactics({ g, club, squad }: { g: GameState; club: Club; squad: Player[]
     setSel(null);
   };
   const autoPick = () => mutate(() => { const r = pickLineup(club, squad); club.lineup = r.lineup; club.subs = r.subs; });
-  const updateTactics = (t: Partial<TacticsT>) => mutate(() => {
-    const formationChanged = !!t.formation && t.formation !== club.tactics.formation;
-    // a new formation brings default roles unless the change supplied its own (presets)
-    club.tactics = normaliseTactics({ ...club.tactics, ...t, roles: t.roles ?? (formationChanged ? [] : club.tactics.roles) });
-    if (formationChanged) { const r = pickLineup(club, squad); club.lineup = r.lineup; club.subs = r.subs; }
-  });
+  const updateTactics = (t: Partial<TacticsT>) => {
+    const msg = mutate((gg) => {
+      const formationChanged = !!t.formation && t.formation !== club.tactics.formation;
+      // a new formation brings default roles unless the change supplied its own (presets)
+      club.tactics = normaliseTactics({ ...club.tactics, ...t, roles: t.roles ?? (formationChanged ? [] : club.tactics.roles) });
+      if (formationChanged) { const r = pickLineup(club, squad); club.lineup = r.lineup; club.subs = r.subs; }
+      return t.name !== undefined ? activateCheat(gg) : null;
+    });
+    if (msg) ui.toast(msg);
+  };
 
   return (
     <div>

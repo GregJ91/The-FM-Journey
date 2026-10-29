@@ -2,6 +2,7 @@
 // National teams are picked from the real and generated players in the world. Matches are simulated
 // from team strength (not with the full match engine): players win caps, score goals, can get injured,
 // and are away from their club while their country is still in the tournament.
+import { cheatOn } from './cheats';
 import { INTL_COMPS, NATION_DEFS, type IntlCompDef } from './data/world';
 import { addDays, diffDays } from './dates';
 import { sendMessage } from './inbox';
@@ -231,7 +232,7 @@ function playMatch(g: GameState, t: IntlTournament, m: IntlMatch, knockout: bool
       p.caps = (p.caps ?? 0) + 1;
       p.monthMins += xi.has(p.id) ? 90 : 25;
       p.condition = Math.min(p.condition, 78);
-      if (xi.has(p.id) && chance(0.012)) {
+      if (xi.has(p.id) && !(p.clubId === g.userClubId && cheatOn(g, 'ironmen')) && chance(0.012)) {
         p.injury = randomInjury();
         p.away = undefined;
         t.xi[code] = (t.xi[code] ?? []).filter((id) => id !== p.id);

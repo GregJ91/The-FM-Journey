@@ -129,6 +129,7 @@ export interface YouthComp {
 }
 
 export interface Tactics {
+  name?: string; // the manager's name for the tactic
   formation: string;
   mentality: number; // -2..2 (very defensive .. very attacking)
   pressing: number; // 0 low block, 1 mid, 2 high press

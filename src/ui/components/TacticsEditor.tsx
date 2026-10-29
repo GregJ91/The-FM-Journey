@@ -51,6 +51,12 @@ export function TacticsEditor({ g, tactics, lineup, onChange, live }: { g: GameS
   const set = (t: Partial<Tactics>) => onChange(t);
   return (
     <div>
+      {!live && (
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label htmlFor="tactic-name">Tactic name</label>
+          <input id="tactic-name" className="input" maxLength={24} placeholder="Name your tactic" value={tactics.name ?? ''} onChange={(e) => set({ name: e.target.value })} />
+        </div>
+      )}
       <div className="section-label" style={{ marginTop: 0 }}>Quick presets</div>
       <div className="tabs" style={{ marginBottom: 12 }}>
         {PRESETS.map((p) => (

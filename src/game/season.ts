@@ -10,6 +10,7 @@ import { leagueRoundup, matchPreview, matchReport, monthlyAwards, scriptedEvents
 import { CWC_ID, progressClubWorldCup, setupClubWorldCup } from './world';
 import { addDays, dayOfMonth, diffDays, month, weekday } from './dates';
 import { LEAGUE_DEFS } from './data/leagues';
+import { cheatOn } from './cheats';
 import { START_SEASON, emptyStats, fillSquad, generatePlayer, generateYouth, leagueOf, squadOf } from './generate';
 import { sendMessage, unreadImportant } from './inbox';
 import { applyResult, createMatch, randomInjury, simulateFixture, simulateToEnd } from './match';
@@ -159,6 +160,7 @@ function daily(g: GameState) {
   journeyDaily(g);
   const intensity = g.training.intensity;
   const userTrainMult = intensity === 'low' ? 0.6 : intensity === 'high' ? 1.8 : 1;
+  const ironMen = cheatOn(g, 'ironmen');
   const userRecovery = intensity === 'low' ? 2 : intensity === 'high' ? -2 : 0;
   for (const p of Object.values(g.players)) {
     const isUser = p.clubId === g.userClubId && p.clubId !== null;
@@ -172,7 +174,7 @@ function daily(g: GameState) {
       continue;
     }
     if (p.condition < 100) p.condition = Math.min(100, p.condition + 7 + p.attrs.stamina * 0.25 + (isUser ? userRecovery : 0));
-    if (p.clubId !== null && chance(0.0005 * (isUser ? userTrainMult : 1))) {
+    if (p.clubId !== null && !(isUser && ironMen) && chance(0.0005 * (isUser ? userTrainMult : 1))) {
       const inj = randomInjury(0.3);
       p.injury = inj;
       if (isUser) sendMessage(g, { from: 'Medical Team', kind: 'injury', title: `${fullName(p)} injured in training`, body: `${fullName(p)} picked up a ${inj.name.toLowerCase()} in training and will miss around ${Math.ceil(inj.days / 7)} week(s).` });

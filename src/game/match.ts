@@ -1,6 +1,7 @@
 import { FORMATIONS } from './formations';
 import { isEligible } from './actions';
 import { isMetaClub, META_TUNING } from './meta';
+import { CHAMPIONS_EDGE, cheatOn } from './cheats';
 import { mgr, noteMatch, noteTactics } from './manager';
 import { POS_GROUP, ratingAt, rawOverallAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
@@ -133,7 +134,8 @@ function computeStrength(g: GameState, side: Side) {
     defM *= 1 + 0.02 * mgr(g, 'defending');
     midM *= 1 + 0.015 * mgr(g, 'tactical');
   }
-  const edge = isMetaClub(g.clubs[side.clubId]) ? (g.era ? META_TUNING.cmEdge : META_TUNING.edge) : 1;
+  let edge = isMetaClub(g.clubs[side.clubId]) ? (g.era ? META_TUNING.cmEdge : META_TUNING.edge) : 1;
+  if (side.clubId === g.userClubId && cheatOn(g, 'champions', side.tactics)) edge *= CHAMPIONS_EDGE;
   side.str = { att: (att / 3.6) * attM * edge, mid: (mid / 4.5) * midM * edge, def: (def / 5.0) * defM * edge, gk };
 }
 
@@ -358,7 +360,8 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
   // Injuries
   for (const side of [0, 1] as const) {
     const s = m.sides[side];
-    if (rand() < 0.0012 * (1 + 0.3 * (s.tactics.pressing - 1)) * (s.tactics.tackling === 2 ? 1.1 : 1) && s.onPitch.length > 0) {
+    const ironMen = s.clubId === g.userClubId && cheatOn(g, 'ironmen', s.tactics);
+    if (!ironMen && rand() < 0.0012 * (1 + 0.3 * (s.tactics.pressing - 1)) * (s.tactics.tackling === 2 ? 1.1 : 1) && s.onPitch.length > 0) {
       const lp = pick(s.onPitch.filter((x) => x.pos !== 'GK').length ? s.onPitch.filter((x) => x.pos !== 'GK') : s.onPitch);
       lp.injured = true;
       m.injuredOut.push(lp.id);
