@@ -1,5 +1,5 @@
 import { useMemo, useState, type ComponentType } from 'react';
-import { ArrowLeftRight, Briefcase, Dumbbell, House, LoaderCircle, LogOut, Mail, Menu, Play, Save, Shield, Shirt, Sprout, Trophy } from 'lucide-react';
+import { ArrowLeftRight, Briefcase, Dumbbell, House, LoaderCircle, LogOut, Mail, Menu, Play, Save, Shield, Shirt, Trophy } from 'lucide-react';
 import { leaguePosition } from '../../game/competitions';
 import { fmtShort } from '../../game/dates';
 import { leagueOf } from '../../game/generate';
@@ -20,7 +20,6 @@ const managerNation = (g: GameState) => NATIONS[g.managerNat ?? g.journey?.nat ?
 const TABS: { id: Screen; label: string; Icon: ComponentType<{ strokeWidth?: number }> }[] = [
   { id: 'home', label: 'Home', Icon: House },
   { id: 'squad', label: 'Squad', Icon: Shirt },
-  { id: 'youth', label: 'Youth', Icon: Sprout },
   { id: 'training', label: 'Training', Icon: Dumbbell },
   { id: 'transfers', label: 'Transfers', Icon: ArrowLeftRight },
   { id: 'board', label: 'Board', Icon: Briefcase },

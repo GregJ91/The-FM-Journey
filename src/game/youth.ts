@@ -2,7 +2,7 @@
 // UEFA Youth League. Youth matches are simulated from the strength of each club's youth XI (not
 // with the full match engine). Players get minutes, ratings, goals and development from them.
 // Fringe first-team players under the age limit play too, as at real clubs.
-import { FA_YOUTH_CUP, UEFA_YOUTH_LEAGUE, YOUTH_2002, YOUTH_LEAGUES } from './data/youth';
+import { FA_YOUTH_CUP, RESERVE_LEAGUES_2002, UEFA_YOUTH_LEAGUE, YOUTH_2002, YOUTH_LEAGUES } from './data/youth';
 import { addDays, nextWeekday } from './dates';
 import { FORMATIONS } from './formations';
 import { sendMessage } from './inbox';
@@ -82,6 +82,22 @@ export function setupYouth(g: GameState) {
   };
   drawCupRound(g, faComp);
   comps.push(faComp);
+  // CM 01/02: reserve leagues, played on Tuesdays (youth games are on Mondays)
+  if (g.era) {
+    for (const def of RESERVE_LEAGUES_2002) {
+      const league = g.leagues.find((l) => l.id === def.league);
+      if (!league) continue;
+      const rr = roundRobinOnce(league.clubIds);
+      const dates = mondays(`${s}-08-17`, `${s + 1}-05-03`, rr.length).map((d) => addDays(d, 1));
+      const comp: YouthComp = {
+        id: def.id, name: def.name, short: def.short, color: def.color, kind: 'league', age: 99, reserve: true,
+        clubs: [...league.clubIds], alive: [...league.clubIds], current: 0, winner: null, runnerUp: null,
+        rounds: dates.map((date, i) => ({ name: `Matchday ${i + 1}`, date })), fixtures: [],
+      };
+      rr.forEach((pairs, i) => { for (const [h, a] of pairs) comp.fixtures.push({ id: g.nextId++, d: dates[i], r: i + 1, h, a }); });
+      comps.push(comp);
+    }
+  }
   // UEFA Youth League: the Champions League clubs' youth teams; 6-game league phase, top 16 into knockouts
   const ucl = g.cups.find((c) => c.id === 'UCL');
   if (ucl?.teams?.length && !g.era) {
@@ -114,20 +130,29 @@ function drawCupRound(g: GameState, comp: YouthComp) {
 
 interface YouthSide { club: Club; xi: { p: Player; pos: string }[]; bench: Player[]; strength: number }
 
-function youthSide(g: GameState, clubId: number, ageLimit: number): YouthSide {
+function youthSide(g: GameState, clubId: number, ageLimit: number, reserve = false): YouthSide {
   const club = g.clubs[clubId];
   const lineup = new Set(club.lineup);
-  const eligible: Player[] = [];
+  const bench = new Set(club.subs);
+  let eligible: Player[] = [];
+  const kids: Player[] = [];
   for (const p of Object.values(g.players)) {
     if (p.clubId !== clubId || p.injury || p.away || p.suspended > 0) continue;
+    if (reserve) {
+      // Reserves: the reserve squad and first-teamers who aren't in the matchday squad; youngsters make up the numbers
+      if (p.squad === 'youth') kids.push(p);
+      else if (p.squad === 'reserve' || (!lineup.has(p.id) && !bench.has(p.id))) eligible.push(p);
+      continue;
+    }
     if (age(p, g.date) > ageLimit) continue;
     // First-team regulars don't play for the youth team; fringe youngsters do
-    if (p.squad === 'first' && lineup.has(p.id)) continue;
+    if (p.squad !== 'youth' && lineup.has(p.id)) continue;
     eligible.push(p);
   }
+  if (reserve && eligible.length < 14) eligible = [...eligible, ...kids.sort((a, b) => ratingAt(b, b.pos) - ratingAt(a, a.pos)).slice(0, 14 - eligible.length)];
   const slots = FORMATIONS[club.tactics.formation] ?? FORMATIONS['4-3-3'];
   const { lineup: xiIds, subs } = pickLineup(club, eligible, true);
-  const base = fillLevel(club);
+  const base = reserve ? 42 + club.reputation * 0.28 : fillLevel(club);
   const xi: { p: Player; pos: string }[] = [];
   let sum = 0;
   xiIds.forEach((id, i) => {
@@ -146,7 +171,7 @@ function poisson(l: number) {
 }
 
 function playYouthMatch(g: GameState, comp: YouthComp, f: YouthFixture, knockout: boolean) {
-  const sides = [youthSide(g, f.h, comp.age), youthSide(g, f.a, comp.age)];
+  const sides = [youthSide(g, f.h, comp.age, comp.reserve), youthSide(g, f.a, comp.age, comp.reserve)];
   const neutral = comp.kind !== 'league' && f.r === comp.rounds.length;
   const home = neutral ? 0 : 1.5;
   const la = 1.4 * Math.exp((sides[0].strength + home - sides[1].strength) / 14);
@@ -185,11 +210,11 @@ function playYouthMatch(g: GameState, comp: YouthComp, f: YouthFixture, knockout
       ys.rs += r;
       p.monthMins += mins * YOUTH_MINS_WEIGHT;
       p.monthRatings.push(r);
-      if (p.squad === 'first') p.condition = Math.min(p.condition, 85);
+      if (p.squad !== 'youth') p.condition = Math.min(p.condition, 85);
       if (mins === 90 && chance(0.004)) {
         p.injury = randomInjury(0.6);
         if (p.clubId === g.userClubId) {
-          sendMessage(g, { from: 'Medical Team', kind: 'injury', title: `${p.first ? p.first[0] + '. ' : ''}${p.last} injured playing for the youth team`, body: `${p.first} ${p.last} picked up a ${p.injury.name.toLowerCase()} in a ${comp.name} match and will be out for around ${Math.ceil(p.injury.days / 7)} week(s).` });
+          sendMessage(g, { from: 'Medical Team', kind: 'injury', title: `${p.first ? p.first[0] + '. ' : ''}${p.last} injured playing for the ${comp.reserve ? 'reserves' : 'youth team'}`, body: `${p.first} ${p.last} picked up a ${p.injury.name.toLowerCase()} in a ${comp.name} match and will be out for around ${Math.ceil(p.injury.days / 7)} week(s).` });
           p.injury.reported = true;
         }
       }
@@ -283,5 +308,10 @@ export function youthDay(g: GameState) {
 
 /** The youth competitions a club is in this season. */
 export function youthCompsFor(g: GameState, clubId: number) {
-  return (g.youth ?? []).filter((c) => c.clubs.includes(clubId));
+  return (g.youth ?? []).filter((c) => !c.reserve && c.clubs.includes(clubId));
+}
+
+/** The reserve league a club plays in this season (CM 01/02 careers). */
+export function reserveLeagueFor(g: GameState, clubId: number) {
+  return (g.youth ?? []).find((c) => c.reserve && c.clubs.includes(clubId));
 }

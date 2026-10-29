@@ -200,6 +200,16 @@ export function PlayerModal() {
                 <ConfirmButton className="btn block" label="End loan early" confirmLabel={`Tap again: send ${p.last} back to ${g.clubs[p.loan.from]?.name}`} onConfirm={() => { act(() => releasePlayer(g, p.id)); close(); }} />
               </div>
             ) : <div className="small">Contract until June {p.contractEnd} · {fmtMoney(p.wage)}/wk</div>}
+            {g.era && (
+              // CM 01/02: first team, reserves or youth team
+              <div className="field"><label>Squad</label>
+                <div className="seg">
+                  {([['first', 'First team'], ['reserve', 'Reserves'], ['youth', 'Youth']] as const).map(([sq, label]) => (
+                    <button key={sq} className={p.squad === sq ? 'on' : ''} disabled={sq === 'youth' && age(p, g.date) > 21 && p.squad !== 'youth'} onClick={() => mutate(() => { p.squad = sq; if (sq !== 'first') { user.lineup = user.lineup.map((x) => (x === p.id ? null : x)); user.subs = user.subs.filter((x) => x !== p.id); } })}>{label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             {!p.loan && <>
             {g.era ? (
               // CM 01/02: a new contract is negotiated (offer, his answer the next day, try again if he refuses)
@@ -211,9 +221,9 @@ export function PlayerModal() {
             <div className="grid2">
               <button className="btn" onClick={() => mutate(() => { p.listed = !p.listed; })}>{p.listed ? 'Unlist' : '🏷️ Transfer list'}</button>
               {g.era && <button className="btn" onClick={() => mutate(() => { p.loanListed = !p.loanListed; })}>{p.loanListed ? 'Off loan list' : '🔁 Loan list'}</button>}
-              <button className="btn" onClick={() => mutate(() => { p.squad = p.squad === 'first' ? 'youth' : 'first'; user.lineup = user.lineup.map((x) => (x === p.id ? null : x)); user.subs = user.subs.filter((x) => x !== p.id); })}>
+              {!g.era && <button className="btn" onClick={() => mutate(() => { p.squad = p.squad === 'first' ? 'youth' : 'first'; user.lineup = user.lineup.map((x) => (x === p.id ? null : x)); user.subs = user.subs.filter((x) => x !== p.id); })}>
                 {p.squad === 'first' ? '→ Youth team' : '⬆ First team'}
-              </button>
+              </button>}
             </div>
             <ConfirmButton className="btn coral block" label="Release player" confirmLabel={`Tap again: release ${fullName(p)} and pay off half the contract`} onConfirm={() => { act(() => releasePlayer(g, p.id)); close(); }} />
             </>}

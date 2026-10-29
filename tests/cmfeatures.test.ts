@@ -144,3 +144,31 @@ describe.skipIf(!existsSync(DB))('CM 01/02 career features', () => {
     expect(freeProspects.length).toBeGreaterThan(0);
   }, 900000);
 });
+
+describe.skipIf(!existsSync(DB))('CM 01/02 reserve team', () => {
+  it('plays a reserve league with the reserve squad and fringe first-teamers', () => {
+    const cm = JSON.parse(gunzipSync(scramble(Buffer.from(readFileSync(DB, 'utf8'), 'base64'))).toString());
+    const g = createWorld({ mode: 'classic', manager: 'T', clubName: 'Arsenal', slot: 't', seed: 4, cm });
+    startSeason(g);
+    const user = g.clubs[g.userClubId];
+    const res = g.youth!.find((c) => c.reserve && c.clubs.includes(user.id))!;
+    expect(res.name).toBe('FA Premier Reserve League');
+    expect(g.youth!.filter((c) => c.reserve).map((c) => c.name)).toEqual(expect.arrayContaining(['Pontins League Premier Division', 'SPL Reserve League']));
+    // Send three senior players to the reserves: they leave the first team and play reserve games
+    const toRes = squadOf(g, user.id).sort((a, b) => overall(a) - overall(b)).slice(0, 3);
+    for (const p of toRes) p.squad = 'reserve';
+    expect(squadOf(g, user.id).some((p) => toRes.includes(p))).toBe(false);
+    expect(squadOf(g, user.id, 'reserve')).toHaveLength(3);
+    playUntil(g, '2002-10-15');
+    const mine = res.fixtures.filter((f) => (f.h === user.id || f.a === user.id) && f.hg !== undefined);
+    expect(mine.length).toBeGreaterThan(3);
+    for (const p of toRes) expect(p.ys?.apps ?? 0).toBeGreaterThan(0);
+    // Reserve games are on Tuesdays, youth games on Mondays
+    expect(new Date(res.fixtures[0].d).getUTCDay()).toBe(2);
+    // Reserve players aren't picked for the first team
+    for (const f of g.fixtures.filter((x) => x.result && (x.home === user.id || x.away === user.id))) {
+      const ids = Object.keys(f.result!.ratings ?? {}).map(Number);
+      for (const p of toRes) expect(ids).not.toContain(p.id);
+    }
+  }, 600000);
+});

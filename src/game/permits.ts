@@ -18,7 +18,7 @@ export function isEu(p: Player) {
 
 function nonEuAt(g: GameState, clubId: number, except: number) {
   let n = 0;
-  for (const q of Object.values(g.players)) if (q.clubId === clubId && q.squad === 'first' && q.id !== except && !EU.has(q.nat)) n++;
+  for (const q of Object.values(g.players)) if (q.clubId === clubId && q.squad !== 'youth' && q.id !== except && !EU.has(q.nat)) n++;
   return n;
 }
 

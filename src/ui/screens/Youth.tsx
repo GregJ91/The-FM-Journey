@@ -18,7 +18,8 @@ function youthLine(p: Player) {
   return <> · {ys.apps} gms{ys.goals ? ` · ${ys.goals}⚽` : ''}{ys.assists ? ` · ${ys.assists}🅰️` : ''} · {(ys.rs / ys.apps).toFixed(1)}</>;
 }
 
-export function Youth() {
+/** The youth team (opened from the Squad page's dropdown; `top` is that page's toolbar). */
+export function Youth({ top }: { top?: React.ReactNode } = {}) {
   const g = useGame();
   const ui = useUI();
   const club = g.clubs[g.userClubId];
@@ -33,7 +34,7 @@ export function Youth() {
   const [sec, setSec] = useState<'squad' | 'league' | 'focus'>('squad');
   const fringe = squadOf(g, club.id).filter((p) => p.ys?.apps).sort((a, b) => (b.ys!.apps - a.ys!.apps));
   return (
-    <SectionPage sections={[['squad', 'Academy'], ['league', 'Matches'], ['focus', 'Training']]} sec={sec} setSec={setSec}
+    <SectionPage top={top} sections={[['squad', 'Academy'], ['league', 'Matches'], ['focus', 'Training']]} sec={sec} setSec={setSec}
       status={<><span><b>{youth.length}</b> prospects</span><span>Facilities <b>{'★'.repeat(club.facilities.youth)}{'☆'.repeat(5 - club.facilities.youth)}</b></span><span>Intake <b>15 Mar</b></span></>}>
       {sec === 'league' && league && (
         <Card title={league.name} tag={league.short} tagColor={league.color} right={<button className="btn sm" onClick={() => ui.go('competitions', `YOUTH:${league.id}`)}>Full</button>}>

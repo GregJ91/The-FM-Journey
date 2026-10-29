@@ -555,7 +555,7 @@ export function leagueOf(g: GameState, clubId: number) {
   return g.leagues.find((l) => l.clubIds.includes(clubId))!;
 }
 
-export function squadOf(g: GameState, clubId: number, which: 'first' | 'youth' | 'all' = 'first') {
+export function squadOf(g: GameState, clubId: number, which: 'first' | 'reserve' | 'youth' | 'all' = 'first') {
   const out: Player[] = [];
   for (const p of Object.values(g.players)) {
     if (p.clubId !== clubId) continue;

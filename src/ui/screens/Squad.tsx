@@ -4,6 +4,9 @@ import { normaliseTactics } from '../../game/tactics';
 import { TeamInstructions } from '../components/TacticsEditor';
 import { activateCheat } from '../../game/cheats';
 import { squadOf } from '../../game/generate';
+import { ordinal } from '../../game/season';
+import { Youth } from './Youth';
+import { reserveLeagueFor, youthTable } from '../../game/youth';
 import { age, avgRating, familiarity, fmtMoney, marketValue, overall, ratingAt, scoutedPotential, shortName } from '../../game/ratings';
 import { pickLineup, validateLineup } from '../../game/selection';
 import type { Club, GameState, Player, Tactics as TacticsT } from '../../game/types';
@@ -138,19 +141,44 @@ function SquadTable({ g, rows, own, sort, setSort }: { g: GameState; rows: Playe
   );
 }
 
-export function Squad() {
+export function Squad({ start }: { start?: 'youth' } = {}) {
   const g = useGame();
   const ui = useUI();
-  const [tab, setTab] = useState<'squad' | 'tactics'>(ui.param === 'tactics' ? 'tactics' : 'squad');
+  const [tab, setTab] = useState<'squad' | 'reserves' | 'youth' | 'tactics'>(start ?? (ui.param === 'tactics' ? 'tactics' : 'squad'));
   const club = g.clubs[g.userClubId];
   const squad = squadOf(g, club.id);
+  const reserves = squadOf(g, club.id, 'reserve');
   const avgAge = (squad.reduce((s, p) => s + age(p, g.date), 0) / Math.max(1, squad.length)).toFixed(1);
+  // CM 01/02 careers have a reserve team (older saves get it as soon as a player is moved there)
+  const hasReserves = !!g.era || reserves.length > 0;
+  const resLeague = reserveLeagueFor(g, club.id);
+  const resPos = resLeague ? youthTable(resLeague, g).findIndex((r) => r.clubId === club.id) + 1 : 0;
+  const resPlayed = resLeague?.fixtures.some((f) => f.hg !== undefined && (f.h === club.id || f.a === club.id));
+  // Which squad: a small dropdown (first team, reserves, youth team) beside the Tactics button
   const toolbar = (
     <div className="ns-toggle">
-      <button className={`btn sm ${tab === 'squad' ? 'primary' : ''}`} onClick={() => setTab('squad')}>Squad</button>
+      <select className={`input squad-pick ${tab !== 'tactics' ? 'on' : ''}`} aria-label="Squad" value={tab === 'tactics' ? 'squad' : tab} onChange={(e) => setTab(e.target.value as typeof tab)}>
+        <option value="squad">First team</option>
+        {hasReserves && <option value="reserves">Reserves</option>}
+        <option value="youth">Youth team</option>
+      </select>
       <button className={`btn sm ${tab === 'tactics' ? 'primary' : ''}`} onClick={() => setTab('tactics')}>Tactics</button>
     </div>
   );
+  if (tab === 'youth') return <Youth top={toolbar} />;
+  if (tab === 'reserves') {
+    const title = `Reserves${resLeague ? ` · ${resLeague.short} ${resPlayed ? ordinal(resPos) : '—'}` : ''}`;
+    return reserves.length
+      ? <SquadList g={g} players={reserves} title={title} toolbar={toolbar} />
+      : (
+        <div className="win-list">
+          {toolbar}
+          <div className="card fill"><div className="card-h"><h3>{title}</h3></div>
+            <div className="empty">No players in the reserves. Open a player and use Manage → Reserves. First-teamers who aren't in the matchday squad play for the reserves too{resLeague ? ` in the ${resLeague.name}` : ''}.</div>
+          </div>
+        </div>
+      );
+  }
   return tab === 'squad'
     ? <SquadList g={g} players={squad} title={`First team · avg age ${avgAge}`} toolbar={toolbar} />
     : <Tactics g={g} club={club} squad={squad} toolbar={toolbar} />;

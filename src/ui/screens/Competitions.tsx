@@ -54,9 +54,14 @@ export function Competitions() {
               {[...(g.intl ?? [])].reverse().map((t) => <option key={t.id} value={`INTL:${t.id}`}>🌍 {t.name}</option>)}
             </optgroup>
           )}
-          {(g.youth ?? []).length > 0 && (
+          {(g.youth ?? []).some((c) => c.reserve) && (
+            <optgroup label="Reserves">
+              {g.youth!.filter((c) => c.reserve).map((c) => <option key={c.id} value={`YOUTH:${c.id}`}>🔷 {c.name}{c.clubs.includes(club.id) ? ' (yours)' : ''}</option>)}
+            </optgroup>
+          )}
+          {(g.youth ?? []).some((c) => !c.reserve) && (
             <optgroup label="Youth">
-              {g.youth!.map((c) => <option key={c.id} value={`YOUTH:${c.id}`}>🌱 {c.name}{c.clubs.includes(club.id) ? ' (yours)' : ''}</option>)}
+              {g.youth!.filter((c) => !c.reserve).map((c) => <option key={c.id} value={`YOUTH:${c.id}`}>🌱 {c.name}{c.clubs.includes(club.id) ? ' (yours)' : ''}</option>)}
             </optgroup>
           )}
           <optgroup label="Domestic cups">

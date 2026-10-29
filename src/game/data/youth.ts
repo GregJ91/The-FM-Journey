@@ -23,6 +23,15 @@ export const YOUTH_LEAGUES: YouthLeagueDef[] = [
 export const FA_YOUTH_CUP = { id: 'FAYC', name: 'FA Youth Cup', short: 'FAYC', age: 18, color: '#C8102E', leagues: ['ENG1', 'ENG2', 'ENG3', 'ENG4'] };
 export const UEFA_YOUTH_LEAGUE = { id: 'UYL', name: 'UEFA Youth League', short: 'UYL', age: 19, color: '#3D7BFF' };
 
+/** CM 01/02 careers: the 2002/03 reserve leagues. */
+export const RESERVE_LEAGUES_2002 = [
+  { id: 'RPL', name: 'FA Premier Reserve League', short: 'RES', league: 'ENG1', color: '#5B6B8C' },
+  { id: 'PON1', name: 'Pontins League Premier Division', short: 'PON', league: 'ENG2', color: '#2E7D6B' },
+  { id: 'PON2', name: 'Pontins League Division One', short: 'PON', league: 'ENG3', color: '#2E7D6B' },
+  { id: 'PON3', name: 'Pontins League Division Two', short: 'PON', league: 'ENG4', color: '#2E7D6B' },
+  { id: 'SPLR', name: 'SPL Reserve League', short: 'RES', league: 'SCO1', color: '#33507A' },
+];
+
 /** CM 01/02 careers: what the youth leagues were called in 2002 (the UEFA Youth League didn't exist until 2013). */
 export const YOUTH_2002: Record<string, { name: string; short: string; age: number }> = {
   PL2: { name: 'FA Premier Academy League', short: 'FAPL', age: 19 },

@@ -128,7 +128,7 @@ h1, h2, h3, h4 { font-family: var(--display); margin: 0; letter-spacing: -0.03em
 .continue-bar .when span { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
 
 .tabbar {
-  flex: none; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px;
+  flex: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px;
   margin: 0 10px calc(10px + var(--safe-b)); padding: 6px; border-radius: 6px;
   background: rgba(25, 29, 39, 0.82); border: 1px solid var(--line); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8);
@@ -1449,7 +1449,7 @@ html[data-era="cm0102"] .continue-bar .when span { color: #1b2f66; }
 .icon-btn .dot { min-width: 15px; height: 15px; font-size: 9.5px; top: -5px; right: -5px; }
 
 /* Menu: text buttons under the title bar */
-.tabbar { order: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px; margin: 0; padding: 4px; border: none; border-bottom: 1px solid var(--line); border-radius: 0; background: var(--surface); box-shadow: none; }
+.tabbar { order: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; margin: 0; padding: 4px; border: none; border-bottom: 1px solid var(--line); border-radius: 0; background: var(--surface); box-shadow: none; }
 .tabbar button { padding: 5px 0; font-size: 11px; font-weight: 700; border-radius: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .tabbar button svg { display: none; }
 
@@ -1627,3 +1627,5 @@ table.t.dense td.nm { max-width: 140px; overflow: hidden; text-overflow: ellipsi
 .ab-alt { display: none; }
 html[data-era="cm0102"] .ovr, html[data-era="cm0102"] .stars, html[data-era="cm0102"] .cm-box-r, html[data-era="cm0102"] .ab, html[data-era="cm0102"] .ovr-chg { display: none !important; }
 html[data-era="cm0102"] .ab-alt { display: inline; }
+/* Squad page: which squad (first team / reserves / youth team) */
+.ns-toggle .squad-pick { min-height: 32px; width: auto; min-width: 118px; padding: 3px 8px; font-weight: 700; }

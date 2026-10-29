@@ -158,7 +158,7 @@ export function Transfers() {
       if (f.league === 'OTHER' && (p.clubId === null || inLeague.has(p.clubId))) return false;
       if (f.status === 'listed' && !p.listed) return false;
       if (f.status === 'expiring' && p.contractEnd > g.season + 1) return false;
-      if (f.squad !== 'any' && p.squad !== (f.squad === 'youth' ? 'youth' : 'first')) return false;
+      if (f.squad !== 'any' && (p.squad === 'youth') !== (f.squad === 'youth')) return false;
       if (f.foot !== 'any' && p.foot !== f.foot) return false;
       return true;
     });

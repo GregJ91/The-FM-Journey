@@ -94,7 +94,7 @@ export function monthlyChange(g: GameState, p: Player) {
   // Guest clubs' domestic league games aren't simulated: regular starters count as playing
   const mins = club && GUEST_LEAGUES.includes(club.leagueId) ? Math.max(p.monthMins, club.lineup.includes(p.id) ? 300 : 120) : p.monthMins;
   // Youth-team matches count at half weight (see youth.ts); a youth player with no games at all still trains
-  const minsRatio = p.squad === 'youth' ? Math.max(0.2, Math.min(1, mins / 300)) : Math.min(1, mins / 300);
+  const minsRatio = p.squad !== 'first' ? Math.max(0.2, Math.min(1, mins / 300)) : Math.min(1, mins / 300);
   const playing = club ? 0.35 + 0.85 * minsRatio : 0.3;
   const avg = p.monthRatings.length ? p.monthRatings.reduce((s, x) => s + x, 0) / p.monthRatings.length : 6.8;
   const form = 1 + Math.max(-0.2, Math.min(0.25, (avg - 6.8) * 0.3));

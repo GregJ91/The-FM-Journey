@@ -5,7 +5,6 @@ import { applyTheme, clubTheme } from './ui/theme';
 import { ContinueBar, Header, TabBar, Ticker } from './ui/components/Layout';
 import { Home } from './ui/screens/Home';
 import { Squad } from './ui/screens/Squad';
-import { Youth } from './ui/screens/Youth';
 import { Training } from './ui/screens/Training';
 import { Transfers } from './ui/screens/Transfers';
 import { Recruitment } from './ui/screens/Recruitment';
@@ -54,7 +53,8 @@ function Game() {
     switch (ui.screen) {
       case 'home': return <Home />;
       case 'squad': return <Squad key={String(ui.param)} />;
-      case 'youth': return <Youth />;
+      // The youth team lives on the Squad page (its dropdown)
+      case 'youth': return <Squad key="youth" start="youth" />;
       case 'training': return <Training />;
       case 'transfers': return g.mode === 'journey' ? <Recruitment /> : <Transfers />;
       case 'board': return <Board />;

@@ -303,7 +303,7 @@ export function aiPreContracts(g: GameState) {
   if (m < 2 || m > 5) return;
   const user = g.clubs[g.userClubId];
   const talking = new Set(g.offers.filter((o) => o.kind === 'renew' && o.status === 'accepted').map((o) => o.playerId));
-  const leaving = Object.values(g.players).filter((p) => p.clubId === user.id && p.squad === 'first' && !p.loan && !p.preContract && p.contractEnd <= g.season + 1 && !talking.has(p.id) && age(p, g.date) < 33);
+  const leaving = Object.values(g.players).filter((p) => p.clubId === user.id && p.squad !== 'youth' && !p.loan && !p.preContract && p.contractEnd <= g.season + 1 && !talking.has(p.id) && age(p, g.date) < 33);
   const clubs = Object.values(g.clubs).filter((c) => !c.isUser && !isTransferOnly(c) && g.leagues.some((l) => l.clubIds.includes(c.id)));
   for (const p of leaving) {
     if (!chance(0.2)) continue;

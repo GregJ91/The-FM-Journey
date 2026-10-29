@@ -70,7 +70,7 @@ export interface Player {
   attrs: Attrs; // floats 1-20; displayed rounded
   pa: number; // potential overall (1-99)
   clubId: number | null; // null = free agent
-  squad: 'first' | 'youth';
+  squad: 'first' | 'reserve' | 'youth'; // reserve: CM 01/02 careers' reserve team
   wage: number; // weekly
   contractEnd: number; // year contract ends (June 30 of that year)
   morale: number; // 0-100
@@ -130,6 +130,7 @@ export interface YouthComp {
   current: number; // rounds completed
   alive: number[];
   lp?: number; // UEFA Youth League: league-phase rounds
+  reserve?: boolean; // a reserve league (CM 01/02 careers): reserve squads plus first-teamers needing a game
   winner: number | null;
   runnerUp: number | null;
 }
