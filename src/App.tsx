@@ -71,10 +71,10 @@ function Game() {
   return (
     <div className="phone">
       <Header />
+      <TabBar />
       <main className="content">{screen}</main>
       <ContinueBar />
       <Ticker />
-      <TabBar />
       <PlayerModal />
       {ui.matchOpen && <MatchScreen />}
     </div>

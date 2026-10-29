@@ -38,12 +38,6 @@ export function SquadList({ g, players, own = true }: { g: GameState; players: P
     def: (p) => -(p.stats.tkl + p.stats.int),
   };
   const rows = [...players].sort((a, b) => get[sort](a) - get[sort](b));
-  const line = (p: Player) => {
-    const bits = [`${age(p, g.date)}y`, p.nat];
-    if (STAT_SORTS.includes(sort)) bits.push(`${p.stats.apps} apps · ${p.stats.goals}G ${p.stats.assists}A`);
-    else bits.push(fmtMoney(marketValue(p, g.date)));
-    return bits.join(' · ');
-  };
   const end = (p: Player) => {
     if (!p.stats.apps && STAT_SORTS.includes(sort)) return '—';
     if (sort === 'rating') return avgRating(p).toFixed(2);
@@ -55,30 +49,46 @@ export function SquadList({ g, players, own = true }: { g: GameState; players: P
     if (sort === 'pot') return <Stars ovr={scoutedPotential(p, own)} />;
     return <Spark values={p.form} />;
   };
-  const endSub = (p: Player) => (own ? <CondBar v={p.condition} /> : <>{p.contractEnd}</>);
   const landscape = useLandscape();
   if (landscape) return <SquadTable g={g} rows={rows} own={own} sort={sort} setSort={setSort} />;
+  const ui = useUI();
+  const lastLabel = STAT_SORTS.includes(sort) || sort === 'value' || sort === 'pot' ? SORTS.find(([k]) => k === sort)![1].replace('Avg rating', 'Rat').replace('Key passes', 'KP').replace('Tackles + Int', 'T+I').replace('Potential', 'Pot') : own ? 'Fit' : 'Contract';
+  const last = (p: Player) => {
+    if (sort === 'value') return fmtMoney(marketValue(p, g.date));
+    if (sort === 'pot') return <Stars ovr={scoutedPotential(p, own)} />;
+    if (STAT_SORTS.includes(sort)) return end(p);
+    if (!own) return p.contractEnd;
+    return <span className={p.condition < 85 ? 'bad' : 'ok'}>{Math.round(p.condition)}%</span>;
+  };
   let lastGroup = '';
+  // Championship Manager-style squad table: position, name, age, ability, fitness; paged, never scrolled
   return (
     <>
       <div className="tabs">
         {SORTS.map(([k, label]) => <button key={k} className={`tab ${sort === k ? 'active' : ''}`} onClick={() => setSort(k)}>{label}</button>)}
       </div>
-      <div className="card fill" style={{ paddingTop: 4, paddingBottom: 4 }}>
+      <div className="card fill squad-ns">
         <Fit>
-        <div className="list">
-          {rows.map((p) => {
-            const grp = POS_GROUP[p.pos];
-            const header = sort === 'pos' && grp !== lastGroup;
-            lastGroup = grp;
-            return (
-              <div key={p.id}>
-                {header && <div className="section-label">{GROUP_NAME[grp]}</div>}
-                <PlayerRow p={p} sub={<>{line(p)}<OvrChange v={p.lastChange} /></>} end={end(p)} endSub={endSub(p)} />
-              </div>
-            );
-          })}
-        </div>
+        <table className="t">
+          <thead><tr><th>Pos</th><th>Name</th><th className="r">Age</th><th className="r">Ab</th><th className="r">{lastLabel}</th></tr></thead>
+          <tbody>
+            {rows.flatMap((p) => {
+              const grp = POS_GROUP[p.pos];
+              const header = sort === 'pos' && grp !== lastGroup;
+              lastGroup = grp;
+              const row = (
+                <tr key={p.id} className="click" onClick={() => ui.openPlayer(p.id)}>
+                  <td><PosTag pos={p.pos} /></td>
+                  <td className="nm"><b>{shortName(p)}</b> <StatusIcons p={p} /><OvrChange v={p.lastChange} /></td>
+                  <td className="r num">{age(p, g.date)}</td>
+                  <td className="r"><Ovr value={overall(p)} /></td>
+                  <td className="r num">{last(p)}</td>
+                </tr>
+              );
+              return header ? [<tr key={`g-${grp}`} className="grp"><td colSpan={5}>{GROUP_NAME[grp]}</td></tr>, row] : [row];
+            })}
+          </tbody>
+        </table>
         </Fit>
       </div>
     </>

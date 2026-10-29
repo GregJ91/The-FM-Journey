@@ -15,7 +15,7 @@ import { Crest } from './Crest';
 
 const TABS: { id: Screen; label: string; Icon: ComponentType<{ strokeWidth?: number }> }[] = [
   { id: 'home', label: 'Home', Icon: House },
-  { id: 'squad', label: 'First Team', Icon: Shirt },
+  { id: 'squad', label: 'Squad', Icon: Shirt },
   { id: 'youth', label: 'Youth', Icon: Sprout },
   { id: 'training', label: 'Training', Icon: Dumbbell },
   { id: 'transfers', label: 'Transfers', Icon: ArrowLeftRight },
@@ -34,17 +34,17 @@ export function Header() {
   return (
     <header className="header">
       <div className="club" onClick={() => ui.go('home')}>
-        <Crest club={club} size={40} />
+        <Crest club={club} size={28} />
         <div style={{ minWidth: 0 }}>
           <b>{club.name}</b>
-          <span>{league.name} · {pos ? ordinal(pos) : '—'} <span className="live-dot" style={{ background: windowOpen(g) ? 'var(--grass)' : 'var(--coral)' }} title={windowOpen(g) ? 'Transfer window open' : 'Transfer window closed'} /></span>
+          <span>{fmtShort(g.date)} · {league.short} {pos ? ordinal(pos) : '—'} <span className="live-dot" style={{ background: windowOpen(g) ? 'var(--grass)' : 'var(--coral)' }} title={windowOpen(g) ? 'Transfer window open' : 'Transfer window closed'} /></span>
         </div>
       </div>
-      <button className={`icon-btn ${ui.screen === 'competitions' ? 'on' : ''}`} aria-label="Competitions" onClick={() => ui.go('competitions')}><Trophy size={18} /></button>
+      <button className={`icon-btn ${ui.screen === 'competitions' ? 'on' : ''}`} aria-label="Competitions" onClick={() => ui.go('competitions')}><Trophy size={15} /></button>
       <button className={`icon-btn ${ui.screen === 'inbox' ? 'on' : ''}`} aria-label="Inbox" onClick={() => ui.go('inbox')}>
-        <Mail size={18} />{unread > 0 && <span className="dot">{unread > 99 ? '99+' : unread}</span>}
+        <Mail size={15} />{unread > 0 && <span className="dot">{unread > 99 ? '99+' : unread}</span>}
       </button>
-      <button className="icon-btn" aria-label="Menu" onClick={() => setMenu(true)}><Menu size={18} /></button>
+      <button className="icon-btn" aria-label="Menu" onClick={() => setMenu(true)}><Menu size={15} /></button>
       {menu && (
         <Sheet title="Menu" onClose={() => setMenu(false)}>
           <div className="sheet-b col">
@@ -83,10 +83,6 @@ export function ContinueBar() {
   };
   return (
     <div className="continue-bar">
-      <div className="when">
-        <b>{fmtShort(g.date)}</b>
-        <span>{matchToday ? 'Match day' : `Season ${seasonLabel(g.season)}`}</span>
-      </div>
       <button className={`continue-btn ${matchToday && !actions.length ? 'match' : ''} ${actions.length ? 'respond' : ''}`} onClick={onContinue} disabled={busy}>
         {busy ? <><LoaderCircle className="spin" /> Simulating…</> : actions.length ? <>Respond ({actions.length}) <Mail /></> : matchToday ? <>Play match <Play fill="currentColor" /></> : <>Continue <Play fill="currentColor" /></>}
       </button>
@@ -101,8 +97,7 @@ export function TabBar() {
     <nav className="tabbar">
       {TABS.map((t) => (
         <button key={t.id} className={ui.screen === t.id ? 'on' : ''} onClick={() => ui.go(t.id)}>
-          <t.Icon strokeWidth={ui.screen === t.id ? 2.4 : 2} />
-          <span>{t.id === 'transfers' && g.mode === 'journey' ? 'Recruitment' : t.label}</span>
+          <span>{t.id === 'transfers' && g.mode === 'journey' ? 'Recruit' : t.label}</span>
         </button>
       ))}
     </nav>
