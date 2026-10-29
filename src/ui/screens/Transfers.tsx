@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { fmtShort } from '../../game/dates';
 import { wageBill } from '../../game/generate';
 import { POS_GROUP, age, fmtMoney, fullName, marketValue, overall, shortName } from '../../game/ratings';
-import { acceptCounter, agreeTerms, askingPrice, respondIncoming, windowOpen } from '../../game/transfers';
+import { acceptCounter, askingPrice, respondIncoming, windowOpen } from '../../game/transfers';
 import type { GameState, Offer, Player } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
@@ -68,7 +68,7 @@ function OfferCard({ g, o, incoming, act }: { g: GameState; o: Offer; incoming?:
       {!incoming && (o.status === 'accepted' || o.status === 'countered' || o.status === 'pending') && (
         <div className="row" style={{ marginTop: 10 }}>
           {o.status === 'countered' && <button className="btn yellow" style={{ flex: 1 }} onClick={() => act(() => acceptCounter(g, o.id))}>Pay {fmtMoney(o.counter!)}</button>}
-          {o.status === 'accepted' && <button className="btn primary" style={{ flex: 1 }} onClick={() => act(() => agreeTerms(g, o.id))}>Agree terms · {fmtMoney(o.wage)}/wk</button>}
+          {o.status === 'accepted' && <button className="btn primary" style={{ flex: 1 }} onClick={() => ui.openPlayer(o.playerId)}>{o.contract?.state === 'pending' ? 'Contract offered' : 'Offer contract'}</button>}
           <button className="btn" onClick={() => mutate(() => { o.status = 'withdrawn'; })}>Withdraw</button>
         </div>
       )}

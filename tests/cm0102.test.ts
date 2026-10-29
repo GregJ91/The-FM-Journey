@@ -26,7 +26,7 @@ function load() {
 describe.skipIf(!have)('CM 01/02', () => {
   // CM_EXPORT=1 npx vitest run tests/cm0102.test.ts  →  rebuilds the built-in database the game ships with
   it.runIf(!!process.env.CM_EXPORT)('exports the built-in database', () => {
-    writeFileSync(`public/${CM_BUILTIN}`, scramble(gzipSync(JSON.stringify(load()), { level: 9 })));
+    writeFileSync(`public/${CM_BUILTIN}`, Buffer.from(scramble(gzipSync(JSON.stringify(load()), { level: 9 }))).toString('base64'));
   }, 60000);
 
   it('reads clubs, leagues and players', () => {

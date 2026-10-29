@@ -27,7 +27,7 @@ describe('cheats', () => {
   });
 
   it.skipIf(!existsSync(DB))('"Champions" wins about 90% of games in a CM career', () => {
-    const cm = JSON.parse(gunzipSync(scramble(readFileSync(DB))).toString('utf8'));
+    const cm = JSON.parse(gunzipSync(scramble(Buffer.from(readFileSync(DB, 'utf8'), 'base64'))).toString('utf8'));
     let w = 0, n = 0;
     for (const club of ['Fulham', 'Burnley', 'Forfar Athletic']) {
       const g = createWorld({ mode: 'classic', manager: 'T', clubName: club, slot: 't', seed: 3, cm });

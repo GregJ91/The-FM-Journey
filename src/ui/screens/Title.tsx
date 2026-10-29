@@ -266,7 +266,7 @@ function CmSetup({ onBack }: { onBack: () => void }) {
       try {
         const res = await fetch(`./${CM_BUILTIN}`);
         if (!res.ok) throw new Error(String(res.status));
-        const w = await unpackWorld(await res.arrayBuffer());
+        const w = await unpackWorld(await res.text());
         await saveCmWorld(w);
         setWorld(w);
       } catch {

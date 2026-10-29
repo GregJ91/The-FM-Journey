@@ -19,7 +19,7 @@ import { monthlyManager } from './manager';
 import { journeyDaily, journeyMonthly } from './journey';
 import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
 import { chance, int, normal, pick } from './rng';
-import { aiBidsForUser, aiTransfers, expireOffers, respondToUserBids } from './transfers';
+import { aiBidsForUser, aiTransfers, expireOffers, respondToContracts, respondToUserBids } from './transfers';
 import { matchdayIncome } from './club';
 import { bestFormation } from './selection';
 import { normaliseTactics } from './tactics';
@@ -183,6 +183,7 @@ function daily(g: GameState) {
     p.morale += (65 - p.morale) * 0.01;
   }
   respondToUserBids(g);
+  respondToContracts(g);
   aiTransfers(g);
   aiBidsForUser(g);
   expireOffers(g);

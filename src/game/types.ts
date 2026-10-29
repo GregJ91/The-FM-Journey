@@ -348,6 +348,21 @@ export interface Offer {
   date: string;
   respondBy?: string;
   note?: string;
+  contract?: ContractOffer; // the user's contract offer to the player once the fee is agreed
+}
+
+export type SquadRole = 'key' | 'first' | 'rotation' | 'backup';
+
+/** Personal terms offered to a player (CM-style): he answers the next day. */
+export interface ContractOffer {
+  wage: number;
+  years: number;
+  bonus: number; // signing-on fee
+  role: SquadRole;
+  by: string; // date he answers
+  state: 'pending' | 'rejected';
+  tries: number; // offers he has turned down
+  note?: string; // why he turned the last one down
 }
 
 export interface TransferRecord {

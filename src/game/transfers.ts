@@ -5,10 +5,10 @@ import { closeOfferAction, offerAction, registerNewSigning } from './actions';
 import { addDays, inTransferWindow, month } from './dates';
 import { emptyStats, nextId, squadOf, wageBill } from './generate';
 import { age, fmtMoney, fullName, marketValue, overall, ratingAt, roundMoney, wageFor } from './ratings';
-import { chance, pick, rand, weighted } from './rng';
+import { chance, normal, pick, rand, weighted } from './rng';
 import { pickLineup } from './selection';
 import { FORMATIONS } from './formations';
-import type { Club, GameState, Offer, Player } from './types';
+import type { Club, ContractOffer, GameState, Offer, Player, SquadRole } from './types';
 import { POS_GROUP } from './ratings';
 import { sendMessage } from './inbox';
 import { mgr, note, noteSigning } from './manager';
@@ -78,7 +78,7 @@ export function respondToUserBids(g: GameState) {
     const seller = g.clubs[o.to];
     if (o.fee >= ask) {
       o.status = 'accepted';
-      sendMessage(g, { from: seller.name, kind: 'transfer', title: `Bid accepted for ${fullName(p)}`, body: `${seller.name} have accepted your ${fmtMoney(o.fee)} offer for ${fullName(p)}. Agree personal terms (${fmtMoney(o.wage)}/week) from the Transfers screen to complete the deal.`, offerId: o.id });
+      sendMessage(g, { from: seller.name, kind: 'transfer', title: `Bid accepted for ${fullName(p)}`, body: `${seller.name} have accepted your ${fmtMoney(o.fee)} offer for ${fullName(p)}. Now offer ${p.last} a contract: open his profile (Bid tab). His agent is asking for around ${fmtMoney(o.wage)}/week.`, offerId: o.id });
     } else if (o.fee >= ask * 0.75) {
       o.status = 'countered';
       o.counter = ask;
@@ -98,6 +98,79 @@ export function acceptCounter(g: GameState, offerId: number): { ok: boolean; msg
   o.fee = o.counter;
   o.status = 'accepted';
   return { ok: true, msg: 'Counter offer accepted. Now agree personal terms.' };
+}
+
+export const ROLE_LABEL: Record<SquadRole, string> = { key: 'Key player', first: 'First team', rotation: 'Rotation', backup: 'Backup' };
+const ROLES: SquadRole[] = ['key', 'first', 'rotation', 'backup'];
+/** "as a …" wording for each squad status. */
+export const ROLE_AS: Record<SquadRole, string> = { key: 'a key player', first: 'a first-team player', rotation: 'a rotation player', backup: 'a backup player' };
+
+/** The squad status a player expects at the buying club, from how he compares with the players there in his position. */
+export function expectedRole(g: GameState, p: Player, buyer: Club): SquadRole {
+  const ovr = overall(p);
+  const better = squadOf(g, buyer.id).filter((x) => x.id !== p.id && POS_GROUP[x.pos] === POS_GROUP[p.pos] && overall(x) > ovr).length;
+  return better === 0 ? 'key' : better <= 2 ? 'first' : better <= 4 ? 'rotation' : 'backup';
+}
+
+/** Contract length he'd prefer: young players and veterans want security, players in their prime keep options open. */
+export function preferredYears(g: GameState, p: Player) {
+  const a = age(p, g.date);
+  return a <= 23 ? 5 : a <= 28 ? 4 : a <= 31 ? 3 : 2;
+}
+
+/** Offer personal terms once the clubs have agreed a fee; he answers the next day. */
+export function offerContract(g: GameState, offerId: number, terms: Pick<ContractOffer, 'wage' | 'years' | 'bonus' | 'role'>): { ok: boolean; msg: string } {
+  const o = g.offers.find((x) => x.id === offerId);
+  const p = o && g.players[o.playerId];
+  if (!o || !p || o.status !== 'accepted' || p.clubId !== o.to) return { ok: false, msg: 'Offer no longer valid.' };
+  if (o.contract?.state === 'pending') return { ok: false, msg: `${fullName(p)} is still considering your offer.` };
+  if (!windowOpen(g)) { o.status = 'collapsed'; return { ok: false, msg: 'The window closed before the deal was completed.' }; }
+  const user = g.clubs[g.userClubId];
+  if (o.fee + terms.bonus > user.transferBudget) return { ok: false, msg: `The fee plus signing-on fee (${fmtMoney(o.fee + terms.bonus)}) is more than your transfer budget.` };
+  if (!canAffordWage(g, user.id, terms.wage)) return { ok: false, msg: `That wage would break your wage budget (${fmtMoney(user.wageBudget)}/wk). Ask the board for more or free up wages.` };
+  o.contract = { ...terms, years: Math.max(1, Math.min(5, Math.round(terms.years))), by: addDays(g.date, 1), state: 'pending', tries: o.contract?.tries ?? 0 };
+  return { ok: true, msg: `Contract offered to ${fullName(p)}. He will give his answer tomorrow.` };
+}
+
+/** Players answer the user's contract offers: accept and the deal is done, or say what they want instead. */
+export function respondToContracts(g: GameState) {
+  const user = g.clubs[g.userClubId];
+  for (const o of g.offers) {
+    const c = o.contract;
+    if (o.from !== user.id || o.status !== 'accepted' || !c || c.state !== 'pending' || c.by > g.date) continue;
+    const p = g.players[o.playerId];
+    if (!p || p.clubId !== o.to) { o.status = 'collapsed'; continue; }
+    const demand = wageDemand(g, p, user);
+    const want = expectedRole(g, p, user);
+    const gap = ROLES.indexOf(want) - ROLES.indexOf(c.role); // > 0: offered a bigger role than he expects
+    const roleF = gap >= 0 ? 1 + 0.04 * gap : 1 + 0.12 * gap;
+    const pref = preferredYears(g, p);
+    const yearsF = 1 - 0.04 * Math.abs(c.years - pref);
+    const score = (c.wage / demand) * roleF * yearsF + (c.bonus / (demand * 52)) * 0.3 + mgr(g, 'negotiating') * 0.04;
+    if (score >= 0.97 + normal(0, 0.025)) {
+      const fee = o.fee;
+      completeTransfer(g, p.id, user.id, fee, c.wage, c.years);
+      user.balance -= c.bonus;
+      user.seasonExpense += c.bonus;
+      user.transferBudget = Math.max(0, user.transferBudget - c.bonus);
+      o.status = 'done';
+      sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `${fullName(p)} signs!`, body: `${fullName(p)} has accepted your contract offer and joins from ${g.clubs[o.to].name} for ${fmtMoney(fee)}.\n\nTerms: ${fmtMoney(c.wage)}/week for ${c.years} year${c.years > 1 ? 's' : ''} as ${ROLE_AS[c.role]}${c.bonus ? `, with a ${fmtMoney(c.bonus)} signing-on fee` : ''}.` });
+      continue;
+    }
+    c.tries++;
+    const reason = c.wage < demand * 0.97 ? `He wants around ${fmtMoney(demand)}/week.`
+      : roleF < 1 ? `He wants to be ${ROLE_AS[want]} here.`
+      : yearsF < 0.95 ? `He would prefer a ${pref}-year contract.`
+      : `He is holding out for a little more.`;
+    if (c.tries >= 3) {
+      o.status = 'collapsed';
+      sendMessage(g, { from: g.clubs[o.to].name, kind: 'transfer', title: `Talks with ${fullName(p)} break down`, body: `${fullName(p)} has rejected your contract offer for a third time and talks have broken down. He stays at ${g.clubs[o.to].name}.` });
+    } else {
+      c.state = 'rejected';
+      c.note = reason;
+      sendMessage(g, { from: g.clubs[o.to].name, kind: 'transfer', title: `${fullName(p)} rejects your contract offer`, body: `${fullName(p)} has turned down your contract offer. ${reason}\n\nYou can make ${3 - c.tries} more offer${3 - c.tries > 1 ? 's' : ''} from his profile (Bid tab).`, offerId: o.id });
+    }
+  }
 }
 
 export function canAffordWage(g: GameState, clubId: number, wage: number, replacingWage = 0) {

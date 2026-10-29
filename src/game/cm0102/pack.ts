@@ -13,9 +13,12 @@ export function scramble(b: Uint8Array): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-/** Built-in database file → world (gzip inside the scramble). */
-export async function unpackWorld(buf: ArrayBuffer): Promise<CmWorld> {
-  const gz = scramble(new Uint8Array(buf));
+/** Built-in database file (base64 text, so any host serves it) → world (gzip inside the scramble). */
+export async function unpackWorld(text: string): Promise<CmWorld> {
+  const bin = atob(text.trim());
+  const raw = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) raw[i] = bin.charCodeAt(i);
+  const gz = scramble(raw);
   const stream = new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'));
   return JSON.parse(await new Response(stream).text()) as CmWorld;
 }

@@ -62,7 +62,7 @@ export interface CmWorld {
 }
 
 /** The database that ships with the game (in public/, built by tests/cm0102.test.ts with CM_EXPORT=1; see pack.ts). */
-export const CM_BUILTIN = 'cm0102-v2.dat';
+export const CM_BUILTIN = 'cm0102-v2.txt';
 /** Bumped whenever the built-in database gains data (2: career histories, real squads only). */
 export const CM_REV = 2;
 

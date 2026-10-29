@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NATIONS } from '../../game/data/names';
 import { nationName } from '../../game/intl';
 import { squadOf } from '../../game/generate';
 import { cmAttributes } from '../../game/cm0102/attrs';
 import { ATTR_GROUPS, ATTR_LABEL, age, fmtMoney, fullName, marketValue, overall, ratingAt, scoutedPotential } from '../../game/ratings';
 import { seasonLabel } from '../../game/season';
-import { askingPrice, playerInterest, releasePlayer, renewContract, renewDemand, signFreeAgent, userBid, wageDemand, windowOpen } from '../../game/transfers';
-import type { Pos, TrainingFocus } from '../../game/types';
+import { ROLE_AS, ROLE_LABEL, acceptCounter, askingPrice, expectedRole, offerContract, playerInterest, preferredYears, releasePlayer, renewContract, renewDemand, signFreeAgent, userBid, wageDemand, windowOpen } from '../../game/transfers';
+import type { GameState, Player, Pos, SquadRole, TrainingFocus } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { AttrVal, Card, CondBar, ConfirmButton, Ovr, PosTag, Spark, Stars } from '../components/common';
@@ -23,7 +23,12 @@ export function PlayerModal() {
   const ui = useUI();
   const id = ui.playerId;
   const [bid, setBid] = useState<number | null>(null);
+  const [bidErr, setBidErr] = useState('');
   const [tab, setTab] = useState<'attrs' | 'info' | 'stats' | 'career' | 'actions' | 'edit'>('attrs');
+  // Opening a player whose fee is agreed goes straight to the contract offer
+  useEffect(() => {
+    if (id !== null && g.offers.some((o) => o.playerId === id && o.from === g.userClubId && o.status === 'accepted')) setTab('actions');
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (id === null) return null;
   const p = g.players[id];
   if (!p) return null;
@@ -39,7 +44,7 @@ export function PlayerModal() {
   const groups = ATTR_GROUPS.filter((gr) => isGK || gr.name !== 'Goalkeeping');
   const shortlisted = g.shortlist.includes(p.id);
   const interest = !own ? playerInterest(g, p, user) : null;
-  const close = () => { ui.openPlayer(null); setBid(null); setTab('attrs'); };
+  const close = () => { ui.openPlayer(null); setBid(null); setBidErr(''); setTab('attrs'); };
   const act = (fn: () => { ok: boolean; msg: string }) => {
     const r = mutate(fn);
     ui.toast(r.msg, !r.ok);
@@ -204,20 +209,42 @@ export function PlayerModal() {
           </div>
         )}
 
-        {tab === 'actions' && !own && !scouted && p.clubId !== null && (
-          <div className="col pf-actions">
-            <div className="small">Asking price <b>{fmtMoney(ask)}</b> · wants <b>{fmtMoney(wageDemand(g, p, user))}/wk</b></div>
-            {interest && !interest.ok && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {interest.reason}</div>}
-            {!windowOpen(g) && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>Window closed — bids open in January and July.</div>}
-            <div className="row">
-              <input type="range" min={Math.round(ask * 0.4)} max={Math.max(ask * 1.6, 10000)} step={Math.max(1000, Math.round(ask / 100))} value={bidVal} onChange={(e) => setBid(Number(e.target.value))} style={{ flex: 1, height: 30 }} />
-              <b style={{ minWidth: 64, textAlign: 'right', fontFamily: 'var(--display)', fontSize: 18 }}>{fmtMoney(bidVal)}</b>
+        {tab === 'actions' && !own && !scouted && p.clubId !== null && (() => {
+          // The latest bid for him stays on screen with where it stands, CM-style
+          const offer = [...g.offers].reverse().find((o) => o.playerId === p.id && o.from === user.id && o.status !== 'withdrawn' && o.status !== 'done');
+          const live = offer && (offer.status === 'pending' || offer.status === 'accepted' || offer.status === 'countered');
+          const seller = g.clubs[p.clubId!];
+          return (
+            <div className="col pf-actions">
+              <div className="small">Asking price <b>{fmtMoney(ask)}</b> · wants <b>{fmtMoney(wageDemand(g, p, user))}/wk</b></div>
+              {offer && (
+                <div className={`bid-status ${offer.status}`}>
+                  {offer.status === 'pending' && <><b>Bid submitted</b><span>{fmtMoney(offer.fee)} to {seller.name}. Awaiting response: continue to the next day for their reply.</span></>}
+                  {offer.status === 'accepted' && !offer.contract && <><b>Bid accepted</b><span>{seller.name} accept {fmtMoney(offer.fee)}. Offer {p.last} a contract to complete the deal.</span></>}
+                  {offer.status === 'accepted' && offer.contract?.state === 'pending' && <><b>Contract offered</b><span>{fmtMoney(offer.contract.wage)}/wk · {offer.contract.years} yr · {ROLE_LABEL[offer.contract.role]}{offer.contract.bonus ? ` · ${fmtMoney(offer.contract.bonus)} signing-on` : ''}. Awaiting his answer: continue to the next day.</span></>}
+                  {offer.status === 'accepted' && offer.contract?.state === 'rejected' && <><b>Contract rejected</b><span>{offer.contract.note} {3 - offer.contract.tries} more offer{3 - offer.contract.tries > 1 ? 's' : ''} before talks break down.</span></>}
+                  {offer.status === 'countered' && <><b>Counter offer</b><span>{seller.name} rejected {fmtMoney(offer.fee)} but would accept {fmtMoney(offer.counter ?? 0)}.</span>
+                    <button className="btn primary block" onClick={() => act(() => acceptCounter(g, offer.id))}>Accept {fmtMoney(offer.counter ?? 0)}</button></>}
+                  {offer.status === 'rejected' && <><b>Bid rejected</b><span>{seller.name} turned down {fmtMoney(offer.fee)}.</span></>}
+                  {offer.status === 'collapsed' && <><b>Deal collapsed</b><span>The bid of {fmtMoney(offer.fee)} fell through.</span></>}
+                </div>
+              )}
+              {bidErr && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {bidErr}</div>}
+              {interest && !interest.ok && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {interest.reason}</div>}
+              {!windowOpen(g) && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>Window closed — bids open in January and July.</div>}
+              {offer?.status === 'accepted' && offer.contract?.state !== 'pending' && <ContractForm g={g} p={p} offerId={offer.id} onResult={(r) => { ui.toast(r.msg, !r.ok); setBidErr(r.ok ? '' : r.msg); }} />}
+              {!live && <>
+                <div className="row">
+                  <input type="range" min={Math.round(ask * 0.4)} max={Math.max(ask * 1.6, 10000)} step={Math.max(1000, Math.round(ask / 100))} value={bidVal} onChange={(e) => { setBid(Number(e.target.value)); setBidErr(''); }} style={{ flex: 1, height: 30 }} />
+                  <b style={{ minWidth: 64, textAlign: 'right', fontFamily: 'var(--display)', fontSize: 18 }}>{fmtMoney(bidVal)}</b>
+                </div>
+                <button className="btn primary block" disabled={!windowOpen(g)} onClick={() => { const r = mutate(() => userBid(g, p.id, bidVal)); ui.toast(r.msg, !r.ok); setBidErr(r.ok ? '' : r.msg); }}>{offer ? 'Bid again' : 'Submit bid'}</button>
+              </>}
+              <button className="btn block" onClick={toggleShortlist}>{shortlisted ? '★ Shortlisted' : '☆ Add to shortlist'}</button>
+              <div className="small muted">Your budget: {fmtMoney(user.transferBudget)}</div>
             </div>
-            <button className="btn primary block" disabled={!windowOpen(g)} onClick={() => act(() => userBid(g, p.id, bidVal))}>Submit bid</button>
-            <button className="btn block" onClick={toggleShortlist}>{shortlisted ? '★ Shortlisted' : '☆ Add to shortlist'}</button>
-            <div className="small muted">Your budget: {fmtMoney(user.transferBudget)}</div>
-          </div>
-        )}
+          );
+        })()}
 
         {tab === 'actions' && p.clubId === null && !scouted && (
           <div className="col pf-actions">
@@ -255,5 +282,42 @@ function Radar({ axes }: { axes: [string, number][] }) {
       <polygon points={shape} className="rs" />
       {axes.map(([label], i) => { const [x, y] = pt(i, R + 9); return <text key={label} x={x} y={y} textAnchor={x < 45 ? 'end' : x > 55 ? 'start' : 'middle'} dominantBaseline="middle">{label}</text>; })}
     </svg>
+  );
+}
+
+/** CM-style contract offer: wage, length, squad status and signing-on fee. He answers the next day. */
+function ContractForm({ g, p, offerId, onResult }: { g: GameState; p: Player; offerId: number; onResult: (r: { ok: boolean; msg: string }) => void }) {
+  const user = g.clubs[g.userClubId];
+  const demand = wageDemand(g, p, user);
+  const want = expectedRole(g, p, user);
+  const [wage, setWage] = useState(demand);
+  const [years, setYears] = useState(preferredYears(g, p));
+  const [role, setRole] = useState<SquadRole>(want);
+  const [bonus, setBonus] = useState(0);
+  const step = Math.max(500, Math.round(demand / 40 / 500) * 500);
+  const bonusMax = Math.max(demand * 52, 50_000);
+  return (
+    <div className="ti contract-form">
+      <div className="small">His agent asks for <b>{fmtMoney(demand)}/wk</b> as <b>{ROLE_AS[want]}</b>.</div>
+      <label className="ti-field"><span>Wage per week · {fmtMoney(wage)}</span>
+        <input type="range" min={Math.round(demand * 0.5)} max={Math.round(demand * 2)} step={step} value={wage} onChange={(e) => setWage(Number(e.target.value))} />
+      </label>
+      <div className="ti-grid">
+        <label className="ti-field"><span>Contract length</span>
+          <select className="input" value={years} onChange={(e) => setYears(Number(e.target.value))}>
+            {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y} year{y > 1 ? 's' : ''}</option>)}
+          </select>
+        </label>
+        <label className="ti-field"><span>Squad status</span>
+          <select className="input" value={role} onChange={(e) => setRole(e.target.value as SquadRole)}>
+            {(Object.keys(ROLE_LABEL) as SquadRole[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+          </select>
+        </label>
+      </div>
+      <label className="ti-field"><span>Signing-on fee · {bonus ? fmtMoney(bonus) : 'None'}</span>
+        <input type="range" min={0} max={bonusMax} step={Math.max(1000, Math.round(bonusMax / 40))} value={bonus} onChange={(e) => setBonus(Number(e.target.value))} />
+      </label>
+      <button className="btn primary block" onClick={() => onResult(mutate((gg) => offerContract(gg, offerId, { wage, years, bonus, role })))}>Offer contract</button>
+    </div>
   );
 }

@@ -397,7 +397,12 @@ export function Inbox() {
             </div>
           )}
           {regScope && <RegistrationSheet scope={regScope} onClose={() => setRegScope(null)} />}
-          {msg.offerId && !msg.action && <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('transfers')}>Go to Transfers →</button>}
+          {msg.offerId && !msg.action && (() => {
+            const o = g.offers.find((x) => x.id === msg.offerId);
+            return o && o.from === g.userClubId && o.status === 'accepted'
+              ? <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.openPlayer(o.playerId)}>Offer contract →</button>
+              : <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('transfers')}>Go to Transfers →</button>;
+          })()}
           {msg.kind === 'youth' && <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('youth')}>See youth team →</button>}
         </Card>
       </div>
