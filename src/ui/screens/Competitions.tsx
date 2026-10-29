@@ -15,6 +15,7 @@ import { europeFor, europeTable } from '../../game/europe';
 import { guestLeagueName } from '../../game/guests';
 import { CwcView, IntlView, NationsCard, UpcomingCard } from './WorldViews';
 import { respondAction } from '../../game/actions';
+import { DealStep } from '../components/TransferDeal';
 import { RegistrationSheet } from '../components/RegistrationSheet';
 import { YouthCompView } from './YouthViews';
 import { useLandscape } from '../useLandscape';
@@ -399,10 +400,15 @@ export function Inbox() {
           {regScope && <RegistrationSheet scope={regScope} onClose={() => setRegScope(null)} />}
           {msg.offerId && !msg.action && (() => {
             const o = g.offers.find((x) => x.id === msg.offerId);
-            // Your own bids: open the player, where the bid and contract are handled
-            return o && o.from === g.userClubId
-              ? <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.openPlayer(o.playerId)}>{o.status === 'accepted' && o.contract?.state !== 'pending' ? 'Offer contract →' : 'View player →'}</button>
-              : <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('transfers')}>Go to Transfers →</button>;
+            if (!o || o.from !== g.userClubId) return <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('transfers')}>Go to Transfers →</button>;
+            // Your own deal, CM-style: the newest mail about it carries the next step (contract, answer, confirm)
+            const latest = [...g.inbox].filter((m) => m.offerId === o.id).sort((a, b) => b.id - a.id)[0];
+            return (
+              <div style={{ marginTop: 16 }} className="col">
+                {latest?.id === msg.id && <DealStep g={g} o={o} />}
+                <button className="btn block" onClick={() => ui.openPlayer(o.playerId)}>View player</button>
+              </div>
+            );
           })()}
           {msg.kind === 'youth' && <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('youth')}>See youth team →</button>}
         </Card>

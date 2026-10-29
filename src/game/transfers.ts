@@ -79,7 +79,7 @@ export function respondToUserBids(g: GameState) {
     const seller = g.clubs[o.to];
     if (o.fee >= ask) {
       o.status = 'accepted';
-      sendMessage(g, { from: seller.name, kind: 'transfer', title: `Bid accepted for ${fullName(p)}`, body: `${seller.name} have accepted your ${fmtMoney(o.fee)} offer for ${fullName(p)}. Now offer ${p.last} a contract: open his profile (Bid tab). His agent is asking for around ${fmtMoney(o.wage)}/week.`, offerId: o.id });
+      sendMessage(g, { from: seller.name, kind: 'transfer', title: `Bid accepted for ${fullName(p)}`, body: `${seller.name} have accepted your ${fmtMoney(o.fee)} offer for ${fullName(p)}. You may now offer ${fullName(p)} a contract. His agent is asking for around ${fmtMoney(o.wage)}/week.`, offerId: o.id });
     } else if (o.fee >= ask * 0.75) {
       o.status = 'countered';
       o.counter = ask;
@@ -125,6 +125,7 @@ export function offerContract(g: GameState, offerId: number, terms: Pick<Contrac
   const p = o && g.players[o.playerId];
   if (!o || !p || o.status !== 'accepted' || p.clubId !== o.to) return { ok: false, msg: 'Offer no longer valid.' };
   if (o.contract?.state === 'pending') return { ok: false, msg: `${fullName(p)} is still considering your offer.` };
+  if (o.contract?.state === 'agreed') return { ok: false, msg: `${fullName(p)} has already agreed terms: confirm the transfer.` };
   if (!windowOpen(g)) { o.status = 'collapsed'; return { ok: false, msg: 'The window closed before the deal was completed.' }; }
   const user = g.clubs[g.userClubId];
   if (o.fee + terms.bonus > user.transferBudget) return { ok: false, msg: `The fee plus signing-on fee (${fmtMoney(o.fee + terms.bonus)}) is more than your transfer budget.` };
@@ -149,13 +150,10 @@ export function respondToContracts(g: GameState) {
     const yearsF = 1 - 0.04 * Math.abs(c.years - pref);
     const score = (c.wage / demand) * roleF * yearsF + (c.bonus / (demand * 52)) * 0.3 + mgr(g, 'negotiating') * 0.04;
     if (score >= 0.97 + normal(0, 0.025)) {
-      const fee = o.fee;
-      completeTransfer(g, p.id, user.id, fee, c.wage, c.years);
-      user.balance -= c.bonus;
-      user.seasonExpense += c.bonus;
-      user.transferBudget = Math.max(0, user.transferBudget - c.bonus);
-      o.status = 'done';
-      sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `${fullName(p)} signs!`, body: `${fullName(p)} has accepted your contract offer and joins from ${g.clubs[o.to].name} for ${fmtMoney(fee)}.\n\nTerms: ${fmtMoney(c.wage)}/week for ${c.years} year${c.years > 1 ? 's' : ''} as ${ROLE_AS[c.role]}${c.bonus ? `, with a ${fmtMoney(c.bonus)} signing-on fee` : ''}.` });
+      // As in CM: he agrees terms, then you confirm the transfer
+      c.state = 'agreed';
+      c.note = undefined;
+      sendMessage(g, { from: `${fullName(p)}'s agent`, kind: 'transfer', title: `${fullName(p)} accepts your contract offer`, body: `${fullName(p)} has agreed personal terms: ${fmtMoney(c.wage)}/week for ${c.years} year${c.years > 1 ? 's' : ''} as ${ROLE_AS[c.role]}${c.bonus ? `, with a ${fmtMoney(c.bonus)} signing-on fee` : ''}.\n\nConfirm the transfer to complete the ${fmtMoney(o.fee)} deal with ${g.clubs[o.to].name}.`, offerId: o.id });
       continue;
     }
     c.tries++;
@@ -169,9 +167,37 @@ export function respondToContracts(g: GameState) {
     } else {
       c.state = 'rejected';
       c.note = reason;
-      sendMessage(g, { from: g.clubs[o.to].name, kind: 'transfer', title: `${fullName(p)} rejects your contract offer`, body: `${fullName(p)} has turned down your contract offer. ${reason}\n\nYou can make ${3 - c.tries} more offer${3 - c.tries > 1 ? 's' : ''} from his profile (Bid tab).`, offerId: o.id });
+      sendMessage(g, { from: `${fullName(p)}'s agent`, kind: 'transfer', title: `${fullName(p)} rejects your contract offer`, body: `${fullName(p)} has turned down your contract offer. ${reason}\n\nYou can make ${3 - c.tries} more offer${3 - c.tries > 1 ? 's' : ''}.`, offerId: o.id });
     }
   }
+}
+
+/** He has agreed terms: complete the transfer (the fee, his wage and any signing-on fee are paid now). */
+export function confirmTransfer(g: GameState, offerId: number): { ok: boolean; msg: string } {
+  const o = g.offers.find((x) => x.id === offerId);
+  const p = o && g.players[o.playerId];
+  const c = o?.contract;
+  if (!o || !p || !c || o.status !== 'accepted' || c.state !== 'agreed' || p.clubId !== o.to) return { ok: false, msg: 'This deal is no longer available.' };
+  if (!windowOpen(g)) { o.status = 'collapsed'; return { ok: false, msg: 'The transfer window has closed: the deal has collapsed.' }; }
+  const user = g.clubs[g.userClubId];
+  if (o.fee + c.bonus > user.transferBudget) return { ok: false, msg: `Not enough transfer budget (${fmtMoney(o.fee + c.bonus)} needed).` };
+  if (!canAffordWage(g, user.id, c.wage)) return { ok: false, msg: `His wage would break your wage budget (${fmtMoney(user.wageBudget)}/wk).` };
+  const from = g.clubs[o.to].name;
+  completeTransfer(g, p.id, user.id, o.fee, c.wage, c.years);
+  user.balance -= c.bonus;
+  user.seasonExpense += c.bonus;
+  user.transferBudget = Math.max(0, user.transferBudget - c.bonus);
+  o.status = 'done';
+  sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `${fullName(p)} signs!`, body: `${fullName(p)} has completed his ${fmtMoney(o.fee)} move from ${from}.\n\nTerms: ${fmtMoney(c.wage)}/week for ${c.years} year${c.years > 1 ? 's' : ''} as ${ROLE_AS[c.role]}${c.bonus ? `, with a ${fmtMoney(c.bonus)} signing-on fee` : ''}.` });
+  return { ok: true, msg: `${fullName(p)} has signed!` };
+}
+
+/** Pull out of a deal before it completes. */
+export function cancelTransfer(g: GameState, offerId: number): { ok: boolean; msg: string } {
+  const o = g.offers.find((x) => x.id === offerId);
+  if (!o || (o.status !== 'accepted' && o.status !== 'countered' && o.status !== 'pending')) return { ok: false, msg: 'This deal is no longer available.' };
+  o.status = 'withdrawn';
+  return { ok: true, msg: 'You pulled out of the deal.' };
 }
 
 export function canAffordWage(g: GameState, clubId: number, wage: number, replacingWage = 0) {

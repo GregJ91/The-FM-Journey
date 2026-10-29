@@ -360,7 +360,7 @@ export interface ContractOffer {
   bonus: number; // signing-on fee
   role: SquadRole;
   by: string; // date he answers
-  state: 'pending' | 'rejected';
+  state: 'pending' | 'rejected' | 'agreed'; // agreed: he accepted, the transfer waits for your confirmation
   tries: number; // offers he has turned down
   note?: string; // why he turned the last one down
 }
