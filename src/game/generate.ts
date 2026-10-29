@@ -13,7 +13,7 @@ export function withNaturalAlt(alt: Pos[], pos: Pos, real?: boolean): Pos[] {
 import { chance, hash, hashString, int, normal, pick, rand, seed, weighted } from './rng';
 import { bestFormation, pickLineup } from './selection';
 import { normaliseTactics } from './tactics';
-import { isMetaClub, metaStyle } from './meta';
+import { applyMetaProfile, isMetaClub, metaStyle } from './meta';
 import { assignAllShirtNumbers } from './shirts';
 import { SHIRT_NUMBERS } from './data/shirtNumbers';
 import type { Attrs, Club, CrestPattern, CrestShape, GameState, League, Player, Pos, SeasonStats } from './types';
@@ -283,6 +283,8 @@ function addCmPlayers(g: GameState, cm: CmWorld, idx: number, clubId: number | n
     p.pa = Math.max(sp.pa, overall(p));
     p.personality = sp.personality;
     if (sp.cm) p.cm = { v: sp.cm, o: overall(p) };
+    // Meta clubs (Arsenal) are overpowered here too: same overall, profile shaped towards what wins matches
+    if (club && isMetaClub(club)) applyMetaProfile(p);
     p.contractEnd = clubId === null ? g.season : sp.contractEnd;
     p.caps = sp.caps || undefined;
     p.intGoals = sp.intGoals || undefined;

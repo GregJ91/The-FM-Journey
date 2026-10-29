@@ -133,7 +133,7 @@ function computeStrength(g: GameState, side: Side) {
     defM *= 1 + 0.02 * mgr(g, 'defending');
     midM *= 1 + 0.015 * mgr(g, 'tactical');
   }
-  const edge = isMetaClub(g.clubs[side.clubId]) ? META_TUNING.edge : 1;
+  const edge = isMetaClub(g.clubs[side.clubId]) ? (g.era ? META_TUNING.cmEdge : META_TUNING.edge) : 1;
   side.str = { att: (att / 3.6) * attM * edge, mid: (mid / 4.5) * midM * edge, def: (def / 5.0) * defM * edge, gk };
 }
 

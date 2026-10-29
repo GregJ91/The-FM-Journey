@@ -8,9 +8,10 @@ export const META_CLUBS = new Set(['Arsenal']);
 
 /**
  * Team-strength multiplier for meta clubs. Calibrated so Arsenal win about 65% of games
- * against the rest of the big six (tests/meta.test.ts).
+ * against the rest of the big six (tests/meta.test.ts). In CM 01/02 careers Arsenal are far stronger (cmEdge):
+ * title favourites every season and serious Champions League contenders.
  */
-export const META_TUNING = { edge: 1.095 };
+export const META_TUNING = { edge: 1.095, cmEdge: 1.2 };
 
 export function isMetaClub(club: Club | undefined) {
   return !!club && META_CLUBS.has(club.name);
