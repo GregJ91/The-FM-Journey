@@ -157,7 +157,9 @@ export function Squad({ start }: { start?: 'youth' } = {}) {
   // Which squad: a small dropdown (first team, reserves, youth team) beside the Tactics button
   const toolbar = (
     <div className="ns-toggle">
-      <select className={`input squad-pick ${tab !== 'tactics' ? 'on' : ''}`} aria-label="Squad" value={tab === 'tactics' ? 'squad' : tab} onChange={(e) => setTab(e.target.value as typeof tab)}>
+      {/* In Tactics it reads "Squad", so picking any squad (First team included) switches back */}
+      <select className={`input squad-pick ${tab !== 'tactics' ? 'on' : ''}`} aria-label="Squad" value={tab === 'tactics' ? '' : tab} onChange={(e) => setTab(e.target.value as typeof tab)}>
+        {tab === 'tactics' && <option value="" disabled hidden>Squad</option>}
         <option value="squad">First team</option>
         {hasReserves && <option value="reserves">Reserves</option>}
         <option value="youth">Youth team</option>
