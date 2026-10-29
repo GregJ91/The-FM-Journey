@@ -140,6 +140,12 @@ function computeStrength(g: GameState, side: Side) {
   side.str = { att: (att / 3.6) * attM * edge, mid: (mid / 4.5) * midM * edge, def: (def / 5.0) * defM * edge, gk };
 }
 
+/**
+ * CM 01/02 careers: possession and chance creation follow strength less steeply, and there are slightly fewer
+ * chances, so scores look like 2002/03 (about 2.6 goals a game; big wins rare). Tuned in tests/cmscores.test.ts.
+ */
+export const CM_TUNE = { possExp: 1.8, shotExp: 1.0, shotBase: 0.21 };
+
 /** Which flank a slot is on, for attacking focus. */
 function flank(lp: LivePlayer): 'left' | 'centre' | 'right' {
   return lp.y < 35 ? 'left' : lp.y > 65 ? 'right' : 'centre';
@@ -286,8 +292,10 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
   }
 
   // Possession
-  const mh = Math.pow(H.str.mid, 2.5);
-  const ma = Math.pow(A.str.mid, 2.5);
+  // CM 01/02 careers are tuned to 2002/03 football: fewer goals and fewer thrashings (gentler curves below)
+  const cmTune = g.era === 'cm0102' ? CM_TUNE : null;
+  const mh = Math.pow(H.str.mid, cmTune?.possExp ?? 2.5);
+  const ma = Math.pow(A.str.mid, cmTune?.possExp ?? 2.5);
   let pH = mh / (mh + ma) + 0.02;
   pH = Math.min(0.8, Math.max(0.2, pH));
   const t: 0 | 1 = rand() < pH ? 0 : 1;
@@ -334,7 +342,7 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
   } else if (dt.line === 0) quality *= 0.93;
   if (dt.pressing === 2) quality *= 1.05; // beat the press and there's room to attack
   if (dt.pressing === 0) quality *= 0.97;
-  const pShot = 0.22 * Math.pow(ratio, 1.6) * shotMult;
+  const pShot = (cmTune?.shotBase ?? 0.22) * Math.pow(ratio, cmTune?.shotExp ?? 1.6) * shotMult;
   if (rand() < pShot && att.onPitch.length > 0) {
     const beatTrap = dt.offsideTrap && rand() < 0.05;
     evs.push(...shot(g, m, t, ratio * quality, beatTrap));
