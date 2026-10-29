@@ -9,7 +9,13 @@ loadBadges();
 // Portrait only. Ask the browser to lock portrait (works in the installed app and full screen); if the phone is
 // still sideways, a "turn your phone" screen covers the game (styles.css).
 const lockPortrait = () => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> })?.lock?.('portrait').catch(() => {});
+// Android can ignore a lock asked for too early while the app starts, so ask again as loading finishes,
+// when the app comes back to the front, and on the first touch
 lockPortrait();
+for (const ms of [150, 500, 1200, 2500]) setTimeout(lockPortrait, ms);
+window.addEventListener('load', lockPortrait);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') lockPortrait(); });
+screen.orientation?.addEventListener?.('change', () => { if (screen.orientation.type.startsWith('landscape')) lockPortrait(); });
 window.addEventListener('pointerdown', lockPortrait, { once: true });
 const hint = document.createElement('div');
 hint.className = 'rotate-hint';
