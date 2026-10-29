@@ -151,7 +151,25 @@ function youthSide(g: GameState, clubId: number, ageLimit: number, reserve = fal
   }
   if (reserve && eligible.length < 14) eligible = [...eligible, ...kids.sort((a, b) => ratingAt(b, b.pos) - ratingAt(a, a.pos)).slice(0, 14 - eligible.length)];
   const slots = FORMATIONS[club.tactics.formation] ?? FORMATIONS['4-3-3'];
-  const { lineup: xiIds, subs } = pickLineup(club, eligible, true);
+  let { lineup: xiIds, subs } = pickLineup(club, reserve ? eligible.filter((p) => p.squad === 'reserve') : eligible, true);
+  if (reserve) {
+    // The reserve squad has first claim on the reserve team; first-teamers and youngsters fill any places left
+    const used = new Set(xiIds.filter((id): id is number => id !== null));
+    const others = eligible.filter((p) => p.squad !== 'reserve');
+    xiIds = xiIds.map((id, i) => {
+      if (id !== null) return id;
+      let best: Player | null = null;
+      let bestR = -1;
+      for (const p of others) {
+        if (used.has(p.id)) continue;
+        const r = ratingAt(p, slots[i].pos);
+        if (r > bestR) { bestR = r; best = p; }
+      }
+      if (best) used.add(best.id);
+      return best?.id ?? null;
+    });
+    subs = [...subs.filter((id) => !used.has(id)), ...others.filter((p) => !used.has(p.id)).map((p) => p.id)].slice(0, 7);
+  }
   const base = reserve ? 42 + club.reputation * 0.28 : fillLevel(club);
   const xi: { p: Player; pos: string }[] = [];
   let sum = 0;
