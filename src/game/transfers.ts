@@ -361,7 +361,7 @@ export function completeTransfer(g: GameState, playerId: number, toId: number, f
   p.shirt = keep;
   assignShirtNumbers(g, toId);
   // Signings for meta clubs get the meta attribute profile
-  if (isMetaClub(to)) applyMetaProfile(p);
+  if (isMetaClub(to, g)) applyMetaProfile(p);
   registerNewSigning(g, p);
   p.squad = 'first';
   p.wage = wage;

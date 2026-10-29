@@ -89,7 +89,7 @@ export interface PlayerSpec {
 
 export function createPlayer(g: GameState, spec: PlayerSpec, clubId: number | null, rep = 50): Player {
   // Meta clubs' players (real, generated and academy intakes) get meta attribute profiles
-  const meta = !spec.attrs && clubId !== null && isMetaClub(g.clubs[clubId]);
+  const meta = !spec.attrs && clubId !== null && isMetaClub(g.clubs[clubId], g);
   const attrs = spec.attrs ? { ...spec.attrs } : generateAttrs(spec.pos, spec.ovr, meta ? (spec.style ?? '') + metaStyle(spec.pos) : spec.style);
   const id = nextId(g);
   const pa = spec.pa ?? potentialFor(spec.ovr, spec.age);
@@ -247,7 +247,7 @@ function fillCmSquad(g: GameState, club: Club, level: number, min: number, all =
       best.joined = g.date;
       best.contractEnd = g.season + 1 + int(0, 2);
       best.wage = wageFor(overall(best), club.reputation);
-      if (isMetaClub(club)) applyMetaProfile(best);
+      if (isMetaClub(club, g)) applyMetaProfile(best);
       counts[best.pos] = (counts[best.pos] ?? 0) + 1;
     }
   }
@@ -353,7 +353,7 @@ function addCmPlayers(g: GameState, list: CmWorld['players'], clubId: number | n
     if (sp.past) p.past = sp.past.map((h) => [...h] as [number, number, number, number, number]);
     p.dbi = index.get(sp);
     // Meta clubs (Arsenal) are overpowered here too: same overall, profile shaped towards what wins matches
-    if (club && isMetaClub(club)) applyMetaProfile(p);
+    if (club && isMetaClub(club, g)) applyMetaProfile(p);
     p.contractEnd = clubId === null ? g.season : sp.contractEnd;
     p.caps = sp.caps || undefined;
     p.intGoals = sp.intGoals || undefined;

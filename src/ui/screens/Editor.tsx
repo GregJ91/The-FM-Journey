@@ -80,7 +80,7 @@ export function PlayerEditor({ g, p }: { g: GameState; p: Player }) {
     p.squad = 'first';
     p.listed = false;
     p.joined = gg.date;
-    if (clubId !== null && isMetaClub(gg.clubs[clubId])) applyMetaProfile(p);
+    if (clubId !== null && isMetaClub(gg.clubs[clubId], gg)) applyMetaProfile(p);
     if (clubId === gg.userClubId) numberUserSquad(gg);
     else if (clubId !== null) assignShirtNumbers(gg, clubId);
   });
