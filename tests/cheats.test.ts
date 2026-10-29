@@ -1,12 +1,15 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { CM_BUILTIN } from '../src/game/cm0102/parse';
+import { scramble } from '../src/game/cm0102/pack';
 import { autoResolveActions } from '../src/game/actions';
 import { activateCheat, cheatOf } from '../src/game/cheats';
 import { parseMoney } from '../src/ui/screens/Editor';
 import { createWorld } from '../src/game/generate';
 import { advanceDay, quickPlayUserMatch, startSeason } from '../src/game/season';
 
-const DB = 'public/cm0102-v2.json';
+const DB = `public/${CM_BUILTIN}`;
 
 describe('cheats', () => {
   it('recognises names loosely', () => {
@@ -24,7 +27,7 @@ describe('cheats', () => {
   });
 
   it.skipIf(!existsSync(DB))('"Champions" wins about 90% of games in a CM career', () => {
-    const cm = JSON.parse(readFileSync(DB, 'utf8'));
+    const cm = JSON.parse(gunzipSync(scramble(readFileSync(DB))).toString('utf8'));
     let w = 0, n = 0;
     for (const club of ['Fulham', 'Burnley', 'Forfar Athletic']) {
       const g = createWorld({ mode: 'classic', manager: 'T', clubName: club, slot: 't', seed: 3, cm });

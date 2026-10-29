@@ -1,5 +1,7 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { scramble } from '../src/game/cm0102/pack';
 import { autoResolveActions } from '../src/game/actions';
 import { leagueTable } from '../src/game/competitions';
 import { NATIONS } from '../src/game/data/names';
@@ -24,7 +26,7 @@ function load() {
 describe.skipIf(!have)('CM 01/02', () => {
   // CM_EXPORT=1 npx vitest run tests/cm0102.test.ts  →  rebuilds the built-in database the game ships with
   it.runIf(!!process.env.CM_EXPORT)('exports the built-in database', () => {
-    writeFileSync(`public/${CM_BUILTIN}`, JSON.stringify(load()));
+    writeFileSync(`public/${CM_BUILTIN}`, scramble(gzipSync(JSON.stringify(load()), { level: 9 })));
   }, 60000);
 
   it('reads clubs, leagues and players', () => {

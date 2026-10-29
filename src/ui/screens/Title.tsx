@@ -3,6 +3,7 @@ import { LEAGUE_DEFS } from '../../game/data/leagues';
 import { fmtDate } from '../../game/dates';
 import { CM_LEAGUE_NAMES, cmClubLine, createWorld } from '../../game/generate';
 import { CM_BUILTIN, missingFiles, parseCm0102, type CmWorld } from '../../game/cm0102/parse';
+import { unpackWorld } from '../../game/cm0102/pack';
 import { unzip } from '../../game/cm0102/unzip';
 import { hashString } from '../../game/rng';
 import { startSeason } from '../../game/season';
@@ -265,7 +266,7 @@ function CmSetup({ onBack }: { onBack: () => void }) {
       try {
         const res = await fetch(`./${CM_BUILTIN}`);
         if (!res.ok) throw new Error(String(res.status));
-        const w = (await res.json()) as CmWorld;
+        const w = await unpackWorld(await res.arrayBuffer());
         await saveCmWorld(w);
         setWorld(w);
       } catch {
