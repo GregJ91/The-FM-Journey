@@ -143,7 +143,7 @@ const SEL = <T extends string | number>({ label, value, options, onChange }: { l
 const YES_NO: [number, string][] = [[1, 'Yes'], [0, 'No']];
 
 /** CM 01/02-style team instructions: every setting is a dropdown, all on one screen; player roles on a second page. */
-export function TeamInstructions({ g, tactics, lineup, onChange, autoSubs, onAutoSubs }: { g: GameState; tactics: Tactics; lineup?: (number | null)[]; onChange: (t: Partial<Tactics>) => void; autoSubs: boolean; onAutoSubs: (v: boolean) => void }) {
+export function TeamInstructions({ g, tactics, lineup, onChange, autoSubs, onAutoSubs, live }: { g: GameState; tactics: Tactics; lineup?: (number | null)[]; onChange: (t: Partial<Tactics>) => void; autoSubs: boolean; onAutoSubs: (v: boolean) => void; live?: boolean }) {
   const [page, setPage] = useState<'team' | 'roles'>('team');
   const slots = FORMATIONS[tactics.formation];
   return (
@@ -154,10 +154,10 @@ export function TeamInstructions({ g, tactics, lineup, onChange, autoSubs, onAut
       </div>
       {page === 'team' ? (
         <div className="ti-grid">
-          <label className="ti-field wide">
+          {!live && <label className="ti-field wide">
             <span>Tactic name</span>
             <input id="tactic-name" className="input" maxLength={24} placeholder="Name your tactic" value={tactics.name ?? ''} onChange={(e) => onChange({ name: e.target.value })} />
-          </label>
+          </label>}
           <label className="ti-field wide">
             <span>Load a preset</span>
             <select className="input" value="" onChange={(e) => { const p = PRESETS.find((x) => x.id === e.target.value); if (p) onChange(applyPreset(p)); }}>

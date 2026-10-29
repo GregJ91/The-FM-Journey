@@ -10,7 +10,7 @@ import type { Club, Fixture, GameState } from '../../game/types';
 import { getGame, mutate, autoSave, useGame } from '../../store';
 import { useUI } from '../context';
 import { Ovr, PosTag, Sheet } from '../components/common';
-import { TacticsEditor } from '../components/TacticsEditor';
+import { TeamInstructions } from '../components/TacticsEditor';
 import { statSummary } from '../components/PlayerStats';
 import { Crest, isLight } from '../components/Crest';
 import { useLandscape } from '../useLandscape';
@@ -184,9 +184,10 @@ export function MatchScreen() {
   const tacticsSheet = tacticsOpen && (
     <Sheet title={`Tactics · ${m.minute}'`} onClose={() => { setTacticsOpen(false); setPaused(false); }} right={<span className="chip">{userTeam.tactics.formation}</span>}>
       <div className="sheet-b">
-        <TacticsEditor g={g} live tactics={userTeam.tactics}
+        <TeamInstructions g={g} live tactics={userTeam.tactics}
           lineup={FORMATIONS[userTeam.tactics.formation].map((_, i) => userTeam.onPitch.find((lp) => lp.slot === i)?.id ?? null)}
-          onChange={(t) => { changeTactics(getGame()!, m, userSide, t); refresh(); }} />
+          onChange={(t) => { changeTactics(getGame()!, m, userSide, t); refresh(); }}
+          autoSubs={g.autoSubs} onAutoSubs={(v) => { mutate((gg) => { gg.autoSubs = v; }); refresh(); }} />
         <button className="btn primary block" onClick={() => { setTacticsOpen(false); setPaused(false); }}>Back to the match</button>
       </div>
     </Sheet>
