@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { autoResolveActions } from '../src/game/actions';
 import { leagueTable } from '../src/game/competitions';
@@ -6,7 +6,7 @@ import { NATIONS } from '../src/game/data/names';
 import { createWorld } from '../src/game/generate';
 import { fullName, overall } from '../src/game/ratings';
 import { advanceDay, quickPlayUserMatch, startSeason } from '../src/game/season';
-import { parseCm0102, type CmWorld } from '../src/game/cm0102/parse';
+import { CM_BUILTIN, parseCm0102, type CmWorld } from '../src/game/cm0102/parse';
 
 // Runs only where a CM 01/02 Data folder is available (the database isn't part of this repo).
 const DIR = process.env.CM0102_DATA ?? '/tmp/claude-0/cm0102';
@@ -22,6 +22,11 @@ function load() {
 }
 
 describe.skipIf(!have)('CM 01/02', () => {
+  // CM_EXPORT=1 npx vitest run tests/cm0102.test.ts  →  rebuilds the built-in database the game ships with
+  it.runIf(!!process.env.CM_EXPORT)('exports the built-in database', () => {
+    writeFileSync(`public/${CM_BUILTIN}`, JSON.stringify(load()));
+  }, 60000);
+
   it('reads clubs, leagues and players', () => {
     const w = load();
     const ars = w.clubs.findIndex((c) => c.name === 'Arsenal');

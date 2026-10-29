@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { LEAGUE_DEFS } from '../../game/data/leagues';
 import { fmtDate } from '../../game/dates';
 import { CM_LEAGUE_NAMES, cmClubLine, createWorld } from '../../game/generate';
-import { missingFiles, parseCm0102, type CmWorld } from '../../game/cm0102/parse';
+import { CM_BUILTIN, missingFiles, parseCm0102, type CmWorld } from '../../game/cm0102/parse';
 import { unzip } from '../../game/cm0102/unzip';
 import { hashString } from '../../game/rng';
 import { startSeason } from '../../game/season';
@@ -65,7 +65,7 @@ export function Title() {
             <button className="mode-card cm-card" style={{ '--glow': 'rgba(52,255,106,0.22)' } as React.CSSProperties} onClick={() => setStep('cm')}>
               <span className="chip">💾 Retro</span>
               <h2>CM 01/02</h2>
-              <p>Your own Championship Manager 01/02 database.</p>
+              <p>Championship Manager 01/02's database: every club and player.</p>
             </button>
             <div className="title-small">
               {saves.length > 0 && <button className="btn" onClick={() => setStep('load')}>💾 Saves ({saves.length})</button>}
@@ -103,7 +103,7 @@ function Back({ onBack, title }: { onBack: () => void; title: string }) {
   );
 }
 
-function ClassicSetup({ onBack, cm, onReimport }: { onBack: () => void; cm?: CmWorld; onReimport?: () => void }) {
+function ClassicSetup({ onBack, cm }: { onBack: () => void; cm?: CmWorld }) {
   const defs = cm
     ? cm.leagues.map((l) => ({ id: l.id, name: CM_LEAGUE_NAMES[l.id]?.[0] ?? l.id, clubs: l.clubs.map((i) => cmClubLine(cm.clubs[i])) }))
     : LEAGUE_DEFS;
@@ -129,7 +129,6 @@ function ClassicSetup({ onBack, cm, onReimport }: { onBack: () => void; cm?: CmW
         <select className="input" style={{ flex: 1 }} value={league} onChange={(e) => { setLeague(e.target.value); setClub(null); }}>
           {defs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
-        {onReimport && <ConfirmButton className="btn sm" label="Re-import" confirmLabel="Replace database?" onConfirm={onReimport} />}
       </div>
       <Fit className="setup-fill"><div className="list club-list">
         {clubs.map((c) => (
@@ -224,13 +223,36 @@ function LoadList({ saves, onBack, onChange }: { saves: SaveMeta[]; onBack: () =
   );
 }
 
-/** CM 01/02: import the player's own database once, then pick a club from it. */
+/** CM 01/02: the built-in database (kept on the device after the first download), then pick a club from it. */
 function CmSetup({ onBack }: { onBack: () => void }) {
   const [world, setWorld] = useState<CmWorld | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  useEffect(() => { loadCmWorld().then(setWorld); }, []);
-  if (world) return <ClassicSetup cm={world} onBack={onBack} onReimport={async () => { await saveCmWorld(null); setWorld(null); }} />;
+  useEffect(() => {
+    (async () => {
+      const stored = await loadCmWorld();
+      if (stored) return setWorld(stored);
+      try {
+        const res = await fetch(`./${CM_BUILTIN}`);
+        if (!res.ok) throw new Error(String(res.status));
+        const w = (await res.json()) as CmWorld;
+        await saveCmWorld(w);
+        setWorld(w);
+      } catch {
+        // Offline on first use: fall back to importing the files
+        setWorld(null);
+      }
+    })();
+  }, []);
+  if (world === undefined) {
+    return (
+      <div className="setup-page">
+        <Back onBack={onBack} title="CM 01/02" />
+        <div className="empty">Loading the CM 01/02 database…</div>
+      </div>
+    );
+  }
+  if (world) return <ClassicSetup cm={world} onBack={onBack} />;
   const onFiles = async (list: FileList | null) => {
     if (!list?.length) return;
     setBusy(true);
@@ -259,7 +281,8 @@ function CmSetup({ onBack }: { onBack: () => void }) {
       <Back onBack={onBack} title="CM 01/02" />
       <Fit className="setup-fill">
         <section className="card cm-import">
-          <div className="card-h"><h3>Import your database</h3></div>
+          <div className="card-h"><h3>Couldn't download the database</h3></div>
+          <p>You need to be online the first time you open CM 01/02. Go back and try again with a connection, or import the files yourself below.</p>
           <p>Play with every club and player from your copy of Championship Manager 01/02: the English, Scottish, Spanish, Italian, German and French leagues, plus Europe's best clubs in the UEFA competitions.</p>
           <p className="muted small">Pick the files in CM's <b>Data</b> folder (staff.dat, club.dat, nation.dat, the name files and the rest), or a .zip of the folder. Your database stays on this device and isn't uploaded anywhere.</p>
           {err && <div className="banner closed">{err}</div>}
@@ -267,7 +290,7 @@ function CmSetup({ onBack }: { onBack: () => void }) {
       </Fit>
       <div className="setup-cta">
         <label className={`continue-btn ${busy ? 'disabled' : ''}`} style={{ flex: 1 }}>
-          {busy ? 'Reading your database…' : world === undefined ? 'Checking…' : '📂 Choose files'}
+          {busy ? 'Reading your database…' : '📂 Choose files'}
           <input type="file" multiple accept=".dat,.zip" hidden disabled={busy} onChange={(e) => onFiles(e.target.files)} />
         </label>
       </div>

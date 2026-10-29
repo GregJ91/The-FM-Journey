@@ -29,11 +29,10 @@ function Game() {
     return () => applyTheme(null);
   }, [colors[0], colors[1]]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // CM 01/02 careers: the CM look, and money shown at early-2000s prices
+  // CM 01/02 careers: the CM look (money prices are set in Root, before anything renders)
   useEffect(() => {
     if (g.era) document.documentElement.dataset.era = g.era;
-    setMoneyScale(g.era ? CM_MONEY : 1);
-    return () => { delete document.documentElement.dataset.era; setMoneyScale(1); };
+    return () => { delete document.documentElement.dataset.era; };
   }, [g.era]);
 
   useEffect(() => {
@@ -85,6 +84,8 @@ function Game() {
 function Root() {
   useVersion();
   const g = useGame();
+  // CM 01/02 careers show money at early-2000s prices
+  setMoneyScale(g?.era ? CM_MONEY : 1);
   return g ? <Game /> : <div className="phone"><Title /></div>;
 }
 

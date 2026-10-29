@@ -55,6 +55,9 @@ export interface CmWorld {
   players: CmPlayer[];
 }
 
+/** The database that ships with the game (in public/, built by tests/cm0102.test.ts with CM_EXPORT=1). */
+export const CM_BUILTIN = 'cm0102-v1.json';
+
 /** Our league ids → CM 01/02 club_comp names. */
 export const CM_LEAGUES: Record<string, string> = {
   ENG1: 'English Premier Division', ENG2: 'English First Division', ENG3: 'English Second Division', ENG4: 'English Third Division', ENG5: 'English Conference',
