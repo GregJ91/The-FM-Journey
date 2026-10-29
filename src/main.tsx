@@ -6,17 +6,20 @@ import { loadBadges } from './ui/badges';
 
 loadBadges();
 
-// Portrait only: where the browser allows it (installed app), lock the screen; otherwise styles.css turns the
-// portrait screen with the phone, using the screen angle to know which way it was turned.
-function trackRotation() {
-  const legacy = (window as Window & { orientation?: number }).orientation;
-  const angle = ((screen.orientation?.angle ?? legacy ?? 0) + 360) % 360;
-  document.documentElement.dataset.rot = String(angle);
-}
-trackRotation();
-screen.orientation?.addEventListener?.('change', trackRotation);
-window.addEventListener('orientationchange', trackRotation);
-(screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> })?.lock?.('portrait').catch(() => {});
+// Portrait only. Ask the browser to lock portrait (works in the installed app and full screen); if the phone is
+// still sideways, a "turn your phone" screen covers the game (styles.css).
+const lockPortrait = () => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> })?.lock?.('portrait').catch(() => {});
+lockPortrait();
+window.addEventListener('pointerdown', lockPortrait, { once: true });
+const hint = document.createElement('div');
+hint.className = 'rotate-hint';
+hint.innerHTML = '<div class="phone-ico"></div><h2>Turn your phone upright</h2><p>The FM Journey plays in portrait.</p><button class="btn primary" type="button">Switch to portrait</button>';
+hint.querySelector('button')!.addEventListener('click', () => {
+  // Full screen first: browsers only allow an orientation lock there (or in the installed app)
+  const el = document.documentElement as HTMLElement & { requestFullscreen?: () => Promise<void> };
+  (document.fullscreenElement ? Promise.resolve() : el.requestFullscreen?.() ?? Promise.resolve()).catch(() => {}).then(lockPortrait);
+});
+document.body.appendChild(hint);
 
 // Offline support once installed to the home screen (production builds only)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

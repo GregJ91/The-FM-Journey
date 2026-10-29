@@ -7,7 +7,7 @@
 
 /* PORTRAIT ONLY for now: every landscape layout below has "and (min-height: 9999px)" added so it never
    applies (remove it to bring landscape back; see also LANDSCAPE_ENABLED in ui/useLandscape.ts).
-   A phone held sideways keeps the portrait screen, turned with the phone (see the end of this file). */
+   A phone held sideways is asked to turn upright (see the end of this file). */
 
 /* Modern dark, mobile-first. The game lives in a phone-width column; on wider
    screens that column is centred. Club colours arrive at runtime as
@@ -1352,15 +1352,22 @@ table.t tr.me td, table.t tbody tr.me:nth-child(even) td { background: var(--hl-
 .toast.err, .toast.bad { color: #ff6b62; border-color: #b04040; }
 
 /* =====================================================================
-   Portrait lock: a phone held sideways shows the portrait screen turned
-   with the device (html[data-rot] is set from the screen angle in main.tsx).
+   Portrait only: a phone held sideways gets a "turn your phone" screen
+   (main.tsx also asks the browser to lock portrait where it can).
    ===================================================================== */
+.rotate-hint { display: none; }
 @media (orientation: landscape) and (max-height: 520px) and (pointer: coarse) {
-  html, body { overflow: hidden; }
-  :root { --app-h: 100dvw; --app-wd: 100dvh; }
-  #root { position: fixed; top: 0; left: 0; width: 100dvh; height: 100dvw; overflow: hidden; transform-origin: 0 0; transform: translateY(100dvh) rotate(-90deg); }
-  html[data-rot="270"] #root { transform: translateX(100dvw) rotate(90deg); }
+  .rotate-hint {
+    display: flex; position: fixed; inset: 0; z-index: 1000; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    background: #0a0d12; color: #e9ecf1; text-align: center; padding: 20px max(20px, env(safe-area-inset-right, 0px)) 20px max(20px, env(safe-area-inset-left, 0px));
+  }
+  .rotate-hint .phone-ico { width: 46px; height: 76px; border: 4px solid currentColor; border-radius: 9px; animation: turn-upright 1.8s ease-in-out infinite; }
+  .rotate-hint h2 { margin: 0; font-size: 22px; }
+  .rotate-hint p { margin: 0; max-width: 420px; color: #9ca5b4; font-size: 14px; }
+  #root > * { visibility: hidden; }
 }
+@keyframes turn-upright { 0%, 30% { transform: rotate(-90deg); } 60%, 100% { transform: rotate(0deg); } }
+@media (prefers-reduced-motion: reduce) { .rotate-hint .phone-ico { animation: none; } }
 
 /* =====================================================================
    CM 01/02 careers (html[data-era="cm0102"]): Championship Manager's
