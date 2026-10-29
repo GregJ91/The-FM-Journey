@@ -3,7 +3,8 @@ import { yearlyCurve } from '../../game/progression';
 import { age } from '../../game/ratings';
 import type { Intensity, TrainingFocus } from '../../game/types';
 import { mutate, useGame } from '../../store';
-import { Card, PlayerRow } from '../components/common';
+import { Card, PlayerRow, SectionPage } from '../components/common';
+import { useState } from 'react';
 
 const FOCI: { id: TrainingFocus; label: string; ico: string; desc: string }[] = [
   { id: 'balanced', label: 'Balanced', ico: '⚖️', desc: 'Even across all areas' },
@@ -26,15 +27,11 @@ export function Training() {
   const players = squadOf(g, club.id, 'all');
   const movers = [...players].filter((p) => p.lastChange !== 0).sort((a, b) => b.lastChange - a.lastChange);
   const ages = Array.from({ length: 21 }, (_, i) => 16 + i);
+  const [sec, setSec] = useState<'plan' | 'dev' | 'movers'>('plan');
   return (
-    <div className="cols">
-      <div className="page-title">
-        <div className="kicker">{club.name}</div>
-        <h1>Training</h1>
-        <div className="chips"><span className="chip">Facilities {'★'.repeat(club.facilities.training)}{'☆'.repeat(5 - club.facilities.training)}</span></div>
-      </div>
-
-      <Card title="Intensity" tag="Schedule" tagColor="var(--coral)">
+    <SectionPage sections={[['plan', 'Schedule'], ['dev', 'Development'], ['movers', 'Movers']]} sec={sec} setSec={setSec}
+      status={<span>Training facilities <b>{'★'.repeat(club.facilities.training)}{'☆'.repeat(5 - club.facilities.training)}</b></span>}>
+      {sec === 'plan' && <Card title="Intensity" tag="Schedule" tagColor="var(--coral)">
         <div className="grid3">
           {INTENSITY.map((it) => (
             <button key={it.id} className={`choice ${g.training.intensity === it.id ? 'on' : ''}`} style={{ background: g.training.intensity === it.id ? it.color : undefined }} onClick={() => mutate((gg) => { gg.training.intensity = it.id; })}>
@@ -42,9 +39,9 @@ export function Training() {
             </button>
           ))}
         </div>
-      </Card>
+      </Card>}
 
-      <Card title="First Team Focus" tag="Focus" tagColor="var(--violet)">
+      {sec === 'plan' && <Card title="First Team Focus" tag="Focus" tagColor="var(--violet)">
         <div className="grid2">
           {FOCI.map((f) => (
             <button key={f.id} className={`choice ${g.training.firstFocus === f.id ? 'on' : ''}`} style={{ background: g.training.firstFocus === f.id ? 'var(--lime)' : undefined }} onClick={() => mutate((gg) => { gg.training.firstFocus = f.id; })}>
@@ -53,9 +50,9 @@ export function Training() {
           ))}
         </div>
         <p className="small muted" style={{ marginBottom: 0 }}>Focus attributes get double weight when players improve. Set individual focuses from a player's profile.</p>
-      </Card>
+      </Card>}
 
-      <Card title="How players develop" tag="Monthly" tagColor="var(--yellow)">
+      {sec === 'dev' && <Card title="How players develop" tag="Monthly" tagColor="var(--yellow)">
         <div className="section-label" style={{ marginTop: 0 }}>Base change per year by age</div>
         <div className="age-curve">
           {ages.map((a) => {
@@ -79,16 +76,16 @@ export function Training() {
           <br />• <b>Form</b>: good ratings add up to +25%
           <br />Older players decline, physical attributes first — regular football slows it.
         </div>
-      </Card>
+      </Card>}
 
-      <Card title="Last month's movers" tag="Report" tagColor="var(--sky)">
+      {sec === 'movers' && <Card title="Last month's movers" tag="Report" tagColor="var(--sky)">
         <div className="list">
           {movers.slice(0, 15).map((p) => (
             <PlayerRow key={p.id} p={p} sub={`${age(p, g.date)}y${p.squad === 'youth' ? ' · youth' : ''}`} end={<span style={{ color: p.lastChange > 0 ? 'var(--good)' : 'var(--bad)' }}>{p.lastChange > 0 ? `+${p.lastChange}` : p.lastChange}</span>} />
           ))}
           {!movers.length && <div className="muted small">No changes yet — the first update happens on the 1st of next month.</div>}
         </div>
-      </Card>
-    </div>
+      </Card>}
+    </SectionPage>
   );
 }

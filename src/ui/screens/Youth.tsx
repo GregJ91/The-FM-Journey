@@ -6,7 +6,8 @@ import { notePromotion } from '../../game/manager';
 import type { Player, TrainingFocus } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
-import { Card, OvrChange, PlayerRow, Stars } from '../components/common';
+import { Card, OvrChange, PlayerRow, SectionPage, Stars } from '../components/common';
+import { useState } from 'react';
 import { YouthFixtureRow, YouthTableCard } from './YouthViews';
 
 const FOCI: TrainingFocus[] = ['balanced', 'attacking', 'defending', 'technical', 'physical', 'mental'];
@@ -28,26 +29,18 @@ export function Youth() {
   const recent = mine.filter((x) => x.f.hg !== undefined).slice(-3).reverse();
   const next = mine.filter((x) => x.f.hg === undefined).slice(0, 3);
   // Fringe first-teamers who also play youth football
+  const [sec, setSec] = useState<'squad' | 'league' | 'focus'>('squad');
   const fringe = squadOf(g, club.id).filter((p) => p.ys?.apps).sort((a, b) => (b.ys!.apps - a.ys!.apps));
   return (
-    <div className="cols">
-      <div className="page-title">
-        <div className="kicker">{club.name} Academy</div>
-        <h1>Youth Team</h1>
-        <div className="chips">
-          <span className="chip">{youth.length} prospects</span>
-          <span className="chip">Facilities {'★'.repeat(club.facilities.youth)}{'☆'.repeat(5 - club.facilities.youth)}</span>
-          <span className="chip">Intake 15 Mar</span>
-        </div>
-      </div>
-
-      {league && (
+    <SectionPage sections={[['squad', 'Academy'], ['league', 'Matches'], ['focus', 'Training']]} sec={sec} setSec={setSec}
+      status={<><span><b>{youth.length}</b> prospects</span><span>Facilities <b>{'★'.repeat(club.facilities.youth)}{'☆'.repeat(5 - club.facilities.youth)}</b></span><span>Intake <b>15 Mar</b></span></>}>
+      {sec === 'league' && league && (
         <Card title={league.name} tag={league.short} tagColor={league.color} right={<button className="btn sm" onClick={() => ui.go('competitions', `YOUTH:${league.id}`)}>Full</button>}>
           <YouthTableCard comp={league} highlight={club.id} around />
         </Card>
       )}
 
-      {comps.length > 0 && (
+      {sec === 'league' && comps.length > 0 && (
         <Card title="Youth fixtures" tag={comps.map((c) => c.short).join(' · ')} tagColor="var(--grass)">
           {next.map(({ f, c }) => <YouthFixtureRow key={f.id} g={g} f={f} comp={c} />)}
           {recent.length > 0 && <div className="section-label">Recent results</div>}
@@ -62,9 +55,9 @@ export function Youth() {
           </div>
         </Card>
       )}
-      {!comps.length && <div className="help">Your club has no youth team competition at this level. Youth players still train and can be promoted.</div>}
+      {sec === 'league' && !comps.length && <div className="help">Your club has no youth team competition at this level. Youth players still train and can be promoted.</div>}
 
-      <Card title="Academy Squad" tag="U21" tagColor="var(--grass)">
+      {sec === 'squad' && <Card title="Academy Squad" tag="U21" tagColor="var(--grass)">
         <div className="list">
           {youth.map((p) => (
             <PlayerRow
@@ -76,9 +69,9 @@ export function Youth() {
           ))}
           {!youth.length && <div className="empty">No youth players. The next intake arrives on 15 March.</div>}
         </div>
-      </Card>
+      </Card>}
 
-      {fringe.length > 0 && (
+      {sec === 'squad' && fringe.length > 0 && (
         <Card title="First-teamers in the youth side" tag="Minutes" tagColor="var(--sky)">
           <div className="list">
             {fringe.map((p) => <PlayerRow key={p.id} p={p} sub={<>{age(p, g.date)}y{youthLine(p)}</>} />)}
@@ -86,16 +79,15 @@ export function Youth() {
         </Card>
       )}
 
-      <Card title="Youth Training Focus" tag="Focus" tagColor="var(--yellow)">
+      {sec === 'focus' && <Card title="Youth Training Focus" tag="Focus" tagColor="var(--yellow)">
         <div className="grid3">
           {FOCI.map((f) => (
             <button key={f} className={`btn sm ${g.training.youthFocus === f ? 'primary' : ''}`} onClick={() => mutate((gg) => { gg.training.youthFocus = f; })}>{f[0].toUpperCase() + f.slice(1)}</button>
           ))}
         </div>
         <p className="small muted" style={{ marginBottom: 0 }}>Youth matches count half as much as first-team minutes for development. Young first-teamers who aren't in your XI play for the youth side automatically.</p>
-      </Card>
-
-      <div className="help">📅 <b>Youth intake day is 15 March.</b> The number and quality of new players depends on your youth facilities (upgrade them from the Board) and the club's reputation. 💎 marks a potential wonderkid.</div>
-    </div>
+        <p className="small muted" style={{ marginBottom: 0 }}>📅 <b>Youth intake day is 15 March.</b> The number and quality of new players depends on your youth facilities (upgrade them from the Board) and the club's reputation. 💎 marks a potential wonderkid.</p>
+      </Card>}
+    </SectionPage>
   );
 }

@@ -11,7 +11,8 @@ import { windowOpen } from '../../game/transfers';
 import type { RecruitRequest } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
-import { Card, PosTag } from '../components/common';
+import { Card, PosTag, SectionPage } from '../components/common';
+import { Fit } from '../components/Fit';
 import { Crest } from '../components/Crest';
 
 const REACH = ['', 'Nearby divisions in your country', 'All of your country', 'England and Scotland', '+ Spain, Italy, Germany, France', 'The whole world'];
@@ -36,17 +37,11 @@ export function Recruitment() {
   const act = (fn: () => { ok: boolean; msg: string }) => { const r = mutate(fn); ui.toast(r.msg, !r.ok); };
   const req = j.requests.find((r) => r.id === sel) ?? j.requests.find((r) => r.status === 'ready');
 
+  const [sec, setSec] = useState<'options' | 'ask' | 'requests' | 'dof'>(req && req.status !== 'scouting' ? 'options' : 'ask');
   return (
-    <div className="cols recruit">
-      <div className="page-title">
-        <h1>Recruitment</h1>
-        <div className="chips">
-          <span className="chip">💷 {fmtMoney(club.transferBudget)}</span>
-          <span className="chip">{windowOpen(g) ? '🟢 Window open' : '🔴 Window shut: free agents only'}</span>
-        </div>
-      </div>
-
-      <Card title="Director of Football" tag={`Rep ${Math.round(j.rep)}`} tagColor="var(--violet)">
+    <SectionPage sections={[['options', 'Options'], ['ask', 'Ask DoF'], ['requests', 'Requests'], ['dof', 'Staff']]} sec={sec} setSec={setSec}
+      status={<><span>Budget <b>{fmtMoney(club.transferBudget)}</b></span><span className={windowOpen(g) ? 'ok' : 'bad'}>{windowOpen(g) ? 'Window open' : 'Window shut: free agents only'}</span></>}>
+      {sec === 'dof' && <Card title="Director of Football" tag={`Rep ${Math.round(j.rep)}`} tagColor="var(--violet)">
         <div className="pf-info">
           <div><span>Director of Football</span><b>{starRow(j.dof)}</b></div>
           <div><span>Scouting department</span><b>{starRow(j.scouting)}</b></div>
@@ -67,9 +62,9 @@ export function Recruitment() {
           </div>
         )}
         <div className="small muted" style={{ marginTop: 6 }}>Upgrades need board approval (once a month).</div>
-      </Card>
+      </Card>}
 
-      <Card title="Ask for a player" tag={club.tactics.formation} tagColor="var(--sky)">
+      {sec === 'ask' && <Card title="Ask for a player" tag={club.tactics.formation} tagColor="var(--sky)">
         <div className="col" style={{ gap: 8 }}>
           <select className="input" value={slot} onChange={(e) => setSlot(Number(e.target.value))}>
             {slots.map((s, i) => {
@@ -85,15 +80,15 @@ export function Recruitment() {
               {wageSteps.map((w) => <option key={w} value={w}>Wage up to {fmtMoney(w)}/wk</option>)}
             </select>
           </div>
-          <button className="btn primary" onClick={() => act(() => requestPlayer(g, slot, maxAge, maxWage))}>Send to your director of football</button>
+          <button className="btn primary" onClick={() => { act(() => requestPlayer(g, slot, maxAge, maxWage)); setSec('requests'); }}>Send to your director of football</button>
           <div className="small muted">Key attributes for this role: {(ROLE_KEYS[roleFor(slots[slot].pos, club.tactics.roles[slot]).id] ?? []).map((k) => ATTR_LABEL[k]).join(', ')}</div>
         </div>
-      </Card>
+      </Card>}
 
-      <Card title="Requests" tag={`${j.requests.filter((r) => r.status === 'scouting').length}/3 active`} tagColor="var(--yellow)">
+      {sec === 'requests' && <Card title="Requests" tag={`${j.requests.filter((r) => r.status === 'scouting').length}/3 active`} tagColor="var(--yellow)">
         <div className="list">
           {j.requests.map((r) => (
-            <div key={r.id} className={`li ${req?.id === r.id ? 'me' : ''}`} onClick={() => setSel(r.id)}>
+            <div key={r.id} className={`li ${req?.id === r.id ? 'me' : ''}`} onClick={() => { setSel(r.id); if (r.status !== 'scouting') setSec('options'); }}>
               <PosTag pos={r.pos} />
               <div className="main">
                 <div className="t">{roleFor(r.pos, r.role).name}</div>
@@ -104,13 +99,21 @@ export function Recruitment() {
               </span>
             </div>
           ))}
-          {!j.requests.length && <div className="empty">No requests yet. Ask for a player above.</div>}
+          {!j.requests.length && <div className="empty">No requests yet. Use Ask DoF to request a player.</div>}
         </div>
-      </Card>
+      </Card>}
 
-      {req && req.status !== 'scouting' && req.candidates.map((c) => <CandidateCard key={c.playerId} req={req} playerId={c.playerId} />)}
-      {req && req.status === 'ready' && !req.candidates.length && <Card title="No options"><div className="empty">Nobody suitable. Try a higher wage or age limit, or upgrade your scouts.</div></Card>}
-    </div>
+      {sec === 'options' && (
+        <section className="card fill cand-win">
+          <div className="card-h"><h3>{req && req.status !== 'scouting' ? `${roleFor(req.pos, req.role).name} options` : 'Options'}</h3><div className="right tile-sub">{req && req.status !== 'scouting' ? `${req.candidates.length} players` : ''}</div></div>
+          <Fit><div className="list cand-list">
+            {req && req.status !== 'scouting' && req.candidates.map((c) => <CandidateCard key={c.playerId} req={req} playerId={c.playerId} />)}
+            {req && req.status === 'ready' && !req.candidates.length && <div className="empty">Nobody suitable. Try a higher wage or age limit, or upgrade your scouts.</div>}
+            {(!req || req.status === 'scouting') && <div className="empty">{j.requests.some((r) => r.status === 'scouting') ? 'Your director of football is still scouting. Check back when the report is in.' : 'No options yet. Use Ask DoF to request a player.'}</div>}
+          </div></Fit>
+        </section>
+      )}
+    </SectionPage>
   );
 }
 

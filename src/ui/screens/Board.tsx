@@ -3,7 +3,7 @@ import { fmtMoney } from '../../game/ratings';
 import { ordinal, seasonLabel } from '../../game/season';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
-import { Card, Meter } from '../components/common';
+import { Card, Meter, SectionPage } from '../components/common';
 import { ClubBadgeButton } from '../components/BadgesSheet';
 import { useState } from 'react';
 import { MANAGER_ATTRS, defaultProfile, managerStyle } from '../../game/manager';
@@ -79,28 +79,24 @@ export function Board() {
     ui.toast(r.msg, !r.ok);
   };
   const used = g.board.lastRequest === g.date.slice(0, 7);
+  const [sec, setSec] = useState<'board' | 'money' | 'club' | 'you' | 'honours'>('board');
   const stars = (n: number) => <span className="stars">{'★'.repeat(n)}<span className="off">{'★'.repeat(5 - n)}</span></span>;
   return (
-    <div className="cols">
-      <div className="page-title">
-        <div className="kicker">{club.name}</div>
-        <h1>The Board</h1>
-        <div className="chips"><span className="chip">{g.mode === 'create' ? '👑 Owner-manager: no sackings' : '⚠️ Sacked at 5% confidence'}</span></div>
-      </div>
-
-      <Card title="Confidence" tag={mood} tagColor={conf >= 60 ? 'var(--lime)' : conf >= 30 ? 'var(--yellow)' : 'var(--coral)'}>
+    <SectionPage sections={[['board', 'Board'], ['money', 'Finances'], ['club', 'Club'], ['you', 'Manager'], ['honours', 'Honours']]} sec={sec} setSec={setSec}
+      status={<><span>Confidence <b>{conf}%</b></span><span>Balance <b>{fmtMoney(fin.balance)}</b></span><span>{g.mode === 'create' ? 'Owner-manager' : 'Sacked at 5%'}</span></>}>
+      {sec === 'board' && <Card title="Confidence" tag={mood} tagColor={conf >= 60 ? 'var(--lime)' : conf >= 30 ? 'var(--yellow)' : 'var(--coral)'}>
         <div className="row" style={{ alignItems: 'flex-end' }}>
           <div style={{ fontFamily: 'var(--display)', fontSize: 48, fontWeight: 800, lineHeight: 1 }}>{conf}%</div>
           <div className="small muted bold" style={{ marginLeft: 'auto', textAlign: 'right' }}>🎯 {g.board.objective}<br />Target: {ordinal(g.board.objectiveRank)} or better</div>
         </div>
         <div style={{ margin: '10px 0 6px' }}><Meter value={conf} /></div>
         <div className="small muted">Moves monthly with your league position against the target, and jumps at season end for trophies and promotions.</div>
-      </Card>
+      </Card>}
 
-      <ManagerCard />
-      {g.journey && g.mode === 'journey' && <CareerCard />}
+      {sec === 'you' && <ManagerCard />}
+      {sec === 'you' && g.journey && g.mode === 'journey' && <CareerCard />}
 
-      <Card title="Finances" tag="£" tagColor="var(--grass)">
+      {sec === 'money' && <Card title="Finances" tag="£" tagColor="var(--grass)">
         <div className="col" style={{ gap: 7 }}>
           <div className="row"><span>Balance</span><b className="right" style={{ color: fin.balance < 0 ? 'var(--bad)' : undefined }}>{fmtMoney(fin.balance)}</b></div>
           <div className="row"><span>Transfer budget</span><b className="right">{fmtMoney(fin.transferBudget)}</b></div>
@@ -125,9 +121,9 @@ export function Board() {
             <div className="row small" style={{ marginTop: 6 }}><span className="comp-dot" style={{ background: 'var(--grass)' }} /> Income <span className="comp-dot" style={{ background: 'var(--coral)', marginLeft: 10 }} /> Expenses</div>
           </>
         )}
-      </Card>
+      </Card>}
 
-      <Card title="Requests" tag="1 per month" tagColor="var(--yellow)">
+      {sec === 'board' && <Card title="Requests" tag="1 per month" tagColor="var(--yellow)">
         <div className="col">
           <button className="btn block" disabled={used} onClick={() => req('transfer')}>💷 More transfer funds</button>
           <button className="btn block" disabled={used} onClick={() => req('wage')}>📈 Raise wage budget (+10%)</button>
@@ -136,9 +132,9 @@ export function Board() {
           {g.board.facilityUpgrade && <div className="small bold">🚧 {g.board.facilityUpgrade.kind} upgrade ready {g.board.facilityUpgrade.ready}</div>}
           {used && <div className="small muted">You've already made a request this month.</div>}
         </div>
-      </Card>
+      </Card>}
 
-      <Card title="Club" tag="Facilities" tagColor="var(--orange)">
+      {sec === 'club' && <Card title="Club" tag="Facilities" tagColor="var(--orange)">
         <div className="col" style={{ gap: 7 }}>
           <div className="row"><span>🏋️ Training</span><span className="right">{stars(club.facilities.training)}</span></div>
           <div className="row"><span>🌱 Youth</span><span className="right">{stars(club.facilities.youth)}</span></div>
@@ -146,9 +142,9 @@ export function Board() {
           <div className="row"><span>⭐ Reputation</span><b className="right">{club.reputation}/100</b></div>
           <ClubBadgeButton club={club} />
         </div>
-      </Card>
+      </Card>}
 
-      <Card title="Trophy Cabinet" tag={`${club.trophies.length}`} tagColor="var(--yellow)">
+      {sec === 'honours' && <Card title="Trophy Cabinet" tag={`${club.trophies.length}`} tagColor="var(--yellow)">
         {club.trophies.length ? (
           <div className="row wrap" style={{ gap: 8 }}>
             {club.trophies.slice().reverse().map((t, i) => (
@@ -156,9 +152,9 @@ export function Board() {
             ))}
           </div>
         ) : <div className="empty">The cabinet is empty… for now.</div>}
-      </Card>
+      </Card>}
 
-      {(club.youthTrophies?.length ?? 0) > 0 && (
+      {sec === 'honours' && (club.youthTrophies?.length ?? 0) > 0 && (
         <Card title="Academy honours" tag={`${club.youthTrophies!.length}`} tagColor="var(--grass)">
           <div className="row wrap" style={{ gap: 8 }}>
             {club.youthTrophies!.slice().reverse().map((t, i) => (
@@ -168,7 +164,7 @@ export function Board() {
         </Card>
       )}
 
-      <Card title="History" tag="Seasons" tagColor="var(--pink)">
+      {sec === 'honours' && <Card title="History" tag="Seasons" tagColor="var(--pink)">
         {g.history.length ? (
           <div className="list">
             {g.history.slice().reverse().map((h) => (
@@ -182,7 +178,7 @@ export function Board() {
             ))}
           </div>
         ) : <div className="empty">Your story is just beginning.</div>}
-      </Card>
-    </div>
+      </Card>}
+    </SectionPage>
   );
 }

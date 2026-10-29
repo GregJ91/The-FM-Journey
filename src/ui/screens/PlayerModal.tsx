@@ -22,7 +22,7 @@ export function PlayerModal() {
   const ui = useUI();
   const id = ui.playerId;
   const [bid, setBid] = useState<number | null>(null);
-  const [tab, setTab] = useState<'attrs' | 'stats' | 'career' | 'actions'>('attrs');
+  const [tab, setTab] = useState<'attrs' | 'info' | 'stats' | 'career' | 'actions'>('attrs');
   if (id === null) return null;
   const p = g.players[id];
   if (!p) return null;
@@ -78,10 +78,11 @@ export function PlayerModal() {
       </div>
 
       <div className="tabs pf-tabs">
-        <button className={`tab ${tab === 'attrs' ? 'active' : ''}`} onClick={() => setTab('attrs')}>Profile</button>
+        <button className={`tab ${tab === 'attrs' ? 'active' : ''}`} onClick={() => setTab('attrs')}>Attributes</button>
+        <button className={`tab ${tab === 'info' ? 'active' : ''}`} onClick={() => setTab('info')}>Info</button>
         <button className={`tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>Stats</button>
         <button className={`tab ${tab === 'career' ? 'active' : ''}`} onClick={() => setTab('career')}>Career</button>
-        <button className={`tab ${tab === 'actions' ? 'active' : ''}`} onClick={() => setTab('actions')}>{own ? 'Manage' : 'Transfer'}</button>
+        <button className={`tab ${tab === 'actions' ? 'active' : ''}`} onClick={() => setTab('actions')}>{own ? 'Manage' : 'Bid'}</button>
         {(p.injury || p.suspended > 0 || p.away) && (
           <span className="pf-alert">
             {p.injury && <>🩹 {p.injury.name} ({p.injury.days}d)</>}
@@ -92,9 +93,9 @@ export function PlayerModal() {
       </div>
 
       <div className="pf-body">
-        {tab === 'attrs' && (
-          <div className="cols pf-cols">
-            <Card title="Attributes" tag={`${ovr} OVR`} tagColor="var(--accent)">
+        {(tab === 'attrs' || tab === 'info') && (
+          <div className="win-list pf-one">
+            {tab === 'attrs' && <Card title="Attributes" tag={`${ovr} OVR`} tagColor="var(--accent)">
               {cmAttributes(p) ? (
                 <div className="pf-attrs cm-attrs">
                   {cmAttributes(p)!.map((gr) => (
@@ -121,8 +122,8 @@ export function PlayerModal() {
                 ))}
               </div>
               )}
-            </Card>
-            <Card title="Positions">
+            </Card>}
+            {tab === 'info' && <Card title="Positions">
               <div className="pf-pitch">
                 {POS_SPOTS.map(([pos, x, y]) => {
                   const f = fam(pos);
@@ -130,8 +131,8 @@ export function PlayerModal() {
                 })}
               </div>
               <div className="pf-key"><i className="nat" /> Natural <i className="acc" /> Accomplished <i className="unc" /> Unconvincing</div>
-            </Card>
-            <Card title="Player info">
+            </Card>}
+            {tab === 'info' && <Card title="Player info">
               <div className="pf-info">
                 <div><span>Value</span><b>{fmtMoney(value)}</b></div>
                 <div><span>Wage</span><b>{fmtMoney(p.wage)}/wk</b></div>
@@ -143,14 +144,14 @@ export function PlayerModal() {
                 <div><span>Season</span><b>{p.stats.apps} apps · {p.stats.goals} gls · {p.stats.assists} ast</b></div>
                 <div><span>International</span><b>{p.caps ? `${p.caps} caps, ${p.intGoals ?? 0} goals` : 'Uncapped'}</b></div>
               </div>
-            </Card>
+            </Card>}
           </div>
         )}
 
-        {tab === 'stats' && <div className="cols pf-cols"><Card title="This season" className="grow"><PlayerStats p={p} /></Card></div>}
+        {tab === 'stats' && <div className="win-list pf-one"><Card title="This season" className="grow"><PlayerStats p={p} /></Card></div>}
 
         {tab === 'career' && (
-          <div className="cols pf-cols">
+          <div className="win-list pf-one">
             <Card title="Career" className="grow">
             {p.history.length > 0 ? (
               <table className="t">

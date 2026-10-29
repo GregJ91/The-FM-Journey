@@ -221,3 +221,16 @@ export function ConfirmButton({ className, label, confirmLabel, onConfirm }: { c
     </button>
   );
 }
+
+/** CM-style page: a row of section buttons, an optional status line, then that section's windows filling the screen. */
+export function SectionPage<T extends string>({ sections, sec, setSec, status, children }: { sections: [T, string][]; sec: T; setSec: (s: T) => void; status?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="win-list sec-page">
+      <div className="seg sec-tabs">
+        {sections.map(([id, label]) => <button key={id} className={sec === id ? 'on' : ''} onClick={() => setSec(id)}>{label}</button>)}
+      </div>
+      {status && <div className="ns-status">{status}</div>}
+      {children}
+    </div>
+  );
+}

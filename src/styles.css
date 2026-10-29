@@ -1573,3 +1573,21 @@ table.t.dense td.nm { max-width: 140px; overflow: hidden; text-overflow: ellipsi
 .goal-flash { background: radial-gradient(circle at center, color-mix(in srgb, var(--gf, var(--accent)) 55%, transparent), transparent 65%); flex-direction: column; gap: 6px; }
 .goal-flash p { margin: 0; text-align: center; font-size: 20px; font-weight: 700; color: #fff; text-shadow: 0 2px 8px #000; animation: goal 1.8s ease-out forwards; }
 .goal-flash p b { font-family: var(--pixel); font-weight: 400; font-size: 34px; color: #ffe866; }
+
+/* Section pages (Youth, Training, Board) and the player profile: one window column filling the screen */
+.sec-page > .seg.sec-tabs { flex: none; margin: 0 !important; }
+.sec-tabs button { font-size: 12px; padding-left: 2px; padding-right: 2px; }
+.sec-page > .card, .sec-page > section, .sec-page > .help { margin: 0 !important; flex: 0 1 auto; min-height: 0; overflow: hidden !important; }
+.sec-page > .card:last-child { flex: 1 1 auto; }
+.pf-one { height: 100%; display: flex; flex-direction: column; gap: 6px; }
+.pf-one > .card { margin: 0 !important; flex: 1 1 auto; min-height: 0; overflow: hidden !important; }
+.pf-one > .card:first-child:not(:last-child) { flex: 0 1 auto; }
+.pf-body { min-height: 0; }
+.cand-win { padding: 0 !important; }
+.cand-list { display: flex; flex-direction: column; gap: 6px; padding: 6px; }
+.cand-list > .card { margin: 0 !important; }
+
+/* Choose a club: tighter rows */
+.club-pick { padding: 6px 10px !important; gap: 10px !important; min-height: 0 !important; }
+.club-pick svg, .club-pick .crest { width: 28px !important; height: 28px !important; }
+.club-list { gap: 4px !important; }
