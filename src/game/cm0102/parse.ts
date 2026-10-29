@@ -35,7 +35,11 @@ export interface CmPlayer {
   intGoals: number;
   personality: string;
   cm: number[]; // CM-only attributes, in CM_EXTRA order
+  past?: PastSeason[]; // career before the database date (staff_history.dat), oldest first
 }
+
+/** One season of a player's real career: [season start year, index into CmWorld.pastClubs, apps, goals, on loan 0/1]. */
+export type PastSeason = [number, number, number, number, number];
 
 /** CM attributes the game doesn't simulate itself, kept so the profile can show the full CM set. */
 export const CM_EXTRA = [
@@ -48,6 +52,8 @@ export const CM_RELATIVE = new Set<string>(['corners', 'freeKicks', 'longShots',
 
 export interface CmWorld {
   version: 1;
+  rev?: number; // CM_REV of the build that made it: older copies on a device are replaced by the built-in one
+  pastClubs?: string[]; // club names used by players' past careers
   season: number; // the season the database is set in (2002 = 2002/03)
   leagues: { id: string; clubs: number[] }[];
   guests: number[]; // clubs from the rest of Europe (UEFA competitions only)
@@ -56,7 +62,9 @@ export interface CmWorld {
 }
 
 /** The database that ships with the game (in public/, built by tests/cm0102.test.ts with CM_EXPORT=1). */
-export const CM_BUILTIN = 'cm0102-v1.json';
+export const CM_BUILTIN = 'cm0102-v2.json';
+/** Bumped whenever the built-in database gains data (2: career histories, real squads only). */
+export const CM_REV = 2;
 
 /** Our league ids → CM 01/02 club_comp names. */
 export const CM_LEAGUES: Record<string, string> = {
@@ -306,6 +314,25 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
   const second = nameTable(files['second_names.dat']);
   const common = nameTable(files['common_names.dat']);
   type RawP = CmPlayer & { ca: number };
+  // Career histories (optional file): staff id → seasons
+  const clubName = new Map<number, string>();
+  for (const c of raw) clubName.set(c.id, RENAME[c.name] ?? (UK.includes(c.nation) ? c.name : c.short));
+  const pastClubs: string[] = [];
+  const pastIdx = new Map<string, number>();
+  const history = new Map<number, PastSeason[]>();
+  const hist = files['staff_history.dat'];
+  if (hist && hist.length % 17 === 0) {
+    const hr = new Reader(hist);
+    for (let o = 0; o + 17 <= hist.length; o += 17) {
+      const name = clubName.get(hr.i32(o + 10));
+      if (!name) continue;
+      let ci = pastIdx.get(name);
+      if (ci === undefined) { ci = pastClubs.length; pastClubs.push(name); pastIdx.set(name, ci); }
+      const sid = hr.i32(o + 4);
+      const list = history.get(sid) ?? history.set(sid, []).get(sid)!;
+      list.push([hr.i16(o + 8), ci, hr.u8(o + 15), hr.u8(o + 16), hr.u8(o + 14) ? 1 : 0]);
+    }
+  }
   // The database's date: almost every transfer in it happened before then
   const joins: string[] = [];
   const byClub = new Map<number, RawP[]>();
@@ -351,6 +378,8 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
       personality: personalityFrom(staff, o),
       ca,
     };
+    const past = history.get(staff.i32(o));
+    if (past?.length) p.past = past.sort((x, y) => x[0] - y[0]);
     if (ci === undefined) free.push(p);
     else (byClub.get(ci) ?? byClub.set(ci, []).get(ci)!).push(p);
   }
@@ -374,8 +403,16 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
     for (const p of youth) players.push({ ...strip(p), youth: true });
   }
   free.sort((x, y) => y.ca - x.ca);
-  for (const p of free.slice(0, 160)) players.push(strip(p));
-  return { version: 1, season, leagues, guests, clubs, players };
+  // A deep pool of real free agents: clubs short of players sign these before anyone is invented
+  for (const p of free.slice(0, 400)) players.push(strip(p));
+  // Only the clubs someone in the game actually played for
+  const used = new Set<number>();
+  for (const p of players) for (const h of p.past ?? []) used.add(h[1]);
+  const remap = new Map<number, number>();
+  const keptClubs: string[] = [];
+  for (const i of [...used].sort((a, b) => a - b)) { remap.set(i, keptClubs.length); keptClubs.push(pastClubs[i]); }
+  for (const p of players) for (const h of p.past ?? []) h[1] = remap.get(h[1])!;
+  return { version: 1, rev: CM_REV, season, leagues, guests, clubs, players, pastClubs: keptClubs };
 }
 
 /** Three-letter club code: "Manchester Utd" → MUN, "Arsenal" → ARS. */

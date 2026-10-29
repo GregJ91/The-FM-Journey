@@ -156,12 +156,15 @@ export function PlayerModal() {
         {tab === 'career' && (
           <div className="win-list pf-one">
             <Card title="Career" className="grow">
-            {p.history.length > 0 ? (
-              <table className="t">
+            {p.history.length > 0 || p.past?.length ? (
+              <table className="t dense">
                 <thead><tr><th>Season</th><th>Club</th><th className="r">Apps</th><th className="r">Gls</th><th className="r">Avg</th></tr></thead>
                 <tbody>
-                  {[...p.history].reverse().slice(0, 8).map((h, i) => (
-                    <tr key={i}><td>{seasonLabel(h.season)}</td><td className="ellipsis" style={{ maxWidth: 120 }}>{g.clubs[h.clubId]?.name}</td><td className="r">{h.apps}</td><td className="r">{h.goals}</td><td className="r">{h.avg.toFixed(2)}</td></tr>
+                  {[...p.history].reverse().map((h, i) => (
+                    <tr key={`h${i}`}><td>{seasonLabel(h.season)}</td><td className="ellipsis" style={{ maxWidth: 140 }}>{g.clubs[h.clubId]?.name}</td><td className="r">{h.apps}</td><td className="r">{h.goals}</td><td className="r">{h.avg.toFixed(2)}</td></tr>
+                  ))}
+                  {[...(p.past ?? [])].reverse().map(([season, club, apps, goals, loan], i) => (
+                    <tr key={`p${i}`}><td>{seasonLabel(season)}</td><td className="ellipsis" style={{ maxWidth: 140 }}>{g.pastClubs?.[club] ?? '?'}{loan ? ' (loan)' : ''}</td><td className="r">{apps}</td><td className="r">{goals}</td><td className="r muted">–</td></tr>
                   ))}
                 </tbody>
               </table>

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { del, get, set } from 'idb-keyval';
-import type { CmWorld } from './game/cm0102/parse';
+import { CM_REV, type CmWorld } from './game/cm0102/parse';
 import { CM_ECONOMY, setEconomy } from './game/economy';
 import { getSeed, seed } from './game/rng';
 import { ATTR_KEYS, type Attrs, type GameState } from './game/types';
@@ -167,7 +167,9 @@ const CM_KEY = 'fmj-cm0102';
 
 export async function loadCmWorld(): Promise<CmWorld | null> {
   try {
-    return ((await get(CM_KEY)) as CmWorld | undefined) ?? null;
+    const w = (await get(CM_KEY)) as CmWorld | undefined;
+    // An older copy of the built-in database is replaced by the current one
+    return w && (w.rev ?? 1) >= CM_REV ? w : null;
   } catch {
     return null;
   }

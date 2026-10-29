@@ -6,7 +6,7 @@ import { parseMoney } from '../src/ui/screens/Editor';
 import { createWorld } from '../src/game/generate';
 import { advanceDay, quickPlayUserMatch, startSeason } from '../src/game/season';
 
-const DB = 'public/cm0102-v1.json';
+const DB = 'public/cm0102-v2.json';
 
 describe('cheats', () => {
   it('recognises names loosely', () => {

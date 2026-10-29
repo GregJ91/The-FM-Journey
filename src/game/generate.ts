@@ -4,7 +4,7 @@ import { YOUTH_PLAYERS } from './data/youthPlayers';
 import { ensureEurope } from './europe';
 import { NAME_POOLS, NAT_MIX } from './data/names';
 import { addDays, ageOn, iso, toDate } from './dates';
-import { NEIGHBOURS, altPositionsFor, generateAttrs, overall, wageFor } from './ratings';
+import { NEIGHBOURS, altPositionsFor, generateAttrs, overall, ratingAt, wageFor } from './ratings';
 
 /** Real players can always play their most natural second position (an AMC like Ødegaard in midfield). */
 export function withNaturalAlt(alt: Pos[], pos: Pos, real?: boolean): Pos[] {
@@ -15,7 +15,7 @@ import { chance, hash, hashString, int, normal, pick, rand, seed, weighted } fro
 import { bestFormation, pickLineup } from './selection';
 import { normaliseTactics } from './tactics';
 import { applyMetaProfile, isMetaClub, metaStyle } from './meta';
-import { assignAllShirtNumbers } from './shirts';
+import { assignAllShirtNumbers, assignShirtNumbers } from './shirts';
 import { SHIRT_NUMBERS } from './data/shirtNumbers';
 import type { Attrs, Club, CrestPattern, CrestShape, GameState, League, Player, Pos, SeasonStats } from './types';
 import { EURO_GUEST_LEAGUE } from './data/europe';
@@ -196,7 +196,34 @@ export function wageBill(g: GameState, clubId: number) {
   return s;
 }
 
+/** CM 01/02 careers: a squad short of numbers signs the best-fitting real free agents; a player is only invented when none are left. */
+function fillCmSquad(g: GameState, club: Club, level: number, min: number) {
+  const squad = Object.values(g.players).filter((p) => p.clubId === club.id && p.squad === 'first');
+  if (squad.length >= min) return;
+  const counts: Partial<Record<Pos, number>> = {};
+  for (const p of squad) counts[p.pos] = (counts[p.pos] ?? 0) + 1;
+  const free = Object.values(g.players).filter((p) => p.clubId === null && overall(p) <= level + 2);
+  for (let n = squad.length; n < min; n++) {
+    const pos = SQUAD_TEMPLATE.find((x, i) => (counts[x] ?? 0) <= SQUAD_TEMPLATE.slice(0, i).filter((y) => y === x).length) ?? pick(SQUAD_TEMPLATE);
+    const best = free.filter((p) => p.clubId === null).sort((a, b) => ratingAt(b, pos) - ratingAt(a, pos))[0];
+    if (best && ratingAt(best, pos) >= level - 12) {
+      best.clubId = club.id;
+      best.squad = 'first';
+      best.joined = g.date;
+      best.contractEnd = g.season + 1 + int(0, 2);
+      best.wage = wageFor(overall(best), club.reputation);
+      if (isMetaClub(club)) applyMetaProfile(best);
+      counts[best.pos] = (counts[best.pos] ?? 0) + 1;
+    } else {
+      generatePlayer(g, { pos, ovr: Math.max(25, level - 6 + normal(0, 2.5)), age: int(19, 31), country: club.country, clubId: club.id, rep: club.reputation });
+      counts[pos] = (counts[pos] ?? 0) + 1;
+    }
+  }
+  assignShirtNumbers(g, club.id);
+}
+
 export function fillSquad(g: GameState, club: Club, level: number, target = 24) {
+  if (g.era === 'cm0102') return fillCmSquad(g, club, level, Math.min(target, 16));
   const squad = Object.values(g.players).filter((p) => p.clubId === club.id && p.squad === 'first');
   const counts: Partial<Record<Pos, number>> = {};
   for (const p of squad) counts[p.pos] = (counts[p.pos] ?? 0) + 1;
@@ -290,6 +317,7 @@ function addCmPlayers(g: GameState, cm: CmWorld, idx: number, clubId: number | n
     p.pa = Math.max(sp.pa, overall(p));
     p.personality = sp.personality;
     if (sp.cm) p.cm = { v: sp.cm, o: overall(p) };
+    if (sp.past) p.past = sp.past.map((h) => [...h] as [number, number, number, number, number]);
     // Meta clubs (Arsenal) are overpowered here too: same overall, profile shaped towards what wins matches
     if (club && isMetaClub(club)) applyMetaProfile(p);
     p.contractEnd = clubId === null ? g.season : sp.contractEnd;
@@ -388,6 +416,7 @@ export function createWorld(opts: NewGameOptions): GameState {
       cmIndex[id] = i;
       setClubFinances(club, 2);
     }
+    g.pastClubs = cm.pastClubs;
     for (const [id, i] of Object.entries(cmIndex)) addCmPlayers(g, cm, i, Number(id));
     addCmPlayers(g, cm, -1, null);
   }
@@ -426,6 +455,8 @@ export function createWorld(opts: NewGameOptions): GameState {
   for (const p of Object.values(g.players)) if (p.squad === 'youth' && p.clubId !== null) youthCount[p.clubId] = (youthCount[p.clubId] ?? 0) + 1;
   for (const club of Object.values(g.clubs)) {
     fillSquad(g, club, levels[club.id]);
+    // CM 01/02: squads and academies are the database's; new names only arrive through yearly intakes
+    if (cm) continue;
     generateYouth(g, club, club.custom ? 4 : Math.max(2, int(7, 10) - (youthCount[club.id] ?? 0)));
   }
 

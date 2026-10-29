@@ -382,7 +382,7 @@ export function endSeason(g: GameState) {
   if (free.length > 450) {
     free.sort((a, b) => overall(a) - overall(b)).slice(0, free.length - 450).forEach((p) => delete g.players[p.id]);
   }
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < (g.era === 'cm0102' ? 0 : 40); i++) {
     generatePlayer(g, { pos: pick(['GK', 'DC', 'DL', 'DR', 'DM', 'MC', 'AMC', 'AML', 'AMR', 'ST', 'ST', 'MC'] as const), ovr: Math.max(30, Math.round(normal(54, 9))), age: int(19, 30), country: pick(['ENG', 'ENG', 'ESP', 'ITA', 'GER', 'FRA']), clubId: null }).contractEnd = g.season;
   }
 

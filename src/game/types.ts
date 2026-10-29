@@ -94,6 +94,7 @@ export interface Player {
   ys?: YouthStats; // this season's youth-team matches
   meta?: boolean; // has a meta attribute profile (see meta.ts)
   shirt?: number; // squad number
+  past?: [number, number, number, number, number][]; // CM careers: real career before the save began ([season, index into g.pastClubs, apps, goals, loan])
   cm?: { v: number[]; o: number }; // CM 01/02 careers: CM-only attributes (CM_EXTRA order) and the overall they were read at
 }
 
@@ -433,6 +434,7 @@ export interface GameState {
   mode: 'classic' | 'create' | 'journey';
   era?: 'cm0102'; // built from the player's own Championship Manager 01/02 database
   manager: string;
+  pastClubs?: string[]; // CM careers: club names for players' pre-save careers
   editor?: boolean; // the in-game editor is unlocked for this save (CM careers: tactic named "Editor")
   econ?: number; // CM careers: 1 once the save runs at 2002 prices (older CM saves are converted on load)
   managerNat?: string; // nationality code (The Journey keeps its own in journey.nat)
