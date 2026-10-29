@@ -64,14 +64,14 @@ export function SquadList({ g, players, own = true, title, toolbar }: { g: GameS
       <div className="ns-bar-row">
         {toolbar}
         <select className="input" aria-label="Sort by" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-          {SORTS.map(([k, label]) => <option key={k} value={k}>Sort: {label}</option>)}
+          {SORTS.filter(([k]) => !g.era || (k !== 'ovr' && k !== 'pot')).map(([k, label]) => <option key={k} value={k}>Sort: {label}</option>)}
         </select>
       </div>
       <div className="card fill squad-ns">
         <div className="card-h"><h3>{title ?? 'Players'}</h3><div className="right tile-sub">{players.length} players</div></div>
         <Fit>
         <table className="t dense">
-          <thead><tr><th>No</th><th>Pos</th><th>Name</th><th className="r">Age</th><th className="r">Ab</th><th className="r">{lastLabel}</th>{own && <th />}</tr></thead>
+          <thead><tr><th>No</th><th>Pos</th><th>Name</th><th className="r">Age</th><th className="r ab">Ab</th><th className="r">{lastLabel}</th>{own && <th />}</tr></thead>
           <tbody>
             {rows.map((p) => (
               <tr key={p.id} className="click" onClick={() => ui.openPlayer(p.id)}>
@@ -79,7 +79,7 @@ export function SquadList({ g, players, own = true, title, toolbar }: { g: GameS
                 <td><PosTag pos={p.pos} /></td>
                 <td className="nm"><b>{shortName(p)}</b> <StatusIcons p={p} /></td>
                 <td className="r num">{age(p, g.date)}</td>
-                <td className="r"><Ovr value={overall(p)} /></td>
+                <td className="r ab"><Ovr value={overall(p)} /></td>
                 <td className="r num">{last(p)}</td>
                 {own && <td><span className="mood-dot" style={{ background: MORALE(p.morale)[1] }} title={`Morale: ${MORALE(p.morale)[0]}`} /></td>}
               </tr>
@@ -235,7 +235,7 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
           <div className="sheet-b">
             <Fit className="pick-fit">
               <table className="t dense">
-                <thead><tr><th>Pos</th><th>Name</th><th>Fits</th><th className="r">Here</th><th className="r">Fit</th></tr></thead>
+                <thead><tr><th>Pos</th><th>Name</th><th>Fits</th><th className="r ab">Here</th><th className="r">Fit</th></tr></thead>
                 <tbody>
                   {[...squad].sort((a, b) => ratingAt(b, slots[sel].pos) - ratingAt(a, slots[sel].pos)).map((p) => {
                     const fam = familiarity(p, slots[sel].pos);
@@ -245,7 +245,7 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
                         <td><PosTag pos={p.pos} /></td>
                         <td className="nm"><b>{shortName(p)}</b><span className="muted small">{where}</span> <StatusIcons p={p} /></td>
                         <td className={fam >= 0.95 ? 'ok' : fam >= 0.85 ? '' : 'bad'} style={{ fontSize: 11 }}>{famLabel(fam)}</td>
-                        <td className="r"><Ovr value={Math.round(ratingAt(p, slots[sel].pos))} /></td>
+                        <td className="r ab"><Ovr value={Math.round(ratingAt(p, slots[sel].pos))} /></td>
                         <td className="r num"><span className={p.condition < 85 ? 'bad' : 'ok'}>{Math.round(p.condition)}%</span></td>
                       </tr>
                     );

@@ -5,13 +5,14 @@ import { squadOf } from '../../game/generate';
 import { cmAttributes } from '../../game/cm0102/attrs';
 import { ATTR_GROUPS, ATTR_LABEL, age, fmtMoney, fullName, marketValue, overall, ratingAt, scoutedPotential } from '../../game/ratings';
 import { seasonLabel } from '../../game/season';
-import { acceptCounter, askingPrice, playerInterest, releasePlayer, renewContract, renewDemand, signFreeAgent, userBid, wageDemand, windowOpen } from '../../game/transfers';
+import { acceptCounter, askingPrice, openTalks, userLoanOffer, playerInterest, preContractOpen, releasePlayer, renewContract, renewDemand, signFreeAgent, userBid, wageDemand, windowOpen } from '../../game/transfers';
 import type { Pos, TrainingFocus } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { AttrVal, Card, CondBar, ConfirmButton, Ovr, PosTag, Spark, Stars } from '../components/common';
 import { PlayerStats } from '../components/PlayerStats';
 import { DealStep } from '../components/TransferDeal';
+import { permitNote } from '../../game/permits';
 import { Crest } from '../components/Crest';
 import { personalityOf } from '../../game/personality';
 import { journey, scoutRange } from '../../game/journey';
@@ -53,6 +54,9 @@ export function PlayerModal() {
   const toggleShortlist = () => mutate((gg) => { gg.shortlist = shortlisted ? gg.shortlist.filter((x) => x !== p.id) : [...gg.shortlist, p.id]; });
 
   const posRating = (pos: Pos) => Math.round(ratingAt(p, pos));
+  // CM-style talks with the player himself: a renewal, a free agent or a pre-contract
+  const liveDeal = (kind: 'renew' | 'free' | 'pre') => [...g.offers].reverse().find((o) => o.playerId === p.id && o.from === g.userClubId && o.kind === kind && o.status === 'accepted');
+  const talk = (kind: 'renew' | 'free' | 'pre') => { const r = mutate((gg) => openTalks(gg, p.id, kind)); setBidErr(r.ok ? '' : r.msg); };
   const fam = (pos: Pos) => {
     if (pos === p.pos) return 'nat';
     const r = posRating(pos);
@@ -77,7 +81,7 @@ export function PlayerModal() {
         <div className="pf-name">
           <span className="pf-first">{p.first}</span>
           <b className="pf-last">{p.last}</b>
-          <span className="pf-meta"><PosTag pos={p.pos} /> {age(p, g.date)} years · {NATIONS[p.nat] ?? nationName(p.nat)} · {p.foot === 'L' ? 'Left' : p.foot === 'R' ? 'Right' : 'Either'} foot</span>
+          <span className="pf-meta"><PosTag pos={p.pos} /> {age(p, g.date)} years · {NATIONS[p.nat] ?? nationName(p.nat)} · {p.foot === 'L' ? 'Left' : p.foot === 'R' ? 'Right' : 'Either'} foot{p.loan ? ` · on loan from ${g.clubs[p.loan.from]?.short ?? '?'}` : ''}</span>
         </div>
         <div className="pf-club">{club ? <><Crest club={club} size={40} /><span>{club.name}</span></> : <span className="chip">Free agent</span>}</div>
         {/* CM 01/02 never showed other clubs' players' ability: you judge them by their attributes */}
@@ -104,7 +108,7 @@ export function PlayerModal() {
       <div className="pf-body">
         {(tab === 'attrs' || tab === 'info') && (
           <div className="win-list pf-one">
-            {tab === 'attrs' && <Card title="Attributes" tag={g.era === 'cm0102' && !own ? undefined : `${ovr} OVR`} tagColor="var(--accent)">
+            {tab === 'attrs' && <Card title="Attributes" tag={g.era === 'cm0102' ? undefined : `${ovr} OVR`} tagColor="var(--accent)">
               {cmAttributes(p) ? (
                 <div className="pf-attrs cm-attrs">
                   {cmAttributes(p)!.map((gr) => (
@@ -191,14 +195,28 @@ export function PlayerModal() {
                 ))}
               </div>
             </div>
-            <button className="btn primary block" onClick={() => act(() => renewContract(g, p.id, 3))}>Renew contract · 3 yrs at {fmtMoney(renewDemand(g, p))}/wk</button>
+            {p.loan ? (
+              <div className="bid-status pending"><b>On loan</b><span>From {g.clubs[p.loan.from]?.name} until the end of the season. You pay his wages ({fmtMoney(p.wage)}/wk).</span>
+                <ConfirmButton className="btn block" label="End loan early" confirmLabel={`Tap again: send ${p.last} back to ${g.clubs[p.loan.from]?.name}`} onConfirm={() => { act(() => releasePlayer(g, p.id)); close(); }} />
+              </div>
+            ) : <div className="small">Contract until June {p.contractEnd} · {fmtMoney(p.wage)}/wk</div>}
+            {!p.loan && <>
+            {g.era ? (
+              // CM 01/02: a new contract is negotiated (offer, his answer the next day, try again if he refuses)
+              p.preContract ? <div className="bid-status collapsed"><b>Leaving in the summer</b><span>{fullName(p)} has agreed to join {g.clubs[p.preContract.clubId]?.name} on a free.</span></div>
+                : liveDeal('renew') ? <DealStep g={g} o={liveDeal('renew')!} />
+                : <button className="btn primary block" onClick={() => talk('renew')}>Offer new contract</button>
+            ) : <button className="btn primary block" onClick={() => act(() => renewContract(g, p.id, 3))}>Renew contract · 3 yrs at {fmtMoney(renewDemand(g, p))}/wk</button>}
+            {bidErr && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {bidErr}</div>}
             <div className="grid2">
               <button className="btn" onClick={() => mutate(() => { p.listed = !p.listed; })}>{p.listed ? 'Unlist' : '🏷️ Transfer list'}</button>
+              {g.era && <button className="btn" onClick={() => mutate(() => { p.loanListed = !p.loanListed; })}>{p.loanListed ? 'Off loan list' : '🔁 Loan list'}</button>}
               <button className="btn" onClick={() => mutate(() => { p.squad = p.squad === 'first' ? 'youth' : 'first'; user.lineup = user.lineup.map((x) => (x === p.id ? null : x)); user.subs = user.subs.filter((x) => x !== p.id); })}>
                 {p.squad === 'first' ? '→ Youth team' : '⬆ First team'}
               </button>
             </div>
             <ConfirmButton className="btn coral block" label="Release player" confirmLabel={`Tap again: release ${fullName(p)} and pay off half the contract`} onConfirm={() => { act(() => releasePlayer(g, p.id)); close(); }} />
+            </>}
             <div className="small muted">{squadOf(g, user.id).length} players in first team</div>
           </div>
         )}
@@ -213,7 +231,16 @@ export function PlayerModal() {
 
         {tab === 'actions' && !own && !scouted && p.clubId !== null && (() => {
           // The latest bid for him stays on screen with where it stands, CM-style
-          const offer = [...g.offers].reverse().find((o) => o.playerId === p.id && o.from === user.id && o.status !== 'withdrawn' && o.status !== 'done');
+          const offer = [...g.offers].reverse().find((o) => o.playerId === p.id && o.from === user.id && (!o.kind || o.kind === 'transfer') && o.status !== 'withdrawn' && o.status !== 'done');
+          const loanOffer = [...g.offers].reverse().find((o) => o.playerId === p.id && o.from === user.id && o.kind === 'loan' && o.date >= g.date.slice(0, 4));
+          if (p.loan) {
+            return (
+              <div className="col pf-actions">
+                <div className="bid-status pending"><b>On loan</b><span>{fullName(p)} is on loan at {g.clubs[p.clubId!].name} from {g.clubs[p.loan.from]?.name} until the end of the season.</span></div>
+                <button className="btn block" onClick={toggleShortlist}>{shortlisted ? '★ Shortlisted' : '☆ Add to shortlist'}</button>
+              </div>
+            );
+          }
           const live = offer && (offer.status === 'pending' || offer.status === 'accepted' || offer.status === 'countered');
           const seller = g.clubs[p.clubId!];
           return (
@@ -231,7 +258,17 @@ export function PlayerModal() {
               )}
               {bidErr && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {bidErr}</div>}
               {interest && !interest.ok && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {interest.reason}</div>}
+              {g.era && permitNote(g, p, user) && <div className="small muted">{permitNote(g, p, user)}</div>}
+              {p.preContract && <div className="small muted">Has agreed to join {g.clubs[p.preContract.clubId]?.name} on a free in the summer.</div>}
+              {g.era && (liveDeal('pre') || preContractOpen(g, p)) && (
+                <div className="col pre-contract">
+                  <div className="small"><b>Contract ends this summer:</b> you can agree a pre-contract and sign him on a free when it runs out.</div>
+                  {liveDeal('pre') ? <DealStep g={g} o={liveDeal('pre')!} /> : <button className="btn block" onClick={() => talk('pre')}>Offer pre-contract</button>}
+                </div>
+              )}
               {!windowOpen(g) && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>Window closed — bids open in January and July.</div>}
+              {loanOffer?.status === 'pending' && <div className="bid-status pending"><b>Loan offer submitted</b><span>Asked {seller.name} to loan him until the end of the season. Continue for their answer.</span></div>}
+              {loanOffer?.status === 'rejected' && <div className="bid-status rejected"><b>Loan turned down</b><span>{seller.name} won't loan him out.</span></div>}
               {offer?.status === 'accepted' && <DealStep g={g} o={offer} />}
               {!live && <>
                 <div className="row">
@@ -240,6 +277,7 @@ export function PlayerModal() {
                 </div>
                 <button className="btn primary block" disabled={!windowOpen(g)} onClick={() => { const r = mutate(() => userBid(g, p.id, bidVal)); setBidErr(r.ok ? '' : r.msg); }}>{offer ? 'Bid again' : 'Submit bid'}</button>
               </>}
+              {g.era && windowOpen(g) && loanOffer?.status !== 'pending' && <button className="btn block" onClick={() => { const r = mutate(() => userLoanOffer(g, p.id)); setBidErr(r.ok ? '' : r.msg); }}>Offer loan (until end of season)</button>}
               <button className="btn block" onClick={toggleShortlist}>{shortlisted ? '★ Shortlisted' : '☆ Add to shortlist'}</button>
               <div className="small muted">Your budget: {fmtMoney(user.transferBudget)}</div>
             </div>
@@ -250,7 +288,10 @@ export function PlayerModal() {
           <div className="col pf-actions">
             <div className="small">Free agent · wants <b>{fmtMoney(wageDemand(g, p, user))}/wk</b></div>
             {interest && !interest.ok && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {interest.reason}</div>}
-            <button className="btn primary block" onClick={() => act(() => signFreeAgent(g, p.id))}>Sign on a free</button>
+            {g.era && permitNote(g, p, user) && <div className="small muted">{permitNote(g, p, user)}</div>}
+            {g.era ? (liveDeal('free') ? <DealStep g={g} o={liveDeal('free')!} /> : <button className="btn primary block" onClick={() => talk('free')}>Offer contract</button>)
+              : <button className="btn primary block" onClick={() => act(() => signFreeAgent(g, p.id))}>Sign on a free</button>}
+            {bidErr && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {bidErr}</div>}
             <button className="btn block" onClick={toggleShortlist}>{shortlisted ? '★ Shortlisted' : '☆ Add to shortlist'}</button>
           </div>
         )}

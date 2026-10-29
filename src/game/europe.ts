@@ -92,7 +92,7 @@ export function computeEntrants(g: GameState): Record<string, number[]> {
     };
     take('UCL', places.UCL);
     // Domestic cup winner gets the first Europa League place
-    const dom = g.cups.find((c) => c.type === 'domestic' && c.country === country)?.winner ?? null;
+    const dom = g.cups.find((c) => c.type === 'domestic' && c.country === country && !c.leagues)?.winner ?? null;
     let uel = places.UEL;
     if (dom !== null && add('UEL', dom)) uel--;
     take('UEL', uel);

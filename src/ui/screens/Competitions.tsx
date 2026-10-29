@@ -97,22 +97,36 @@ export function Competitions() {
               <div className="row"><span style={{ fontSize: 34 }}>🏆</span><Crest club={g.clubs[cup.winner]} size={46} /><div><div className="small bold">{cup.name} winners</div><h2 style={{ fontSize: 22 }}>{g.clubs[cup.winner].name}</h2></div></div>
             </div>
           )}
-          {cup.rounds.map((r, i) => {
-            const fx = g.fixtures.filter((f) => f.comp === cup.id && f.round === i + 1);
-            const mine = fx.filter((f) => f.home === club.id || f.away === club.id);
-            const rest = fx.filter((f) => !mine.includes(f));
-            return (
-              <Card key={i} title={r.name} tag={fmtShort(r.date)} tagColor="var(--muted)">
-                {mine.map((f) => <FixtureRow key={f.id} g={g} f={f} showComp={false} />)}
-                {rest.slice(0, 16).map((f) => <FixtureRow key={f.id} g={g} f={f} showComp={false} />)}
-                {rest.length > 16 && <div className="small muted">+{rest.length - 16} more ties</div>}
-                {!fx.length && <div className="muted small">{i < cup.current ? 'Completed' : 'Draw not made yet'}</div>}
-              </Card>
-            );
-          })}
+          <DomesticCupRounds key={cup.id} cup={cup} />
         </>
       )}
     </div>
+  );
+}
+
+/** One round at a time (a League Cup first round has 30+ ties), your tie first; the current round is shown first. */
+function DomesticCupRounds({ cup }: { cup: Cup }) {
+  const g = useGame();
+  const me = g.userClubId;
+  const [round, setRound] = useState(() => Math.min(cup.rounds.length, Math.max(1, cup.current + 1)));
+  const fx = g.fixtures.filter((f) => f.comp === cup.id && f.round === round);
+  const ordered = [...fx].sort((a, b) => Number(b.home === me || b.away === me) - Number(a.home === me || a.away === me));
+  const r = cup.rounds[round - 1];
+  if (!r) return null;
+  return (
+    <>
+      <div className="ns-bar-row" style={{ marginBottom: 10 }}>
+        <select className="input" aria-label="Round" value={round} onChange={(e) => setRound(Number(e.target.value))}>
+          {cup.rounds.map((x, i) => <option key={i} value={i + 1}>{x.name} · {fmtShort(x.date)}</option>)}
+        </select>
+      </div>
+      <Card title={r.name} tag={fmtShort(r.date)} tagColor="var(--muted)">
+        <Fit><div className="list">
+          {ordered.map((f) => <FixtureRow key={f.id} g={g} f={f} showComp={false} />)}
+          {!fx.length && <div className="empty">{round <= cup.current ? 'Completed' : 'Draw not made yet'}</div>}
+        </div></Fit>
+      </Card>
+    </>
   );
 }
 
@@ -508,7 +522,7 @@ export function Inbox() {
             const latest = [...g.inbox].filter((m) => m.offerId === o.id).sort((a, b) => b.id - a.id)[0];
             return (
               <div style={{ marginTop: 16 }} className="col">
-                {latest?.id === msg.id && <DealStep g={g} o={o} />}
+                {latest?.id === msg.id && <DealStep g={g} o={o} inMail />}
                 <button className="btn block" onClick={() => ui.openPlayer(o.playerId)}>View player</button>
               </div>
             );

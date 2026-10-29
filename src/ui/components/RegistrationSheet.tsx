@@ -28,7 +28,7 @@ export function RegistrationSheet({ scope, onClose }: { scope: 'league' | 'europ
             <PosTag pos={p.pos} />
             <div className="main">
               <div className="t">{p.first} {p.last}</div>
-              <div className="s">{age(p, g.date)}y · OVR {overall(p)}{p.injury ? ' · 🩹' : ''}</div>
+              <div className="s">{age(p, g.date)}y<span className="ab"> · OVR {overall(p)}</span>{p.injury ? ' · 🩹' : ''}</div>
             </div>
             <span className={`switch ${sel.has(p.id) ? 'on' : ''}`}><span /></span>
           </div>

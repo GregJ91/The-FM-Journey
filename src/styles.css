@@ -1622,3 +1622,8 @@ table.t.dense td.nm { max-width: 140px; overflow: hidden; text-overflow: ellipsi
 .bid-status.rejected, .bid-status.collapsed { border-left-color: var(--coral); }
 .contract-form { border: 2px solid var(--line-2); padding: 10px 12px; background: rgba(0, 0, 0, 0.2); }
 .contract-form input[type="range"] { width: 100%; height: 28px; }
+
+/* CM 01/02 careers never show a player's ability or potential: judge players by their attributes */
+.ab-alt { display: none; }
+html[data-era="cm0102"] .ovr, html[data-era="cm0102"] .stars, html[data-era="cm0102"] .cm-box-r, html[data-era="cm0102"] .ab, html[data-era="cm0102"] .ovr-chg { display: none !important; }
+html[data-era="cm0102"] .ab-alt { display: inline; }

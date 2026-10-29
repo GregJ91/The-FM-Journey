@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { fmtMoney, fullName } from '../../game/ratings';
-import { ROLE_AS, ROLE_LABEL, cancelTransfer, confirmTransfer, expectedRole, offerContract, preferredYears, wageDemand } from '../../game/transfers';
+import { ROLE_AS, ROLE_LABEL, cancelTransfer, confirmTransfer, dealDemand, expectedRole, offerContract, preferredYears } from '../../game/transfers';
 import type { GameState, Offer, Player, SquadRole } from '../../game/types';
 import { mutate } from '../../store';
 
 /** CM-style contract offer: wage, length, squad status and signing-on fee. He answers the next day. */
-export function ContractForm({ g, p, offerId, onResult }: { g: GameState; p: Player; offerId: number; onResult: (r: { ok: boolean; msg: string }) => void }) {
+export function ContractForm({ g, p, o, onResult }: { g: GameState; p: Player; o: Offer; onResult: (r: { ok: boolean; msg: string }) => void }) {
+  const offerId = o.id;
   const user = g.clubs[g.userClubId];
-  const demand = wageDemand(g, p, user);
+  const demand = dealDemand(g, o, p);
   const want = expectedRole(g, p, user);
   const [wage, setWage] = useState(demand);
   const [years, setYears] = useState(preferredYears(g, p));
@@ -45,31 +46,33 @@ export function ContractForm({ g, p, offerId, onResult }: { g: GameState; p: Pla
  * The next step of one of your deals, CM 01/02-style: offer a contract once the fee is agreed, wait for his answer,
  * try again if he refuses, then confirm the transfer once he accepts. Shown in the inbox and on the player's Bid tab.
  */
-export function DealStep({ g, o }: { g: GameState; o: Offer }) {
+export function DealStep({ g, o, inMail }: { g: GameState; o: Offer; inMail?: boolean }) {
   const [err, setErr] = useState('');
   const p = g.players[o.playerId];
   if (!p) return null;
   const c = o.contract;
   const done = (r: { ok: boolean; msg: string }) => setErr(r.ok ? '' : r.msg);
   let body: React.ReactNode = null;
-  if (o.status === 'done') body = <div className="bid-status accepted"><b>Transfer complete</b><span>{fullName(p)} has joined.</span></div>;
+  if (o.status === 'done') body = <div className="bid-status accepted"><b>{o.kind === 'renew' ? 'New contract signed' : o.kind === 'pre' ? 'Pre-contract agreed' : 'Transfer complete'}</b><span>{o.kind === 'renew' ? `${fullName(p)} has signed a new deal.` : o.kind === 'pre' ? `${fullName(p)} joins in the summer.` : `${fullName(p)} has joined.`}</span></div>;
   else if (o.status === 'withdrawn') body = <div className="bid-status collapsed"><b>Deal cancelled</b><span>You pulled out.</span></div>;
-  else if (o.status === 'collapsed') body = <div className="bid-status collapsed"><b>Deal collapsed</b><span>The move for {fullName(p)} fell through.</span></div>;
+  else if (o.status === 'collapsed') body = <div className="bid-status collapsed"><b>{o.kind === 'renew' ? 'Talks broke down' : 'Deal collapsed'}</b><span>{o.kind === 'renew' ? `${fullName(p)} wouldn't agree a new deal.` : `The move for ${fullName(p)} fell through.`}</span></div>;
   else if (o.status === 'accepted' && c?.state === 'pending') {
     body = <div className="bid-status pending"><b>Contract offered</b><span>{fmtMoney(c.wage)}/wk · {c.years} yr · {ROLE_LABEL[c.role]}{c.bonus ? ` · ${fmtMoney(c.bonus)} signing-on` : ''}. Continue for his answer.</span></div>;
   } else if (o.status === 'accepted' && c?.state === 'agreed') {
+    const what = o.kind === 'free' ? ['Confirm the signing to bring him in on a free.', 'Confirm signing'] : o.kind === 'pre' ? [`Confirm the pre-contract: he joins on a free when his contract at ${g.clubs[o.to]?.name} ends in the summer.`, 'Confirm pre-contract'] : [`Confirm the ${fmtMoney(o.fee)} transfer to sign ${fullName(p)}.`, 'Confirm transfer'];
     body = (
       <div className="bid-status accepted">
-        <b>Terms agreed</b><span>Confirm the {fmtMoney(o.fee)} transfer to sign {fullName(p)}.</span>
-        <button className="btn primary block" onClick={() => done(mutate((gg) => confirmTransfer(gg, o.id)))}>Confirm transfer</button>
+        <b>Terms agreed</b><span>{what[0]}</span>
+        <button className="btn primary block" onClick={() => done(mutate((gg) => confirmTransfer(gg, o.id)))}>{what[1]}</button>
         <button className="btn block" onClick={() => done(mutate((gg) => cancelTransfer(gg, o.id)))}>Cancel deal</button>
       </div>
     );
   } else if (o.status === 'accepted') {
     body = (
       <>
-        {c?.state === 'rejected' && <div className="bid-status rejected"><b>Contract rejected</b><span>{c.note} {3 - c.tries} more offer{3 - c.tries > 1 ? 's' : ''} before talks break down.</span></div>}
-        <ContractForm g={g} p={p} offerId={o.id} onResult={done} />
+        {/* The refusal mail already gives his reason */}
+        {c?.state === 'rejected' && !inMail && <div className="bid-status rejected"><b>Contract rejected</b><span>{c.note} {3 - c.tries} more offer{3 - c.tries > 1 ? 's' : ''} before talks break down.</span></div>}
+        <ContractForm g={g} p={p} o={o} onResult={done} />
       </>
     );
   }

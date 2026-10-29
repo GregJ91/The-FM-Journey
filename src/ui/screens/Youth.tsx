@@ -22,7 +22,8 @@ export function Youth() {
   const g = useGame();
   const ui = useUI();
   const club = g.clubs[g.userClubId];
-  const youth = squadOf(g, club.id, 'youth').sort((a, b) => b.pa - a.pa);
+  // CM 01/02 careers don't reveal potential, not even by order: oldest first
+  const youth = squadOf(g, club.id, 'youth').sort((a, b) => (g.era ? a.dob.localeCompare(b.dob) : b.pa - a.pa));
   const comps = youthCompsFor(g, club.id);
   const league = comps.find((c) => c.kind === 'league');
   const mine = comps.flatMap((c) => c.fixtures.filter((f) => f.h === club.id || f.a === club.id).map((f) => ({ f, c }))).sort((a, b) => (a.f.d < b.f.d ? -1 : 1));
@@ -63,7 +64,7 @@ export function Youth() {
             <PlayerRow
               key={p.id}
               p={p}
-              sub={<>{age(p, g.date)}y · <Stars ovr={p.pa} />{p.pa >= 80 && ' 💎'}<OvrChange v={p.lastChange} />{youthLine(p)}</>}
+              sub={<>{age(p, g.date)}y · <Stars ovr={p.pa} />{p.pa >= 80 && !g.era && ' 💎'}<OvrChange v={p.lastChange} />{youthLine(p)}</>}
               end={<button className="btn sm primary" onClick={(e) => { e.stopPropagation(); mutate((gg) => { p.squad = 'first'; notePromotion(gg, p); numberUserSquad(gg); }); ui.toast(`${shortName(p)} promoted to the first team!`); }}>Promote</button>}
             />
           ))}

@@ -124,7 +124,7 @@ export function matchPreview(g: GameState) {
       `OPPOSITION: ${opp.name}${oppPos ? ` (${nth(oppPos)} in the ${league!.name})` : ''}\n` +
       `Form: ${form.length ? form.join(' ') : 'no games yet'}\n` +
       `Usual shape: ${opp.tactics.formation}\n` +
-      (star ? `Danger man: ${fullName(star)} (${star.pos}, ${overall(star)})\n` : '') +
+      (star ? `Danger man: ${fullName(star)} (${star.pos}${g.era ? '' : `, ${overall(star)}`})\n` : '') +
       (scorer && scorer.stats.goals > 0 ? `Top scorer: ${fullName(scorer)}, ${scorer.stats.goals} goals\n` : '') +
       (outOpp.length ? `Missing for them: ${outOpp.map((p) => shortName(p)).join(', ')}\n` : '') +
       `\nOUR TEAM NEWS\n` +
@@ -202,7 +202,7 @@ export function trainingReport(g: GameState) {
       `STAND-OUT TRAINERS\n${rated.slice(0, 3).map((x) => `• ${fullName(x.p)} ${x.r.toFixed(1)}`).join('\n') || '• —'}\n\n` +
       `POOR WEEK\n${rated.slice(-2).reverse().map((x) => `• ${fullName(x.p)} ${x.r.toFixed(1)}`).join('\n') || '• —'}\n\n` +
       (yRated.length ? `ACADEMY\nBest in the youth group: ${fullName(yRated[0].p)} (${yRated[0].r.toFixed(1)})\n` : '') +
-      (ready.length ? `Pushing for a first-team chance: ${ready.map((p) => `${fullName(p)} (${overall(p)}, pot ${p.pa})`).join(', ')}\n` : '') +
+      (ready.length ? `Pushing for a first-team chance: ${ready.map((p) => (g.era ? fullName(p) : `${fullName(p)} (${overall(p)}, pot ${p.pa})`)).join(', ')}\n` : '') +
       `\nMEDICAL\n` +
       (injured.length ? injured.map((p) => `• ${fullName(p)}: ${p.injury!.name.toLowerCase()}, ~${p.injury!.days} days`).join('\n') : '• No injuries.') +
       (tired.length ? `\nNeed a rest: ${tired.map((p) => `${shortName(p)} (${Math.round(p.condition)}%)`).join(', ')}` : '') +

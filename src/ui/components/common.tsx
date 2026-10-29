@@ -72,13 +72,14 @@ export function StatusIcons({ p }: { p: Player }) {
       {p.away && <span className="status-ico" title={`Away at the ${p.away}`}>✈️</span>}
       {notRegistered(p) && <span className="status-ico" title="Not registered for the league: can't play league games">🚫</span>}
       {p.listed && <span className="status-ico" title="Transfer listed">🏷️</span>}
+      {(p.loan || p.loanListed) && <span className="status-ico" title={p.loan ? 'On loan' : 'Loan listed'}>🔁</span>}
     </>
   );
 }
 
 export function OvrChange({ v }: { v: number }) {
   if (!v) return null;
-  return <span className="small bold" style={{ color: v > 0 ? 'var(--good)' : 'var(--bad)', marginLeft: 4 }}>{v > 0 ? `▲${v}` : `▼${-v}`}</span>;
+  return <span className="small bold ovr-chg" style={{ color: v > 0 ? 'var(--good)' : 'var(--bad)', marginLeft: 4 }}>{v > 0 ? `▲${v}` : `▼${-v}`}</span>;
 }
 
 export function Card({ title, tag, tagColor, right, children, className = '', style }: { title?: ReactNode; tag?: string; tagColor?: string; right?: ReactNode; children: ReactNode; className?: string; style?: React.CSSProperties }) {

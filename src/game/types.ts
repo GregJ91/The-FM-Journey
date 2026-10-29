@@ -95,7 +95,12 @@ export interface Player {
   meta?: boolean; // has a meta attribute profile (see meta.ts)
   shirt?: number; // squad number
   past?: [number, number, number, number, number][]; // CM careers: real career before the save began ([season, index into g.pastClubs, apps, goals, loan])
-  cm?: { v: number[]; o: number }; // CM 01/02 careers: CM-only attributes (CM_EXTRA order) and the overall they were read at
+  cm?: { v: number[]; o: number };
+  preContract?: PreContract; // agreed to join another club on a free in the summer
+  dbi?: number; // CM 01/02 careers: index in the database, so saves can leave out what never changes (history, CM attributes)
+  cmEdited?: boolean; // the editor changed his CM attributes or personality: save them
+  loan?: { from: number; until: string }; // on loan here from club `from` until the date
+  loanListed?: boolean; // available for loan (your players: other clubs can ask to borrow him) // CM 01/02 careers: CM-only attributes (CM_EXTRA order) and the overall they were read at
 }
 
 export interface YouthStats { apps: number; mins: number; goals: number; assists: number; rs: number }
@@ -246,6 +251,8 @@ export interface Cup {
   teams?: number[]; // league-phase entrants
   lp?: number; // number of league-phase matchdays
   groups?: number[][]; // Club World Cup groups
+  /** League Cups (CM 01/02 careers): which leagues take part; the country's other cup is the main one (FA Cup…) */
+  leagues?: string[];
   /** CM 01/02 careers: the 2002/03 formats (qualifying, two group stages, two-legged knockouts, Intertoto) */
   format?: '2002';
   kinds?: ('ko' | 'g1' | 'g2' | 'final')[]; // per round: knockout round, matchday of the first / second group stage, final
@@ -355,6 +362,17 @@ export interface Offer {
   respondBy?: string;
   note?: string;
   contract?: ContractOffer; // the user's contract offer to the player once the fee is agreed
+  /** transfer (default): fee agreed with his club first; free: a free agent; pre: a pre-contract with a player whose
+   *  contract ends this summer (joins on a free then); renew: a new contract for one of your own players; loan: a season-long loan */
+  kind?: 'transfer' | 'free' | 'pre' | 'renew' | 'loan';
+}
+
+/** A pre-contract: he joins this club on a free when his contract runs out in the summer. */
+export interface PreContract {
+  clubId: number;
+  wage: number;
+  years: number;
+  bonus: number;
 }
 
 export type SquadRole = 'key' | 'first' | 'rotation' | 'backup';
@@ -378,6 +396,7 @@ export interface TransferRecord {
   from: number | null;
   to: number | null;
   fee: number; // 0 = free
+  loan?: boolean;
 }
 
 export interface Board {
@@ -456,6 +475,8 @@ export interface GameState {
   era?: 'cm0102'; // built from the player's own Championship Manager 01/02 database
   manager: string;
   pastClubs?: string[]; // CM careers: club names for players' pre-save careers
+  cmRev?: number; // CM careers: revision of the database the career was built from
+  worldStart?: string; // the date the world was created (players who joined then don't save it)
   editor?: boolean; // the in-game editor is unlocked for this save (CM careers: tactic named "Editor")
   econ?: number; // CM careers: 1 once the save runs at 2002 prices (older CM saves are converted on load)
   managerNat?: string; // nationality code (The Journey keeps its own in journey.nat)

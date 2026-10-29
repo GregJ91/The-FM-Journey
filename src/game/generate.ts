@@ -2,6 +2,8 @@ import { budget, setEconomy } from './economy';
 import { CUP_DEFS, LEAGUE_DEFS, REAL_PLAYERS } from './data/leagues';
 import { YOUTH_PLAYERS } from './data/youthPlayers';
 import { ensureEurope } from './europe';
+import { ensureLeagueCups } from './competitions';
+import { isEu, permitCheck } from './permits';
 import { NAME_POOLS, NAT_MIX } from './data/names';
 import { addDays, ageOn, iso, toDate } from './dates';
 import { NEIGHBOURS, altPositionsFor, generateAttrs, overall, ratingAt, wageFor } from './ratings';
@@ -196,6 +198,13 @@ export function wageBill(g: GameState, clubId: number) {
   return s;
 }
 
+// Free agents for squad top-ups, gathered once per game day (a CM world has 50,000+ players)
+let freePool: { g: GameState; date: string; list: Player[] } | null = null;
+function freeAgents(g: GameState) {
+  if (!freePool || freePool.g !== g || freePool.date !== g.date) freePool = { g, date: g.date, list: Object.values(g.players).filter((p) => p.clubId === null) };
+  return freePool.list.filter((p) => p.clubId === null && g.players[p.id] === p);
+}
+
 /**
  * CM 01/02 careers never invent players to fill a squad: a club short of numbers promotes its best youngsters,
  * then signs real free agents (players released or out of contract, and regens). New players only enter the game
@@ -213,12 +222,26 @@ function fillCmSquad(g: GameState, club: Club, level: number, min: number, all =
     const counts: Partial<Record<Pos, number>> = {};
     for (const p of all) if (p.squad === 'first') counts[p.pos] = (counts[p.pos] ?? 0) + 1;
     // Free agents at the club's level first (best fit for the thinnest position), then the weakest of the rest
-    const free = Object.values(g.players).filter((p) => p.clubId === null);
-    for (; n < min && free.length; n++) {
+    const nonEu = all.filter((p) => p.squad === 'first' && !isEu(p)).length;
+    const free = freeAgents(g).filter((p) => permitCheck(g, p, club, nonEu).ok);
+    const ovr = new Map(free.map((p) => [p, overall(p)]));
+    const fitting = free.filter((p) => ovr.get(p)! <= level + 2);
+    const near = fitting.filter((p) => ovr.get(p)! >= level - 14);
+    const bestFor = (pool: Player[], pos: Pos) => {
+      let best: Player | undefined;
+      let bestR = -1;
+      for (const p of pool) {
+        if (p.clubId !== null) continue;
+        const r = ratingAt(p, pos);
+        if (r > bestR) { bestR = r; best = p; }
+      }
+      return best;
+    };
+    for (; n < min; n++) {
       const pos = SQUAD_TEMPLATE.find((x, i) => (counts[x] ?? 0) <= SQUAD_TEMPLATE.slice(0, i).filter((y) => y === x).length) ?? 'MC';
-      const fits = free.filter((p) => overall(p) <= level + 2).sort((a, b) => ratingAt(b, pos) - ratingAt(a, pos));
-      const best = fits[0] ?? free.sort((a, b) => overall(a) - overall(b))[0];
-      free.splice(free.indexOf(best), 1);
+      const best = bestFor(near, pos) ?? bestFor(fitting, pos) ?? free.filter((p) => p.clubId === null).sort((a, b) => ovr.get(a)! - ovr.get(b)!)[0];
+      if (!best) break;
+      all.push(best);
       best.clubId = club.id;
       best.squad = 'first';
       best.joined = g.date;
@@ -228,7 +251,7 @@ function fillCmSquad(g: GameState, club: Club, level: number, min: number, all =
       counts[best.pos] = (counts[best.pos] ?? 0) + 1;
     }
   }
-  assignShirtNumbers(g, club.id, Object.values(g.players).filter((p) => p.clubId === club.id));
+  assignShirtNumbers(g, club.id, all.filter((p) => p.clubId === club.id));
 }
 
 /** `players`: the club's players when the caller has them grouped already (saves a pass over the world). */
@@ -317,7 +340,7 @@ export function cmClubLine(c: CmWorld['clubs'][number]) {
 }
 
 /** CM players for one club (or free agents when clubId is null). */
-function addCmPlayers(g: GameState, list: CmWorld['players'], clubId: number | null) {
+function addCmPlayers(g: GameState, list: CmWorld['players'], clubId: number | null, index: Map<CmWorld['players'][number], number>) {
   const club = clubId !== null ? g.clubs[clubId] : null;
   const taken = new Set<number>();
   for (const sp of list) {
@@ -328,6 +351,7 @@ function addCmPlayers(g: GameState, list: CmWorld['players'], clubId: number | n
     p.personality = sp.personality;
     if (sp.cm) p.cm = { v: sp.cm, o: overall(p) };
     if (sp.past) p.past = sp.past.map((h) => [...h] as [number, number, number, number, number]);
+    p.dbi = index.get(sp);
     // Meta clubs (Arsenal) are overpowered here too: same overall, profile shaped towards what wins matches
     if (club && isMetaClub(club)) applyMetaProfile(p);
     p.contractEnd = clubId === null ? g.season : sp.contractEnd;
@@ -439,8 +463,11 @@ export function createWorld(opts: NewGameOptions): GameState {
     g.pastClubs = cm.pastClubs;
     const byCmClub = new Map<number, CmWorld['players']>();
     for (const sp of cm.players) (byCmClub.get(sp.club) ?? byCmClub.set(sp.club, []).get(sp.club)!).push(sp);
-    for (const [id, i] of Object.entries(cmIndex)) addCmPlayers(g, byCmClub.get(i) ?? [], Number(id));
-    addCmPlayers(g, byCmClub.get(-1) ?? [], null);
+    const index = new Map(cm.players.map((sp, i) => [sp, i]));
+    for (const [id, i] of Object.entries(cmIndex)) addCmPlayers(g, byCmClub.get(i) ?? [], Number(id), index);
+    addCmPlayers(g, byCmClub.get(-1) ?? [], null, index);
+    g.cmRev = cm.rev ?? 1;
+    g.worldStart = g.date;
   }
 
   // Real players
@@ -516,6 +543,7 @@ export function createWorld(opts: NewGameOptions): GameState {
   for (const def of CUP_DEFS) {
     g.cups.push({ id: def.id, name: def.name, short: def.short, type: 'domestic', country: def.country, color: def.color, alive: [], rounds: [], current: 0, winner: null, runnerUp: null });
   }
+  ensureLeagueCups(g);
   // European competitions and the guest clubs from the rest of Europe
   ensureEurope(g);
   assignAllShirtNumbers(g);

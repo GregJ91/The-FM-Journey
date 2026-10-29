@@ -22,3 +22,14 @@ export const YOUTH_LEAGUES: YouthLeagueDef[] = [
 
 export const FA_YOUTH_CUP = { id: 'FAYC', name: 'FA Youth Cup', short: 'FAYC', age: 18, color: '#C8102E', leagues: ['ENG1', 'ENG2', 'ENG3', 'ENG4'] };
 export const UEFA_YOUTH_LEAGUE = { id: 'UYL', name: 'UEFA Youth League', short: 'UYL', age: 19, color: '#3D7BFF' };
+
+/** CM 01/02 careers: what the youth leagues were called in 2002 (the UEFA Youth League didn't exist until 2013). */
+export const YOUTH_2002: Record<string, { name: string; short: string; age: number }> = {
+  PL2: { name: 'FA Premier Academy League', short: 'FAPL', age: 19 },
+  PDL: { name: 'Football League Youth Alliance (Division One)', short: 'FLYA', age: 19 },
+  EYA1: { name: 'Football League Youth Alliance (Division Two)', short: 'FLYA', age: 19 },
+  EYA2: { name: 'Football League Youth Alliance (Division Three)', short: 'FLYA', age: 19 },
+  PRI: { name: 'Campionato Primavera', short: 'PRI', age: 20 },
+  DNL: { name: 'A-Junioren Regionalliga', short: 'AJR', age: 19 },
+  N19: { name: 'Championnat National des 18 ans', short: 'N18', age: 18 },
+};

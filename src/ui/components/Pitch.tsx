@@ -66,7 +66,7 @@ export function FormationPitch({
             onClick={() => onSlot?.(i)}
           >
             <div className="dot" style={{ background: p ? c1 : undefined, color: textOn(c1), boxShadow: `inset 0 0 0 3px ${c2}, 2px 2px 0 rgba(0,0,0,.35)` }}>
-              {p ? Math.round(ratingAt(p, s.pos)) : s.pos}
+              {p ? <><span className="ab">{Math.round(ratingAt(p, s.pos))}</span><span className="ab-alt">{p.shirt ?? s.pos}</span></> : s.pos}
             </div>
             <div className="nm">{p ? p.last : s.pos}</div>
           </div>

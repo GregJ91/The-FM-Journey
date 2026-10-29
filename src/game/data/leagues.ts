@@ -1857,6 +1857,12 @@ export const REAL_PLAYERS: Record<string, string[]> = {
   ],
 };
 
+/** CM 01/02 careers: the League Cups of 2002/03 (Premier and Football League clubs; SPL and Scottish League clubs). */
+export const LEAGUE_CUP_DEFS = [
+  { id: 'FLC', name: 'Worthington Cup', short: 'WC', country: 'ENG', color: '#5B2C83', leagues: ['ENG1', 'ENG2', 'ENG3', 'ENG4'] },
+  { id: 'SLC', name: 'CIS Insurance Cup', short: 'CIS', country: 'SCO', color: '#1D4F91', leagues: ['SCO1', 'SCO2', 'SCO3', 'SCO4'] },
+];
+
 export const CUP_DEFS = [
   { id: 'FAC', name: 'FA Cup', short: 'FAC', country: 'ENG', color: '#C8102E' },
   { id: 'CDR', name: 'Copa del Rey', short: 'CDR', country: 'ESP', color: '#AA151B' },

@@ -81,7 +81,7 @@ export function Training() {
       {sec === 'movers' && <Card title="Last month's movers" tag="Report" tagColor="var(--sky)">
         <div className="list">
           {movers.slice(0, 15).map((p) => (
-            <PlayerRow key={p.id} p={p} sub={`${age(p, g.date)}y${p.squad === 'youth' ? ' · youth' : ''}`} end={<span style={{ color: p.lastChange > 0 ? 'var(--good)' : 'var(--bad)' }}>{p.lastChange > 0 ? `+${p.lastChange}` : p.lastChange}</span>} />
+            <PlayerRow key={p.id} p={p} sub={`${age(p, g.date)}y${p.squad === 'youth' ? ' · youth' : ''}`} end={<span style={{ color: p.lastChange > 0 ? 'var(--good)' : 'var(--bad)' }}>{g.era ? (p.lastChange > 0 ? '▲ Improving' : '▼ Declining') : p.lastChange > 0 ? `+${p.lastChange}` : p.lastChange}</span>} />
           ))}
           {!movers.length && <div className="muted small">No changes yet — the first update happens on the 1st of next month.</div>}
         </div>

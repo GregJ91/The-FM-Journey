@@ -33,7 +33,9 @@ export function Header() {
   const [badges, setBadges] = useState(false);
   const club = g.clubs[g.userClubId];
   const league = leagueOf(g, club.id);
-  const pos = leaguePosition(g, club.id);
+  // No position until a league game has been played (the table has no order before then)
+  const started = g.fixtures.some((f) => f.comp === league.id && f.result);
+  const pos = started ? leaguePosition(g, club.id) : 0;
   const unread = unreadCount(g);
   return (
     <header className="header">

@@ -128,10 +128,12 @@ export function computeEntrants2002(g: GameState): Record<string, number[]> {
     const take = (k: keyof Entrants, n: number) => { let got = 0; while (got < n && i < order.length) if (add(k, order[i++])) got++; };
     take('UCL', p.d);
     take('UCLQ', p.q);
-    // The domestic cup winner takes the first UEFA Cup place
-    const cupWinner = g.cups.find((c) => c.type === 'domestic' && c.country === country)?.winner ?? null;
+    // The domestic cup winner takes the first UEFA Cup place, and in England the League Cup winner the next
+    const cupWinner = g.cups.find((c) => c.type === 'domestic' && c.country === country && !c.leagues)?.winner ?? null;
+    const leagueCupWinner = country === 'ENG' ? g.cups.find((c) => c.id === 'FLC')?.winner ?? null : null;
     let uel = p.uel;
     if (cupWinner !== null && add('UEL', cupWinner)) uel--;
+    if (leagueCupWinner !== null && g.clubs[leagueCupWinner]?.leagueId === 'ENG1' && add('UEL', leagueCupWinner)) uel--;
     take('UEL', uel);
     take('UECL', p.uic);
   }

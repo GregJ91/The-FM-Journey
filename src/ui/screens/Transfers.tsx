@@ -13,7 +13,7 @@ import { Fit } from '../components/Fit';
 import { Ovr, PosTag, Sheet } from '../components/common';
 import { Crest } from '../components/Crest';
 
-type Tab = 'search' | 'free' | 'shortlist' | 'bids' | 'incoming' | 'news';
+type Tab = 'search' | 'free' | 'shortlist' | 'bids' | 'incoming' | 'loans' | 'news';
 type SortKey = 'ability' | 'potential' | 'value' | 'age' | 'youngest' | 'name';
 
 /** CM 01/02-style player search: every filter the scout screen offered. */
@@ -99,7 +99,7 @@ function OfferCard({ g, o, incoming, act }: { g: GameState; o: Offer; incoming?:
           <div className="small muted">{incoming ? `Bid from ${other.name}` : `To ${other.name}`} · {fmtShort(o.date)}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div className="bold" style={{ fontFamily: 'var(--display)', fontSize: 18 }}>{fmtMoney(o.fee)}</div>
+          <div className="bold" style={{ fontFamily: 'var(--display)', fontSize: 18 }}>{o.kind === 'loan' ? 'Loan' : fmtMoney(o.fee)}</div>
           <StatusChip s={o.status} counter={o.counter} />
         </div>
       </div>
@@ -167,16 +167,17 @@ export function Transfers() {
   const countries = useMemo(() => [...new Set(Object.values(g.clubs).map((c) => c.country))].map((c) => [c, nationName(c)] as const).sort((a, b) => a[1].localeCompare(b[1])), [g]);
   const nActive = activeFilters(f);
 
-  const myBids = g.offers.filter((o) => o.from === club.id).slice().reverse();
-  const incoming = g.offers.filter((o) => o.to === club.id).slice().reverse();
+  // Deals with clubs (talks with players themselves live on their profiles and in the inbox)
+  const myBids = g.offers.filter((o) => o.from === club.id && (!o.kind || o.kind === 'transfer' || o.kind === 'loan')).slice().reverse();
+  const incoming = g.offers.filter((o) => o.to === club.id && o.from !== club.id).slice().reverse();
   const pendingIn = incoming.filter((o) => o.status === 'pending').length;
   const act = (fn: () => { ok: boolean; msg: string }) => {
     const r = mutate(fn);
     ui.toast(r.msg, !r.ok);
   };
-  const TABS: [Tab, string][] = [['search', 'Search'], ['free', 'Free agents'], ['shortlist', `Shortlist (${g.shortlist.length})`], ['bids', `My bids (${myBids.length})`], ['incoming', `Offers${pendingIn ? ` (${pendingIn} new)` : ''}`], ['news', 'Latest transfers']];
+  const TABS: [Tab, string][] = [['search', 'Search'], ['free', 'Free agents'], ['shortlist', `Shortlist (${g.shortlist.length})`], ['bids', `My bids (${myBids.length})`], ['incoming', `Offers${pendingIn ? ` (${pendingIn} new)` : ''}`], ...(g.era ? [['loans', 'Loans'] as [Tab, string]] : []), ['news', 'Latest transfers']];
 
-  const SECTION_TITLE: Record<Tab, string> = { search: 'Transfer search', free: 'Free agents', shortlist: 'Shortlist', bids: 'My bids', incoming: 'Offers for your players', news: 'Latest transfers' };
+  const SECTION_TITLE: Record<Tab, string> = { search: 'Transfer search', free: 'Free agents', shortlist: 'Shortlist', bids: 'My bids', incoming: 'Offers for your players', loans: 'Loans', news: 'Latest transfers' };
 
   // Championship Manager-style: one toolbar, one status line, one big window of results
   return (
@@ -214,6 +215,32 @@ export function Transfers() {
         </div>
       )}
 
+      {tab === 'loans' && (() => {
+        const out = Object.values(g.players).filter((p) => p.loan?.from === club.id);
+        const inn = Object.values(g.players).filter((p) => p.clubId === club.id && p.loan);
+        const listed = Object.values(g.players).filter((p) => p.clubId === club.id && p.loanListed && !p.loan);
+        const row = (p: Player, where: string) => (
+          <tr key={p.id} className="click" onClick={() => ui.openPlayer(p.id)}>
+            <td><PosTag pos={p.pos} /></td><td className="nm"><b>{shortName(p)}</b><div className="muted small">{where}</div></td><td className="r num">{age(p, g.date)}</td>
+          </tr>
+        );
+        return (
+          <div className="card fill squad-ns">
+            <div className="card-h"><h3>Loans</h3><div className="right tile-sub">until the end of the season</div></div>
+            <Fit>
+            <table className="t dense">
+              <tbody>
+                {out.map((p) => row(p, `Out on loan at ${g.clubs[p.clubId!].name}`))}
+                {inn.map((p) => row(p, `In on loan from ${g.clubs[p.loan!.from]?.name}`))}
+                {listed.map((p) => row(p, 'Loan listed: waiting for offers'))}
+              </tbody>
+            </table>
+            {!out.length && !inn.length && !listed.length && <div className="empty">No loans. Put a player on the loan list from his profile (Manage), or offer to take one on loan from his Bid tab.</div>}
+            </Fit>
+          </div>
+        );
+      })()}
+
       {tab === 'news' && (
         <div className="card fill squad-ns">
           <div className="card-h"><h3>{SECTION_TITLE.news}</h3></div>
@@ -223,7 +250,7 @@ export function Transfers() {
               {g.transfers.slice(-50).reverse().map((t, i) => (
                 <tr key={i} className="click" onClick={() => g.players[t.playerId] && ui.openPlayer(t.playerId)}>
                   <td className="nm"><b>{t.name}</b><div className="muted small">{t.from !== null ? g.clubs[t.from].short : 'Free'} → {t.to !== null ? g.clubs[t.to].short : 'Released'} · {fmtShort(t.date)}</div></td>
-                  <td className="r num">{t.fee ? fmtMoney(t.fee) : 'Free'}</td>
+                  <td className="r num">{t.loan ? 'Loan' : t.fee ? fmtMoney(t.fee) : 'Free'}</td>
                 </tr>
               ))}
             </tbody>

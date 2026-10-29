@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { del, get, set } from 'idb-keyval';
-import { CM_REV, type CmWorld } from './game/cm0102/parse';
+import { CM_BUILTIN, CM_REV, cmFile, type CmWorld } from './game/cm0102/parse';
+import { unpackWorld } from './game/cm0102/pack';
 import { CM_ECONOMY, setEconomy } from './game/economy';
 import { getSeed, seed } from './game/rng';
 import { ATTR_KEYS, type Attrs, type GameState, type Player } from './game/types';
@@ -71,28 +72,75 @@ const saveKey = (slot: string) => `fmj-save-${slot}`;
 const PLAYER_DEFAULTS = { listed: false, injury: null, suspended: 0, yellowAcc: 0, monthMins: 0, lastChange: 0, focus: null } as const;
 const PLAYER_LISTS = ['history', 'monthRatings', 'form'] as const;
 
-function slimPlayer(p: Player) {
-  const out: Record<string, unknown> = { ...p };
-  for (const [k, v] of Object.entries(PLAYER_DEFAULTS)) if (out[k] === v) delete out[k];
-  for (const k of PLAYER_LISTS) if (!p[k].length) delete out[k];
-  if (Object.values(p.stats).every((x) => x === 0)) delete out.stats;
+const r2 = (v: number) => (Number.isInteger(v) ? v : Math.round(v * 100) / 100);
+
+/** Player details that come from the CM 01/02 database and never change (unless edited). */
+const STATIC = new Set(['first', 'last', 'dob', 'nat', 'foot', 'real', 'personality', 'past']);
+
+/** One player as saved: usual values left out, numbers to 2 decimals, attributes as an array. */
+function slimPlayer(p: Player, worldStart?: string) {
+  const out: Record<string, unknown> = {};
+  for (const k in p) {
+    const v = (p as unknown as Record<string, unknown>)[k];
+    if (v === undefined) continue;
+    if (k in PLAYER_DEFAULTS && v === PLAYER_DEFAULTS[k as keyof typeof PLAYER_DEFAULTS]) continue;
+    if ((k === 'history' || k === 'monthRatings' || k === 'form') && !(v as unknown[]).length) continue;
+    if (k === 'attrs') { out.attrs = ATTR_KEYS.map((a) => r2(p.attrs[a])); continue; }
+    if (k === 'stats') {
+      let any = false;
+      const st: Record<string, number> = {};
+      for (const [sk, sv] of Object.entries(p.stats)) { st[sk] = r2(sv); if (sv) any = true; }
+      if (any) out.stats = st;
+      continue;
+    }
+    if (k === 'id' || (k === 'squad' && v === 'first') || (k === 'joined' && v === worldStart)) continue;
+    // CM 01/02: what never changes comes back from the database when the save is loaded
+    if (p.dbi !== undefined && !p.cmEdited && STATIC.has(k)) continue;
+    if (k === 'cm' && p.dbi !== undefined && !p.cmEdited) { out.cmo = p.cm!.o; continue; }
+    out[k] = typeof v === 'number' ? r2(v) : v;
+  }
   return out;
 }
 
-// Attributes are stored as arrays in ATTR_KEYS order to keep saves small.
+// Players are written straight (they are almost all of a save); everything else rounds its numbers on the way.
 export function compact(g: GameState) {
   const players: Record<string, unknown> = {};
-  for (const [id, p] of Object.entries(g.players)) players[id] = slimPlayer(p);
-  return JSON.stringify({ ...g, players }, (k, v) => {
-    if (k === 'attrs' && v && typeof v === 'object' && !Array.isArray(v)) return ATTR_KEYS.map((a) => Math.round((v as Attrs)[a] * 100) / 100);
-    return typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 100) / 100 : v;
-  });
+  for (const id in g.players) players[id] = slimPlayer(g.players[id], g.worldStart);
+  const rest = JSON.stringify({ ...g, players: '\u0000players' }, (_k, v) => (typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 100) / 100 : v));
+  return rest.replace('"players":"\\u0000players"', () => `"players":${JSON.stringify(players)}`);
+}
+
+/**
+ * CM 01/02 careers: put back what saves leave out (names, birth date, nationality, foot, personality, career history,
+ * CM attributes) from the database revision the career was built from.
+ */
+export function attachCmStatic(g: GameState, w: CmWorld) {
+  for (const p of Object.values(g.players)) {
+    const loose = p as unknown as { cmo?: number };
+    const sp = p.dbi !== undefined && !p.cmEdited ? w.players[p.dbi] : undefined;
+    if (sp) {
+      p.first ??= sp.first;
+      p.last ??= sp.last;
+      p.dob ??= sp.dob;
+      p.nat ??= sp.nat;
+      p.foot ??= sp.foot;
+      p.real ??= true;
+      p.personality ??= sp.personality;
+      if (!p.past && sp.past) p.past = sp.past.map((h) => [...h] as [number, number, number, number, number]);
+      if (!p.cm && sp.cm) p.cm = { v: [...sp.cm], o: loose.cmo ?? 0 };
+    }
+    delete loose.cmo;
+  }
+  if (!g.pastClubs && w.pastClubs) g.pastClubs = w.pastClubs;
 }
 
 export function expand(raw: string): GameState {
   const g = JSON.parse(raw) as GameState;
   const blank = emptyStats();
-  for (const p of Object.values(g.players)) {
+  for (const [id, p] of Object.entries(g.players)) {
+    p.id ??= Number(id);
+    p.squad ??= 'first';
+    p.joined ??= g.worldStart ?? g.date;
     for (const [k, v] of Object.entries(PLAYER_DEFAULTS)) if (!(k in p)) (p as unknown as Record<string, unknown>)[k] = v;
     for (const k of PLAYER_LISTS) p[k] ??= [];
     const a = p.attrs as unknown;
@@ -100,7 +148,7 @@ export function expand(raw: string): GameState {
     // saves from before detailed stats existed
     p.stats = { ...blank, ...p.stats };
     // saves from before real players always had their natural second position
-    if (p.pos !== 'GK') p.alt = withNaturalAlt(p.alt ?? [], p.pos, p.real);
+    if (p.pos !== 'GK' && p.dbi === undefined) p.alt = withNaturalAlt(p.alt ?? [], p.pos, p.real);
   }
   for (const c of Object.values(g.clubs)) c.tactics = normaliseTactics(c.tactics);
   // CM 01/02 saves from before the 2002 economy: convert today's prices to 2002 ones
@@ -175,6 +223,11 @@ export async function loadGame(slot: string) {
   if (!stored) throw new Error('Save not found');
   const g = expand(typeof stored === 'string' ? stored : await gunzip(stored));
   if (g.saveVersion !== SAVE_VERSION) throw new Error('This save is from an incompatible version.');
+  if (g.era === 'cm0102' && Object.values(g.players).some((p) => p.dbi !== undefined && p.last === undefined)) {
+    const w = await getCmWorld(g.cmRev);
+    if (!w) throw new Error('This career needs the CM 01/02 database: connect to the internet once to download it.');
+    attachCmStatic(g, w);
+  }
   // JSON turns numeric record keys into strings; that's fine for lookups.
   lastSaved[g.slot] = g.date;
   setGame(g);
@@ -200,6 +253,22 @@ export async function loadCmWorld(): Promise<CmWorld | null> {
     const w = (await get(CM_KEY)) as CmWorld | undefined;
     // An older copy of the built-in database is replaced by the current one
     return w && (w.rev ?? 1) >= CM_REV ? w : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The CM 01/02 database: the copy on this device, or the built-in one (downloaded and kept). */
+export async function getCmWorld(rev = CM_REV): Promise<CmWorld | null> {
+  const stored = await loadCmWorld();
+  if (stored && (stored.rev ?? 1) === rev) return stored;
+  // A career built from an older revision loads its own copy (every revision's file stays published)
+  try {
+    const res = await fetch(`./${rev === CM_REV ? CM_BUILTIN : cmFile(rev)}`);
+    if (!res.ok) return null;
+    const w = await unpackWorld(await res.text());
+    if (rev === CM_REV) await saveCmWorld(w);
+    return w;
   } catch {
     return null;
   }

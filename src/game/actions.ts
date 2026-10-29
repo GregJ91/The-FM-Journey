@@ -8,7 +8,7 @@ import { age, fmtMoney, fullName, marketValue, overall, roundMoney } from './rat
 import { chance } from './rng';
 import { mgr, note } from './manager';
 import { respondJob } from './journey';
-import { completeTransfer, renewContract, renewDemand, respondIncoming, wageDemand, windowOpen } from './transfers';
+import { completeTransfer, openTalks, renewContract, renewDemand, respondIncoming, wageDemand, windowOpen } from './transfers';
 import type { ActionType, Fixture, GameState, Message, MessageAction, Player } from './types';
 
 export const SQUAD_LIMIT = 25;
@@ -37,6 +37,14 @@ export function offerAction(g: GameState, offerId: number, title: string, body: 
   send(g, { from, kind: 'offer', title, body, offerId }, {
     type: 'offer', offerId,
     options: [{ id: 'accept', label: 'Accept' }, { id: 'counter', label: 'Ask for 25% more' }, { id: 'reject', label: 'Reject' }],
+  });
+}
+
+/** Another club asks to borrow one of your players: accept or reject. */
+export function loanAction(g: GameState, offerId: number, title: string, body: string, from: string) {
+  send(g, { from, kind: 'offer', title, body, offerId }, {
+    type: 'offer', offerId,
+    options: [{ id: 'accept', label: 'Accept the loan' }, { id: 'reject', label: 'Reject' }],
   });
 }
 
@@ -90,7 +98,7 @@ export function registrationAction(g: GameState, scope: 'league' | 'europe', com
   send(g, {
     from: 'Director of Football', kind: 'board',
     title: `Register your ${compName} squad`,
-    body: `The registration deadline for the ${compName} has arrived. Name up to ${SQUAD_LIMIT} players aged ${REGISTRATION_AGE} or over; younger players don't need registering.\n\nYou have ${n} senior players.${n > SQUAD_LIMIT ? ` ${n - SQUAD_LIMIT} will have to miss out, and anyone left out can't play in the ${compName} until the next registration window.` : ''}\n\nPick the squad yourself, or use the suggested ${Math.min(n, SQUAD_LIMIT)} (best by overall).`,
+    body: `The registration deadline for the ${compName} has arrived. Name up to ${SQUAD_LIMIT} players aged ${REGISTRATION_AGE} or over; younger players don't need registering.\n\nYou have ${n} senior players.${n > SQUAD_LIMIT ? ` ${n - SQUAD_LIMIT} will have to miss out, and anyone left out can't play in the ${compName} until the next registration window.` : ''}\n\nPick the squad yourself, or use the suggested ${Math.min(n, SQUAD_LIMIT)}${g.era ? '' : ' (best by overall)'}.`,
   }, {
     type: 'registration', scope,
     options: [{ id: 'pick', label: 'Pick squad' }, { id: 'suggested', label: 'Use suggested squad' }],
@@ -148,6 +156,14 @@ export function contractTalks(g: GameState) {
     .sort((a, b) => overall(b) - overall(a))
     .slice(0, 4);
   for (const p of key) {
+    if (p.preContract) continue;
+    if (g.era) {
+      // CM 01/02: talks open with a contract offer in the mail (offer, answer the next day, try again if he refuses)
+      const r = openTalks(g, p.id, 'renew');
+      if (!r.ok || r.offerId === undefined) continue;
+      sendMessage(g, { from: `${fullName(p)}'s agent`, kind: 'transfer', title: `${fullName(p)} wants to talk about a new contract`, body: `${fullName(p)}'s contract runs out this summer. His agent is asking for around ${fmtMoney(renewDemand(g, p))}/week (currently ${fmtMoney(p.wage)}/week).\n\nWithout a new deal he'll leave on a free in June, and other clubs can sign him on a pre-contract from now.`, offerId: r.offerId });
+      continue;
+    }
     const wage = renewDemand(g, p);
     send(g, {
       from: `${fullName(p)}'s agent`, kind: 'transfer',

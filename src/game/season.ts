@@ -1,5 +1,5 @@
 import { boardMonthly, checkFacilityUpgrade, clampConf, monthlyFinances, prizeMoney, recordLedger, setBoardObjective, setSeasonBudgets, weeklyWages } from './club';
-import { compName, leagueTable, progressCup, scheduleLeague, setupCups } from './competitions';
+import { compName, ensureLeagueCups, leagueTable, progressCup, scheduleLeague, setupCups } from './competitions';
 import { tickEurope2002 } from './europe2002';
 import { computeEntrants, ensureEurope, europeFor, initialEntrants, progressEurope, setupEurope } from './europe';
 import { guestLevel, isGuest, isTransferOnly } from './guests';
@@ -20,11 +20,11 @@ import { monthlyManager } from './manager';
 import { journeyDaily, journeyMonthly } from './journey';
 import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
 import { chance, int, normal, pick } from './rng';
-import { aiBidsForUser, aiTransfers, expireOffers, respondToContracts, respondToUserBids } from './transfers';
+import { aiBidsForUser, aiLoanOffersForUser, aiLoans, aiPreContracts, aiTransfers, completeTransfer, endLoan, expireOffers, respondToContracts, respondToLoanOffers, respondToUserBids } from './transfers';
 import { matchdayIncome } from './club';
 import { bestFormation } from './selection';
 import { normaliseTactics } from './tactics';
-import type { Cup, Fixture, GameState, SeasonHistory } from './types';
+import type { Cup, Fixture, GameState, Player, SeasonHistory } from './types';
 
 export function seasonLabel(season: number) {
   return `${season}/${String(season + 1).slice(2)}`;
@@ -37,6 +37,7 @@ export function startSeason(g: GameState) {
   assignAllShirtNumbers(g); // new signings, regens and youth graduates
   ensureEurope(g);
   resetRegistration(g);
+  ensureLeagueCups(g);
   setupCups(g);
   // First season: the real line-ups (2026/27, or 2002/03 in CM 01/02 careers)
   setupEurope(g, g.europe ?? (g.season === START_SEASON || (g.era && !g.history.length) ? initialEntrants(g) : computeEntrants(g)));
@@ -45,8 +46,10 @@ export function startSeason(g: GameState) {
   setSeasonBudgets(g);
   setBoardObjective(g);
   const byClub = playersByClub(g);
+  // A brand-new world already picked every club's formation
+  const fresh = !!g.worldStart && g.date === g.worldStart && !g.history.length;
   for (const c of Object.values(g.clubs)) {
-    if (c.isUser || isTransferOnly(c)) continue; // transfer-only clubs never play
+    if (fresh || c.isUser || isTransferOnly(c)) continue; // transfer-only clubs never play
     c.tactics = normaliseTactics({ ...c.tactics, formation: bestFormation(c, (byClub.get(c.id) ?? []).filter((p) => p.squad === 'first')), roles: [] });
   }
   for (const p of Object.values(g.players)) {
@@ -194,7 +197,11 @@ function daily(g: GameState) {
   }
   respondToUserBids(g);
   respondToContracts(g);
+  respondToLoanOffers(g);
   aiTransfers(g);
+  aiPreContracts(g);
+  aiLoans(g);
+  aiLoanOffersForUser(g);
   aiBidsForUser(g);
   expireOffers(g);
 }
@@ -236,7 +243,8 @@ function developmentReport(g: GameState, dev: { player: { id: number; first: str
   if (!dev.length) return;
   const up = dev.filter((x) => x.after > x.before).sort((a, b) => b.after - b.before - (a.after - a.before));
   const down = dev.filter((x) => x.after < x.before).sort((a, b) => a.after - a.before - (b.after - b.before));
-  const fmt = (x: (typeof dev)[number]) => `${x.player.first ? x.player.first[0] + '. ' : ''}${x.player.last} ${x.before} → ${x.after}`;
+  // CM 01/02 careers never show ability: just who has improved or declined
+  const fmt = (x: (typeof dev)[number]) => `${x.player.first ? x.player.first[0] + '. ' : ''}${x.player.last}${g.era ? '' : ` ${x.before} → ${x.after}`}`;
   const body = [
     up.length ? `📈 Improved (${up.length}):\n${up.slice(0, 8).map(fmt).join('\n')}` : '📈 Nobody improved noticeably this month.',
     down.length ? `\n📉 Declined (${down.length}):\n${down.slice(0, 6).map(fmt).join('\n')}` : '',
@@ -247,21 +255,26 @@ function developmentReport(g: GameState, dev: { player: { id: number; first: str
 function contractWarnings(g: GameState) {
   const expiring = squadOf(g, g.userClubId, 'all').filter((p) => p.contractEnd <= g.season + 1);
   if (!expiring.length) return;
-  sendMessage(g, { from: 'Director of Football', kind: 'info', title: `${expiring.length} contract(s) expire this summer`, body: `These players will leave on a free at the end of the season unless you renew them (open the player and choose "Renew contract"):\n\n${expiring.map((p) => `• ${fullName(p)} (${overall(p)})`).join('\n')}` });
+  sendMessage(g, { from: 'Director of Football', kind: 'info', title: `${expiring.length} contract(s) expire this summer`, body: `These players will leave on a free at the end of the season unless you renew them (open the player and choose "Renew contract"):\n\n${expiring.map((p) => `• ${fullName(p)}${g.era ? '' : ` (${overall(p)})`}`).join('\n')}` });
 }
 
 function youthIntake(g: GameState) {
+  const byClub = g.era === 'cm0102' ? playersByClub(g) : null;
   for (const club of Object.values(g.clubs)) {
     if (club.isUser) {
       const n = 3 + club.facilities.youth + int(0, 2);
       const kids = generateYouth(g, club, n, true);
       const best = [...kids].sort((a, b) => b.pa - a.pa)[0];
-      sendMessage(g, { from: 'Head of Youth Development', kind: 'youth', title: `Youth intake: ${n} new prospects`, body: `This year's youth intake has arrived!\n\n${kids.map((p) => `• ${fullName(p)} (${p.pos}, ${age(p, g.date)}) — OVR ${overall(p)}`).join('\n')}\n\nThe pick of the bunch looks to be ${fullName(best)}. Visit the Youth Team page to have a look.` });
+      sendMessage(g, { from: 'Head of Youth Development', kind: 'youth', title: `Youth intake: ${n} new prospects`, body: `This year's youth intake has arrived!\n\n${kids.map((p) => `• ${fullName(p)} (${p.pos}, ${age(p, g.date)})${g.era ? '' : ` — OVR ${overall(p)}`}`).join('\n')}\n\nThe pick of the bunch looks to be ${fullName(best)}. Visit the Youth Team page to have a look.` });
     } else if (g.era === 'cm0102') {
       // CM 01/02: every club's regens arrive each year, so the world never runs out of players
-      // (transfer-only clubs produce the odd one)
+      // (transfer-only clubs produce fewer, more when they're running short, so they stay worth buying from)
       if (!isTransferOnly(club)) generateYouth(g, club, int(2, 4), true);
-      else if (chance(0.3)) generateYouth(g, club, 1, true);
+      else {
+        const size = byClub!.get(club.id)?.length ?? 0;
+        const n = size < 4 ? 2 : size < 10 ? (chance(0.6) ? 1 : 0) : chance(0.25) ? 1 : 0;
+        if (n) generateYouth(g, club, n, true);
+      }
     } else if (!isGuest(club) && chance(0.7)) {
       generateYouth(g, club, int(1, 3), true);
     }
@@ -342,6 +355,7 @@ export function endSeason(g: GameState) {
   // Archive player stats, contracts, retirements
   const expiredUser: string[] = [];
   const retiredUser: string[] = [];
+  const loansBack: string[] = [];
   for (const p of Object.values(g.players)) {
     if (p.clubId !== null && p.stats.apps > 0) {
       p.history.push({ season: g.season, clubId: p.clubId, apps: p.stats.apps, goals: p.stats.goals, avg: Math.round((p.stats.ratingSum / p.stats.apps) * 100) / 100 });
@@ -353,6 +367,26 @@ export function endSeason(g: GameState) {
       delete g.players[p.id];
       continue;
     }
+    // Loans end with the season: back to his club before contracts are looked at
+    if (p.loan) {
+      if (p.loan.from === g.userClubId || p.clubId === g.userClubId) loansBack.push(`${fullName(p)} (${p.loan.from === g.userClubId ? `back from ${g.clubs[p.clubId!]?.name}` : `back to ${g.clubs[p.loan.from]?.name}`})`);
+      endLoan(g, p);
+    }
+    // Pre-contracts: he moves on a free now his contract has run out
+    if (p.preContract && p.clubId !== null && p.contractEnd <= g.season + 1 && g.clubs[p.preContract.clubId]) {
+      const pc = p.preContract;
+      const fromName = g.clubs[p.clubId].name;
+      const leavingUser = p.clubId === g.userClubId;
+      p.preContract = undefined;
+      completeTransfer(g, p.id, pc.clubId, 0, pc.wage, pc.years);
+      const to = g.clubs[pc.clubId];
+      to.balance -= pc.bonus;
+      to.seasonExpense += pc.bonus;
+      if (to.isUser) sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `${fullName(p)} arrives on a free`, body: `${fullName(p)} has joined from ${fromName} on the pre-contract he agreed.` });
+      else if (leavingUser) expiredUser.push(`${fullName(p)} (joins ${to.name})`);
+      continue;
+    }
+    p.preContract = undefined;
     if (p.clubId !== null && p.contractEnd <= g.season + 1) {
       const club = g.clubs[p.clubId];
       if (club.isUser) {
@@ -379,6 +413,7 @@ export function endSeason(g: GameState) {
     c.subs = c.subs.filter((id) => g.players[id] && g.players[id].clubId === c.id);
   }
   g.shortlist = g.shortlist.filter((id) => g.players[id]);
+  if (loansBack.length) sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: 'Loans over', body: `These loans have ended with the season:\n\n${loansBack.map((n) => '• ' + n).join('\n')}` });
   if (expiredUser.length || retiredUser.length) {
     sendMessage(g, { from: 'Director of Football', kind: 'info', title: 'Summer departures', body: `${expiredUser.length ? `Contracts expired:\n${expiredUser.map((n) => '• ' + n).join('\n')}` : ''}${retiredUser.length ? `\n\nRetired:\n${retiredUser.map((n) => '• ' + n).join('\n')}` : ''}` });
   }
@@ -400,7 +435,9 @@ export function endSeason(g: GameState) {
   const free = Object.values(g.players).filter((p) => p.clubId === null);
   const keep = g.era === 'cm0102' ? 1500 : 450;
   if (free.length > keep) {
-    free.sort((a, b) => overall(a) - overall(b)).slice(0, free.length - keep).forEach((p) => delete g.players[p.id]);
+    // Young prospects are never thrown away (a real wonderkid between clubs stays findable); the weakest others go
+    const prospect = (p: Player) => age(p, g.date) <= 23 && p.pa >= Math.max(overall(p) + 6, 62);
+    free.filter((p) => !prospect(p)).sort((a, b) => overall(a) - overall(b)).slice(0, free.length - keep).forEach((p) => delete g.players[p.id]);
   }
   for (let i = 0; i < (g.era === 'cm0102' ? 0 : 40); i++) {
     generatePlayer(g, { pos: pick(['GK', 'DC', 'DL', 'DR', 'DM', 'MC', 'AMC', 'AML', 'AMR', 'ST', 'ST', 'MC'] as const), ovr: Math.max(30, Math.round(normal(54, 9))), age: int(19, 30), country: pick(['ENG', 'ENG', 'ESP', 'ITA', 'GER', 'FRA']), clubId: null }).contractEnd = g.season;

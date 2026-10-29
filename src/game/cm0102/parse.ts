@@ -65,6 +65,8 @@ export interface CmWorld {
 
 /** The database that ships with the game (in public/, built by tests/cm0102.test.ts with CM_EXPORT=1; see pack.ts). */
 export const CM_BUILTIN = 'cm0102-v4.txt';
+/** The file for a database revision. Keep every revision's file in public/: saves are rebuilt from their own one. */
+export const cmFile = (rev: number) => `cm0102-v${rev}.txt`;
 /** Bumped whenever the built-in database gains data (2: career histories, real squads only; 3: every decent player; 4: half the database and random potentials). */
 export const CM_REV = 4;
 /** CM current ability from which a player counts as "decent": included wherever he plays (about a 49 rating here: half of the database). */

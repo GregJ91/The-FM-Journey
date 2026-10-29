@@ -2,7 +2,7 @@
 // UEFA Youth League. Youth matches are simulated from the strength of each club's youth XI (not
 // with the full match engine). Players get minutes, ratings, goals and development from them.
 // Fringe first-team players under the age limit play too, as at real clubs.
-import { FA_YOUTH_CUP, UEFA_YOUTH_LEAGUE, YOUTH_LEAGUES } from './data/youth';
+import { FA_YOUTH_CUP, UEFA_YOUTH_LEAGUE, YOUTH_2002, YOUTH_LEAGUES } from './data/youth';
 import { addDays, nextWeekday } from './dates';
 import { FORMATIONS } from './formations';
 import { sendMessage } from './inbox';
@@ -61,8 +61,9 @@ export function setupYouth(g: GameState) {
     if (!league) continue;
     const rr = roundRobinOnce(league.clubIds);
     const dates = mondays(`${s}-08-17`, `${s + 1}-05-03`, rr.length);
+    const old = g.era ? YOUTH_2002[def.id] : undefined;
     const comp: YouthComp = {
-      id: def.id, name: def.name, short: def.short, color: def.color, kind: 'league', age: def.age,
+      id: def.id, name: old?.name ?? def.name, short: old?.short ?? def.short, color: def.color, kind: 'league', age: old?.age ?? def.age,
       clubs: [...league.clubIds], alive: [...league.clubIds], current: 0, winner: null, runnerUp: null,
       rounds: dates.map((date, i) => ({ name: `Matchday ${i + 1}`, date })), fixtures: [],
     };
@@ -83,7 +84,7 @@ export function setupYouth(g: GameState) {
   comps.push(faComp);
   // UEFA Youth League: the Champions League clubs' youth teams; 6-game league phase, top 16 into knockouts
   const ucl = g.cups.find((c) => c.id === 'UCL');
-  if (ucl?.teams?.length) {
+  if (ucl?.teams?.length && !g.era) {
     const teams = ucl.teams;
     const lpDates = ucl.rounds.slice(0, 6).map((r) => r.date);
     const koDates = [`${s + 1}-02-10`, `${s + 1}-03-10`, `${s + 1}-04-16`, `${s + 1}-04-19`];

@@ -64,7 +64,8 @@ const CM_LABEL: Record<string, string> = {
 export function PlayerEditor({ g, p }: { g: GameState; p: Player }) {
   const ui = useUI();
   const [page, setPage] = useState<'details' | 'attrs' | 'contract'>('details');
-  const edit = (fn: () => void) => mutate(() => fn());
+  // Any edit means the save keeps his own details rather than the database's
+  const edit = (fn: () => void) => mutate(() => { fn(); p.cmEdited = true; });
   const year = Number(p.dob.slice(0, 4));
   const nowYear = Number(g.date.slice(0, 4));
   const clubs = Object.values(g.clubs).sort((a, b) => a.name.localeCompare(b.name));
@@ -110,7 +111,7 @@ export function PlayerEditor({ g, p }: { g: GameState; p: Player }) {
           <Num label="Morale %" value={Math.round(p.morale)} min={0} max={100} onSet={(v) => edit(() => { p.morale = v; })} />
           <Num label="Fitness %" value={Math.round(p.condition)} min={0} max={100} onSet={(v) => edit(() => { p.condition = v; })} />
           <label className="ti-field"><span>Personality</span>
-            <select className="input" value={p.personality ?? ''} onChange={(e) => edit(() => { p.personality = e.target.value || undefined; })}>
+            <select className="input" value={p.personality ?? ''} onChange={(e) => edit(() => { p.personality = e.target.value || undefined; p.cmEdited = true; })}>
               <option value="">(automatic)</option>
               {['Model Professional', 'Professional', 'Determined', 'Ambitious', 'Loyal', 'Balanced', 'Fairly Professional', 'Mercenary', 'Temperamental', 'Casual', 'Unambitious'].map((x) => <option key={x} value={x}>{x}</option>)}
             </select>
@@ -130,7 +131,7 @@ export function PlayerEditor({ g, p }: { g: GameState; p: Player }) {
           {p.cm && (
             <div className="ed-group ed-cm">
               <h4>CM 01/02</h4>
-              {CM_EXTRA.map((k, i) => <Num key={k} label={CM_LABEL[k]} value={Math.round(p.cm!.v[i])} min={1} max={20} onSet={(v) => edit(() => { p.cm!.v[i] = v; p.cm!.o = overall(p); })} />)}
+              {CM_EXTRA.map((k, i) => <Num key={k} label={CM_LABEL[k]} value={Math.round(p.cm!.v[i])} min={1} max={20} onSet={(v) => edit(() => { p.cm!.v[i] = v; p.cm!.o = overall(p); p.cmEdited = true; })} />)}
             </div>
           )}
         </div>

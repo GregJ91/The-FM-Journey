@@ -171,7 +171,7 @@ export function MatchScreen() {
           <div className="small bold muted">ON</div>
           {userTeam.bench.map((id) => (
             <div key={id} className="row small" style={{ cursor: 'pointer', padding: '6px 4px', borderRadius: 8, background: subOn === id ? 'var(--accent)' : undefined, color: subOn === id ? 'var(--accent-ink)' : undefined }} onClick={() => setSubOn(id)}>
-              <b style={{ width: 30 }}>{g.players[id].pos}</b><span className="ellipsis">{g.players[id].last}</span><span className="right">{overall(g.players[id])}</span>
+              <b style={{ width: 30 }}>{g.players[id].pos}</b><span className="ellipsis">{g.players[id].last}</span><span className="right ab">{overall(g.players[id])}</span>
             </div>
           ))}
         </div>

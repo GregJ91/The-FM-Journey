@@ -4,7 +4,7 @@ import { shuffle } from './rng';
 import { winnerOf } from './match';
 import type { Cup, Fixture, GameState, League } from './types';
 import { REAL_FIXTURES, REAL_FIXTURES_SEASON } from './data/realFixtures';
-import { LEAGUE_DEFS } from './data/leagues';
+import { LEAGUE_CUP_DEFS, LEAGUE_DEFS } from './data/leagues';
 
 export interface TableRow {
   clubId: number;
@@ -154,17 +154,29 @@ function cupRoundDates(season: number, n: number, first: string, final: string, 
   return out;
 }
 
+/** CM 01/02 careers have the League Cups too (added to older saves at the start of a season). */
+export function ensureLeagueCups(g: GameState) {
+  if (!g.era) return;
+  for (const def of LEAGUE_CUP_DEFS) {
+    if (g.cups.some((c) => c.id === def.id)) continue;
+    g.cups.push({ id: def.id, name: def.name, short: def.short, type: 'domestic', country: def.country, color: def.color, alive: [], rounds: [], current: 0, winner: null, runnerUp: null, leagues: def.leagues });
+  }
+}
+
 export function setupCups(g: GameState) {
   for (const cup of g.cups) {
     if (cup.type !== 'domestic') continue;
     cup.winner = null;
     cup.runnerUp = null;
     cup.current = 0;
-    cup.alive = g.leagues.filter((l) => l.country === cup.country).flatMap((l) => l.clubIds);
+    cup.alive = g.leagues.filter((l) => l.country === cup.country && (!cup.leagues || cup.leagues.includes(l.id))).flatMap((l) => l.clubIds);
     const n = Math.ceil(Math.log2(cup.alive.length));
     const names = DOMESTIC_ROUND_NAMES(n);
-    const dates = cupRoundDates(g.season, n, `${g.season}-09-16`, `${g.season + 1}-05-23`, 3);
-    dates[n - 1] = nextWeekday(`${g.season + 1}-05-22`, 6); // final on a Saturday
+    // League Cups start in August on Tuesdays and finish with a Sunday final in early March (Scotland: mid-March)
+    const dates = cup.leagues
+      ? cupRoundDates(g.season, n, `${g.season}-08-13`, nextWeekday(`${g.season + 1}-${cup.country === 'SCO' ? '03-16' : '03-02'}`, 0), 2)
+      : cupRoundDates(g.season, n, `${g.season}-09-16`, `${g.season + 1}-05-23`, 3);
+    if (!cup.leagues) dates[n - 1] = nextWeekday(`${g.season + 1}-05-22`, 6); // final on a Saturday
     cup.rounds = names.map((name, i) => ({ name, date: dates[i] }));
     drawCupRound(g, cup);
   }
