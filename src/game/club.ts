@@ -1,4 +1,5 @@
 // Finances and board logic
+import { budget, pay } from './economy';
 import { journeySacked } from './journey';
 import { leaguePosition, leagueTable } from './competitions';
 import { month, monthName } from './dates';
@@ -24,7 +25,7 @@ export function matchdayIncome(g: GameState, club: Club, cup = false) {
   const tier = tierOf(g, club);
   const fill = Math.min(1, 0.5 + club.reputation / 200 + (cup ? 0.1 : 0));
   const att = Math.round(club.capacity * fill);
-  const income = Math.round(att * (TICKET[tier] ?? 14) * countryMult(club));
+  const income = Math.round(pay(att * (TICKET[tier] ?? 14) * countryMult(club)));
   club.balance += income;
   club.seasonIncome += income;
   return { att, income };
@@ -33,9 +34,9 @@ export function matchdayIncome(g: GameState, club: Club, cup = false) {
 export function monthlyFinances(g: GameState) {
   for (const club of Object.values(g.clubs)) {
     const tier = tierOf(g, club);
-    const tv = Math.round((TV_MONTHLY[tier] ?? 20_000) * countryMult(club) * (0.75 + club.reputation / 200));
-    const commercial = Math.round(Math.pow(club.reputation, 2.4) * 40 * (tier === 1 ? 1 : 0.4));
-    const facilityCost = (club.facilities.training + club.facilities.youth) * [0, 60_000, 12_000, 4_000, 2_000, 800][tier];
+    const tv = Math.round(pay((TV_MONTHLY[tier] ?? 20_000) * countryMult(club) * (0.75 + club.reputation / 200)));
+    const commercial = Math.round(pay(Math.pow(club.reputation, 2.4) * 40 * (tier === 1 ? 1 : 0.4)));
+    const facilityCost = Math.round(pay((club.facilities.training + club.facilities.youth) * [0, 60_000, 12_000, 4_000, 2_000, 800][tier]));
     club.balance += tv + commercial - facilityCost;
     club.seasonIncome += tv + commercial;
     club.seasonExpense += facilityCost;
@@ -138,7 +139,7 @@ const UPGRADE_COST = [0, 250_000, 900_000, 3_000_000, 9_000_000, 25_000_000];
 
 export function upgradeCost(level: number, tier: number) {
   const mult = tier === 1 ? 1 : tier === 2 ? 0.5 : tier === 3 ? 0.25 : 0.15;
-  return Math.round((UPGRADE_COST[Math.min(5, level)] ?? 0) * mult);
+  return Math.round(pay((UPGRADE_COST[Math.min(5, level)] ?? 0) * mult));
 }
 
 export type BoardRequest = 'transfer' | 'wage' | 'training' | 'youth';
@@ -152,7 +153,7 @@ export function boardRequest(g: GameState, kind: BoardRequest): { ok: boolean; m
   g.board.lastRequest = monthKey;
   if (kind === 'transfer') {
     if (conf < 45 || club.balance < club.transferBudget * 1.2) return { ok: false, msg: 'The board refuses: "Results and finances don\'t justify more spending right now."' };
-    const extra = Math.round(Math.min(club.balance * 0.15, Math.max(50_000, club.transferBudget * 0.3)) / 10_000) * 10_000;
+    const extra = Math.round(Math.min(club.balance * 0.15, Math.max(budget(50_000), club.transferBudget * 0.3)) / 10_000) * 10_000;
     club.transferBudget += extra;
     return { ok: true, msg: `The board agrees to add ${fmtMoney(extra)} to your transfer budget.` };
   }
@@ -189,9 +190,9 @@ export function setSeasonBudgets(g: GameState) {
     const tier = tierOf(g, club);
     const bill = wageBill(g, club.id);
     const tierMult = [0, 1, 0.12, 0.035, 0.015, 0.005][tier] ?? 0.005;
-    const base = Math.pow(club.reputation / 100, 2.2) * 250_000_000 * tierMult;
+    const base = budget(Math.pow(club.reputation / 100, 2.2) * 250_000_000 * tierMult);
     const fromBalance = Math.max(0, club.balance) * 0.35;
-    club.transferBudget = Math.round(Math.max(club.custom ? 150_000 : 0, Math.min(fromBalance + base * 0.3, base * 1.2)) / 10_000) * 10_000;
+    club.transferBudget = Math.round(Math.max(club.custom ? budget(150_000) : 0, Math.min(fromBalance + base * 0.3, base * 1.2)) / 10_000) * 10_000;
     club.wageBudget = Math.round(Math.max(bill * 1.08, bill + base * 0.002));
     club.seasonIncome = 0;
     club.seasonExpense = 0;
@@ -218,7 +219,7 @@ export function monthLabel(key: string) {
 
 export function prizeMoney(g: GameState, league: League) {
   const table = leagueTable(g, league);
-  const pot = (TV_MONTHLY[league.tier] ?? 20_000) * 4 * (league.country === 'ENG' ? 1 : 0.6);
+  const pot = pay((TV_MONTHLY[league.tier] ?? 20_000) * 4 * (league.country === 'ENG' ? 1 : 0.6));
   table.forEach((row, i) => {
     const club = g.clubs[row.clubId];
     const share = Math.round(pot * (1 - i / table.length) * 0.8 + pot * 0.2);

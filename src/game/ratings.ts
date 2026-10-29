@@ -1,3 +1,4 @@
+import { fee, pay } from './economy';
 import { ATTR_KEYS, type AttrKey, type Attrs, type Player, type Pos } from './types';
 import { ageOn } from './dates';
 import { hash, normal, rand } from './rng';
@@ -173,12 +174,12 @@ export function marketValue(p: Player, date: string) {
   if (yearsLeft <= 0) v *= 0.45;
   else if (yearsLeft === 1) v *= 0.75;
   if (p.injury && p.injury.days > 30) v *= 0.85;
-  return roundMoney(v);
+  return roundMoney(fee(v));
 }
 
 export function wageFor(ovr: number, rep = 50) {
   const w = 400 * Math.pow(10, (ovr - 40) / 18) * (0.85 + rep / 300);
-  return roundMoney(w);
+  return roundMoney(pay(w));
 }
 
 export function roundMoney(v: number) {
@@ -190,15 +191,9 @@ export function roundMoney(v: number) {
   return Math.max(0, Math.round(v / 10) * 10);
 }
 
-// The game's economy runs at today's prices; CM 01/02 careers show every amount at early-2000s prices instead.
-let moneyScale = 1;
-export function setMoneyScale(f: number) {
-  moneyScale = f;
-}
-
 export function fmtMoney(v: number) {
   const neg = v < 0;
-  const a = Math.abs(v) * moneyScale;
+  const a = Math.abs(v);
   let s: string;
   if (a >= 1_000_000_000) s = `£${(a / 1_000_000_000).toFixed(2)}bn`;
   else if (a >= 1_000_000) s = `£${(a / 1_000_000).toFixed(a >= 10_000_000 ? 0 : 1)}m`;

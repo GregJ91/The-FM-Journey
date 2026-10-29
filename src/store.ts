@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { del, get, set } from 'idb-keyval';
 import type { CmWorld } from './game/cm0102/parse';
+import { CM_ECONOMY, setEconomy } from './game/economy';
 import { getSeed, seed } from './game/rng';
 import { ATTR_KEYS, type Attrs, type GameState } from './game/types';
 import { SAVE_VERSION, emptyStats, withNaturalAlt } from './game/generate';
@@ -28,6 +29,7 @@ export function getGame() {
 export function setGame(g: GameState | null) {
   game = g;
   if (g) seed(g.rng || 1);
+  setEconomy(g);
   emit();
 }
 
@@ -85,6 +87,22 @@ export function expand(raw: string): GameState {
     if (p.pos !== 'GK') p.alt = withNaturalAlt(p.alt ?? [], p.pos, p.real);
   }
   for (const c of Object.values(g.clubs)) c.tactics = normaliseTactics(c.tactics);
+  // CM 01/02 saves from before the 2002 economy: convert today's prices to 2002 ones
+  if (g.era === 'cm0102' && !g.econ) {
+    const f = (v: number) => Math.round(v * CM_ECONOMY.fee);
+    const b = (v: number) => Math.round(v * CM_ECONOMY.budget);
+    const w = (v: number) => Math.round(v * CM_ECONOMY.pay);
+    for (const p of Object.values(g.players)) p.wage = w(p.wage);
+    for (const c of Object.values(g.clubs)) {
+      c.balance = b(c.balance); c.transferBudget = b(c.transferBudget); c.wageBudget = w(c.wageBudget);
+      c.seasonIncome = w(c.seasonIncome); c.seasonExpense = w(c.seasonExpense);
+    }
+    for (const l of g.ledger) { l.income = w(l.income); l.expense = w(l.expense); l.balance = b(l.balance); }
+    if (g.ledgerMark) g.ledgerMark = { i: w(g.ledgerMark.i), e: w(g.ledgerMark.e) };
+    for (const o of g.offers) { o.fee = f(o.fee); o.wage = w(o.wage); if (o.counter) o.counter = f(o.counter); }
+    for (const t of g.transfers) t.fee = f(t.fee);
+    g.econ = 1;
+  }
   // saves from before squad numbers existed
   if (Object.values(g.players).some((p) => p.clubId !== null && p.shirt === undefined)) assignAllShirtNumbers(g);
   return g;

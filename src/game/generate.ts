@@ -1,3 +1,4 @@
+import { budget, setEconomy } from './economy';
 import { CUP_DEFS, LEAGUE_DEFS, REAL_PLAYERS } from './data/leagues';
 import { YOUTH_PLAYERS } from './data/youthPlayers';
 import { ensureEurope } from './europe';
@@ -184,9 +185,9 @@ export function setClubFinances(club: Club, tier: number) {
   const r = club.reputation;
   // Money scales steeply with reputation and division
   const tierMult = [0, 1, 0.12, 0.035, 0.015, 0.005][tier] ?? 0.005;
-  const base = Math.pow(r / 100, 2.2) * 250_000_000 * tierMult;
-  club.transferBudget = Math.round(base / 50_000) * 50_000;
-  club.balance = Math.round(base * 1.6 + 200_000);
+  const base = budget(Math.pow(r / 100, 2.2) * 250_000_000 * tierMult);
+  club.transferBudget = Math.round(base / 10_000) * 10_000;
+  club.balance = Math.round(base * 1.6 + budget(200_000));
 }
 
 export function wageBill(g: GameState, clubId: number) {
@@ -297,11 +298,12 @@ function addCmPlayers(g: GameState, cm: CmWorld, idx: number, clubId: number | n
 export function createWorld(opts: NewGameOptions): GameState {
   seed(opts.seed ?? (Date.now() % 2147483647));
   const cm = opts.cm;
+  setEconomy(cm ? { era: 'cm0102' } : null);
   const g: GameState = {
     saveVersion: SAVE_VERSION,
     slot: opts.slot,
     mode: opts.mode,
-    ...(cm ? { era: 'cm0102' as const } : {}),
+    ...(cm ? { era: 'cm0102' as const, econ: 1 } : {}),
     manager: opts.manager,
     ...(opts.managerNat ? { managerNat: opts.managerNat } : {}),
     date: cm ? `${cm.season}-07-01` : START_DATE,

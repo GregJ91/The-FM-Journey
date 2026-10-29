@@ -1,3 +1,4 @@
+import { budget, fee } from './economy';
 import { assignShirtNumbers, releaseShirt } from './shirts';
 import { applyMetaProfile, isMetaClub } from './meta';
 import { closeOfferAction, offerAction, registerNewSigning } from './actions';
@@ -20,7 +21,7 @@ export function askingPrice(g: GameState, p: Player) {
   const better = squad.filter((x) => x.id !== p.id && POS_GROUP[x.pos] === POS_GROUP[p.pos] && overall(x) > overall(p)).length;
   const keyPlayer = better <= 1 ? 0.35 : better <= 3 ? 0.15 : 0;
   const mult = p.listed ? 0.85 : 1.15 + keyPlayer;
-  return roundMoney(Math.max(5_000, v * mult));
+  return roundMoney(Math.max(fee(5_000), v * mult));
 }
 
 export function wageDemand(g: GameState, p: Player, buyer: Club) {
@@ -224,7 +225,7 @@ function weakestSlot(g: GameState, club: Club, squad: Player[]) {
 export function aiTransfers(g: GameState) {
   if (!windowOpen(g)) return;
   const attempts = month(g.date) === 1 ? 2 : 4;
-  const clubs = Object.values(g.clubs).filter((c) => !c.isUser && c.transferBudget > 50_000);
+  const clubs = Object.values(g.clubs).filter((c) => !c.isUser && c.transferBudget > budget(50_000));
   if (!clubs.length) return;
   // Index players by position group once
   const all = Object.values(g.players);

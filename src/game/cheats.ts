@@ -11,8 +11,8 @@ export const CHEAT_NAMES: Record<CheatId, string> = { champions: 'Champions', mo
 /** Team-strength multiplier for "Champions", calibrated to about 90% wins (tests/cheats.test.ts). */
 export const CHAMPIONS_EDGE = 1.48;
 
-/** Internal money for "Moneybags" (the game runs at today's prices; CM careers show a fifth of it). */
-const MONEYBAGS = 125_000_000;
+/** "Moneybags": £25m (cheats only work in CM careers, which run at 2002 prices). */
+const MONEYBAGS = 25_000_000;
 
 export function cheatOf(name: string | undefined): CheatId | null {
   const n = (name ?? '').toLowerCase().replace(/[^a-z]/g, '');

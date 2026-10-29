@@ -2,6 +2,7 @@
 // Format (as UEFA since 2024/25): a 36-team league phase where each club plays 8 (6 in the
 // Conference League) different opponents, then 1st-8th go to the round of 16, 9th-24th play
 // two-legged knockout play-offs, and 25th-36th are out. Knockout ties are two-legged; the final is one match.
+import { pay as payScale } from './economy';
 import { EURO_CLUBS, EURO_COMPS, EURO_ENTRANTS_2026, EURO_GUEST_LEAGUE, EURO_PLACES, EURO_PLAYERS, type EuroCompDef } from './data/europe';
 import { leagueTable, type TableRow, avoidLeagueClash } from './competitions';
 import { addDays, nextWeekday } from './dates';
@@ -203,8 +204,9 @@ export function europeTable(g: GameState, cup: Cup): TableRow[] {
 function pay(g: GameState, clubId: number, amount: number) {
   const c = g.clubs[clubId];
   if (!c || !amount) return;
-  c.balance += amount;
-  c.seasonIncome += amount;
+  const v = Math.round(payScale(amount));
+  c.balance += v;
+  c.seasonIncome += v;
 }
 
 /** Create a knockout tie: two legs (higher seed at home second), or a single neutral final. */
