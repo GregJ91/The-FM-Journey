@@ -1465,7 +1465,7 @@ html[data-era="cm0102"] .continue-bar .when span { color: #1b2f66; }
 .page-title .kicker { display: none; }
 
 /* Home: the tile grid */
-.content > .ns-home { display: grid !important; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto minmax(0, 1fr) auto; gap: 6px; height: 100%; }
+.content > .ns-home { display: grid !important; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto minmax(0, 1fr); gap: 6px; height: 100%; }
 .ns-home > .card { margin: 0 !important; min-height: 0; overflow: hidden; padding: 0 8px 7px; }
 .ns-home > .card.wide { grid-column: span 2; }
 .ns-home .card-h { margin-bottom: 5px; min-height: 24px; }
@@ -1591,3 +1591,11 @@ table.t.dense td.nm { max-width: 140px; overflow: hidden; text-overflow: ellipsi
 .club-pick { padding: 6px 10px !important; gap: 10px !important; min-height: 0 !important; }
 .club-pick svg, .club-pick .crest { width: 28px !important; height: 28px !important; }
 .club-list { gap: 4px !important; }
+
+/* Tactics: the pitch fills the screen; the pick list pops up */
+.cm-tactics > .cm-pitch-win { flex: 1 1 auto !important; display: flex; flex-direction: column; min-height: 0; }
+.cm-tactics .cm-pitch { flex: 1; height: auto; min-height: 0; }
+.cm-box { font-size: 11.5px; padding: 2px 3px 2px 1px; max-width: 34%; }
+.cm-box i { min-width: 19px; font-size: 11px; }
+.cm-box-r { font-style: normal; background: #e8b52a; color: #111; padding: 0 3px; margin-left: 2px; font-size: 10px; }
+.pick-fit { height: calc(var(--app-h) * 0.62); }

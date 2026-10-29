@@ -4,7 +4,7 @@ import { clubFixtures, compName, leagueTable } from '../../game/competitions';
 import { diffDays, fmtShort } from '../../game/dates';
 import { FORMATIONS } from '../../game/formations';
 import { leagueOf, squadOf } from '../../game/generate';
-import { fmtMoney, overall } from '../../game/ratings';
+import { fmtMoney } from '../../game/ratings';
 import { ordinal } from '../../game/season';
 import { validateLineup } from '../../game/selection';
 import { mutate, useGame } from '../../store';
@@ -23,9 +23,6 @@ export function Home() {
   const upcoming = fx.filter((f) => !f.result).slice(0, 4);
   const next = upcoming[0];
   const squad = squadOf(g, club.id);
-  const lo = Math.max(0, Math.min(table.length - 6, myIdx - 2));
-  const mini = table.slice(lo, lo + 6);
-  const avgOvr = Math.round(squad.map(overall).sort((a, b) => b - a).slice(0, 11).reduce((s, x) => s + x, 0) / Math.max(1, Math.min(11, squad.length)));
 
   // keep the shown lineup valid (injuries, sales, formation changes)
   const needsFix = club.lineup.length !== FORMATIONS[club.tactics.formation].length || club.lineup.some((id) => id === null || !g.players[id] || g.players[id].clubId !== club.id || !!g.players[id].injury || !!g.players[id].away);
@@ -45,7 +42,7 @@ export function Home() {
   const injured = squad.filter((p) => p.injury).length;
   const morale = Math.round(squad.reduce((s, p) => s + p.morale, 0) / Math.max(1, squad.length));
 
-  const news = g.inbox.slice(0, 2);
+  const news = g.inbox.slice(0, 6);
   const j = journey(g);
   const ready = j ? j.requests.filter((r) => r.status === 'ready') : [];
   const opts = ready.reduce((n, r) => n + r.candidates.filter((c) => c.status === 'open').length, 0);
@@ -89,23 +86,6 @@ export function Home() {
           <span className="big" style={{ color: club.balance < 0 ? 'var(--bad)' : undefined }}>{fmtMoney(club.balance)}</span>
           <span className="muted small">Budget {fmtMoney(club.transferBudget)}</span>
         </div>
-      </Card>
-
-      <Card className="tile wide table-tile" title={league.name} right={<span className="tile-sub">Best XI {avgOvr}</span>}>
-        <table className="t">
-          <thead><tr><th>Pos</th><th>Team</th><th className="r">Pld</th><th className="r">GD</th><th className="r">Pts</th></tr></thead>
-          <tbody>
-            {mini.map((r) => (
-              <tr key={r.clubId} className={`click ${r.clubId === club.id ? 'me' : ''}`} onClick={() => ui.go('club', r.clubId)}>
-                <td className="num">{table.indexOf(r) + 1}</td>
-                <td className="ellipsis" style={{ maxWidth: 170 }}>{g.clubs[r.clubId].name}</td>
-                <td className="r num">{r.p}</td>
-                <td className="r num">{r.gf - r.ga > 0 ? '+' : ''}{r.gf - r.ga}</td>
-                <td className="r num bold">{r.pts}{r.ded ? <span className="ded"> −{r.ded}</span> : null}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </Card>
 
       {j ? (

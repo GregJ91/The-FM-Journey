@@ -4,7 +4,7 @@ import { normaliseTactics } from '../../game/tactics';
 import { TeamInstructions } from '../components/TacticsEditor';
 import { activateCheat } from '../../game/cheats';
 import { squadOf } from '../../game/generate';
-import { POS_GROUP, age, avgRating, familiarity, fmtMoney, marketValue, overall, ratingAt, scoutedPotential, shortName } from '../../game/ratings';
+import { age, avgRating, familiarity, fmtMoney, marketValue, overall, ratingAt, scoutedPotential, shortName } from '../../game/ratings';
 import { pickLineup, validateLineup } from '../../game/selection';
 import type { Club, GameState, Player, Tactics as TacticsT } from '../../game/types';
 import { mutate, useGame } from '../../store';
@@ -156,46 +156,35 @@ export function Squad() {
     : <Tactics g={g} club={club} squad={squad} toolbar={toolbar} />;
 }
 
-type Pick = { kind: 'xi'; i: number } | { kind: 'sub' | 'res'; id: number };
-
-/** CM 01/02-style tactics: the team on a pitch in name boxes, the selection listed underneath (1-11, subs, reserves);
- * tap one player then another to swap them. Team instructions open in a sheet. */
+/** CM 01/02-style tactics: the team on a pitch in name boxes. Tap a player to see who can play in that position
+ * (best first) and pick a replacement; subs and team instructions open from the buttons above the pitch. */
 function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad: Player[]; toolbar: React.ReactNode }) {
   const ui = useUI();
-  const [pick, setPick] = useState<Pick | null>(null);
+  const [sel, setSel] = useState<number | null>(null);
   const [instr, setInstr] = useState(false);
+  const [subsOpen, setSubsOpen] = useState(false);
   const slots = FORMATIONS[club.tactics.formation];
   const lineup = club.lineup.length === slots.length ? club.lineup : new Array(slots.length).fill(null);
   const inXI = new Set(lineup.filter((x): x is number => x !== null));
   const subs = club.subs.filter((id) => g.players[id]?.clubId === club.id && !inXI.has(id));
-  const reserves = squad.filter((p) => !inXI.has(p.id) && !subs.includes(p.id)).sort((a, b) => overall(b) - overall(a));
   const out = (p: Player) => !!p.injury || p.suspended > 0 || !!p.away;
 
-  const idOf = (k: Pick) => (k.kind === 'xi' ? lineup[k.i] : k.id);
-  const tap = (k: Pick) => {
-    if (!pick) { setPick(k); return; }
-    const a = pick;
-    setPick(null);
-    if (a.kind === k.kind && (a.kind === 'xi' ? a.i === (k as { i: number }).i : a.id === (k as { id: number }).id)) return;
-    const [x, y] = a.kind === 'xi' ? [a, k] : k.kind === 'xi' ? [k, a] : [a, k];
-    const incoming = idOf(y);
-    if (x.kind === 'xi' && incoming !== null && y.kind !== 'xi' && out(g.players[incoming])) { ui.toast(`${shortName(g.players[incoming])} isn't available`, true); return; }
+  /** Put a player into slot i; whoever was there takes the incoming player's old place (another slot or the bench). */
+  const assign = (i: number, pid: number) => {
     mutate(() => {
       const lu = [...lineup];
+      const leaving = lu[i];
+      const from = lu.indexOf(pid);
+      if (from >= 0) lu[from] = leaving;
+      lu[i] = pid;
       let sb = [...subs];
-      if (x.kind === 'xi' && y.kind === 'xi') { [lu[x.i], lu[y.i]] = [lu[y.i], lu[x.i]]; }
-      else if (x.kind === 'xi') {
-        const leaving = lu[x.i];
-        lu[x.i] = incoming;
-        if (y.kind === 'sub') sb = sb.map((id) => (id === incoming ? leaving : id)).filter((id): id is number => id !== null);
-      } else if (x.kind === 'sub' && y.kind === 'res') sb = sb.map((id) => (id === x.id ? y.id : id));
-      else if (x.kind === 'res' && y.kind === 'sub') sb = sb.map((id) => (id === y.id ? x.id : id));
+      if (from < 0 && sb.includes(pid)) sb = sb.map((id) => (id === pid ? leaving : id)).filter((id): id is number => id !== null);
       club.lineup = lu;
       club.subs = sb;
       validateLineup(club, squad);
     });
+    setSel(null);
   };
-  const isPicked = (k: Pick) => !!pick && pick.kind === k.kind && (k.kind === 'xi' ? (pick as { i: number }).i === k.i : (pick as { id: number }).id === (k as { id: number }).id);
   const autoPick = () => mutate(() => { const r = pickLineup(club, squad); club.lineup = r.lineup; club.subs = r.subs; });
   const updateTactics = (t: Partial<TacticsT>) => {
     const msg = mutate((gg) => {
@@ -207,16 +196,7 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
     });
     if (msg) ui.toast(msg);
   };
-
-  const row = (p: Player, k: Pick, no: string, pos: string, rating: number, warn = false) => (
-    <tr key={`${k.kind}-${p.id}`} className={`click ${isPicked(k) ? 'me' : ''}`} style={{ opacity: out(p) ? 0.5 : 1 }} onClick={() => tap(k)}>
-      <td className="muted num">{no}</td>
-      <td><span className={`pos ${POS_GROUP[pos as keyof typeof POS_GROUP] ?? ''}`}>{pos}</span></td>
-      <td className={`nm ${warn ? 'bad' : ''}`}><b>{shortName(p)}</b> <StatusIcons p={p} /></td>
-      <td className="r"><Ovr value={Math.round(rating)} /></td>
-      <td className="r num"><span className={p.condition < 85 ? 'bad' : 'ok'}>{Math.round(p.condition)}%</span></td>
-    </tr>
-  );
+  const famLabel = (f: number) => (f >= 1 ? 'Natural' : f >= 0.95 ? 'Accomplished' : f >= 0.85 ? 'Unconvincing' : 'Awkward');
 
   return (
     <div className="cm-tactics">
@@ -229,6 +209,7 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
       <section className="card cm-pitch-win">
         <div className="card-h"><h3>{club.tactics.name?.trim() || 'Tactics'}</h3><div className="right" style={{ display: 'flex', gap: 4 }}>
           <button className="btn sm" onClick={() => setInstr(true)}>Instructions</button>
+          <button className="btn sm" onClick={() => setSubsOpen(true)}>Subs {subs.length}</button>
           <button className="btn sm" onClick={autoPick}>Auto</button>
         </div></div>
         <div className="cm-pitch">
@@ -236,30 +217,72 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
             const id = lineup[i];
             const p = id !== null && id !== undefined ? g.players[id] : null;
             const warn = !!p && familiarity(p, s.pos) < 0.9;
-            const top = 92 - (s.x - 5) * (84 / 79);
+            const top = 93 - (s.x - 5) * (86 / 79);
             const left = 9 + s.y * 0.82;
             return (
-              <button key={i} className={`cm-box ${isPicked({ kind: 'xi', i }) ? 'sel' : ''} ${warn ? 'warn' : ''}`} style={{ top: `${top}%`, left: `${left}%` }} onClick={() => tap({ kind: 'xi', i })}>
+              <button key={i} className={`cm-box ${sel === i ? 'sel' : ''} ${warn ? 'warn' : ''}`} style={{ top: `${top}%`, left: `${left}%` }} onClick={() => setSel(i)}>
                 <i>{p?.shirt ?? i + 1}</i>{p ? p.last : s.pos}
+                {p && <em className="cm-box-r">{Math.round(ratingAt(p, s.pos))}</em>}
               </button>
             );
           })}
         </div>
+        <div className="small muted" style={{ textAlign: 'center', padding: '0 0 6px' }}>Tap a player to see who can play there. Red names are out of position.</div>
       </section>
-      <div className="card fill squad-ns">
-        <div className="card-h"><h3>Selection</h3><div className="right tile-sub">{pick ? 'Now tap who to swap with' : 'Tap two players to swap'}</div></div>
-        <Fit>
-        <table className="t dense">
-          <tbody>
-            {slots.map((s, i) => { const id = lineup[i]; const p = id !== null ? g.players[id] : null; return p ? row(p, { kind: 'xi', i }, String(i + 1), s.pos, ratingAt(p, s.pos), familiarity(p, s.pos) < 0.9) : null; })}
-            <tr className="grp"><td colSpan={5}>Substitutes</td></tr>
-            {subs.map((id, n) => row(g.players[id], { kind: 'sub', id }, `S${n + 1}`, g.players[id].pos, overall(g.players[id])))}
-            <tr className="grp"><td colSpan={5}>Reserves</td></tr>
-            {reserves.map((p) => row(p, { kind: 'res', id: p.id }, '', p.pos, overall(p)))}
-          </tbody>
-        </table>
-        </Fit>
-      </div>
+
+      {sel !== null && (
+        <Sheet title={`Who can play ${slots[sel].pos}?`} onClose={() => setSel(null)}>
+          <div className="sheet-b">
+            <Fit className="pick-fit">
+              <table className="t dense">
+                <thead><tr><th>Pos</th><th>Name</th><th>Fits</th><th className="r">Here</th><th className="r">Fit</th></tr></thead>
+                <tbody>
+                  {[...squad].sort((a, b) => ratingAt(b, slots[sel].pos) - ratingAt(a, slots[sel].pos)).map((p) => {
+                    const fam = familiarity(p, slots[sel].pos);
+                    const where = inXI.has(p.id) ? (lineup[sel] === p.id ? ' · playing here' : ' · in XI') : subs.includes(p.id) ? ' · sub' : '';
+                    return (
+                      <tr key={p.id} className={`click ${lineup[sel] === p.id ? 'me' : ''}`} style={{ opacity: out(p) ? 0.45 : 1 }} onClick={() => { if (out(p)) { ui.toast(`${shortName(p)} isn't available`, true); return; } assign(sel, p.id); }}>
+                        <td><PosTag pos={p.pos} /></td>
+                        <td className="nm"><b>{shortName(p)}</b><span className="muted small">{where}</span> <StatusIcons p={p} /></td>
+                        <td className={fam >= 0.95 ? 'ok' : fam >= 0.85 ? '' : 'bad'} style={{ fontSize: 11 }}>{famLabel(fam)}</td>
+                        <td className="r"><Ovr value={Math.round(ratingAt(p, slots[sel].pos))} /></td>
+                        <td className="r num"><span className={p.condition < 85 ? 'bad' : 'ok'}>{Math.round(p.condition)}%</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </Fit>
+          </div>
+        </Sheet>
+      )}
+
+      {subsOpen && (
+        <Sheet title={`Substitutes ${subs.length}/9`} onClose={() => setSubsOpen(false)}>
+          <div className="sheet-b">
+            <Fit className="pick-fit">
+              <table className="t dense">
+                <tbody>
+                  {subs.map((id) => { const p = g.players[id]; return (
+                    <tr key={id} className="me">
+                      <td><PosTag pos={p.pos} /></td><td className="nm"><b>{shortName(p)}</b></td><td className="r"><Ovr value={overall(p)} /></td>
+                      <td className="r"><button className="btn sm" onClick={() => mutate(() => { club.subs = club.subs.filter((x) => x !== id); })}>Remove</button></td>
+                    </tr>
+                  ); })}
+                  <tr className="grp"><td colSpan={4}>Add to the bench</td></tr>
+                  {squad.filter((p) => !inXI.has(p.id) && !subs.includes(p.id)).sort((a, b) => overall(b) - overall(a)).map((p) => (
+                    <tr key={p.id} className="click" style={{ opacity: out(p) ? 0.45 : 1 }} onClick={() => { if (out(p) || subs.length >= 9) return; mutate(() => { club.subs.push(p.id); }); }}>
+                      <td><PosTag pos={p.pos} /></td><td className="nm"><b>{shortName(p)}</b> <StatusIcons p={p} /></td><td className="r"><Ovr value={overall(p)} /></td>
+                      <td className="r num"><span className={p.condition < 85 ? 'bad' : 'ok'}>{Math.round(p.condition)}%</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Fit>
+          </div>
+        </Sheet>
+      )}
+
       {instr && (
         <Sheet title="Team instructions" onClose={() => setInstr(false)}>
           <div className="sheet-b">
