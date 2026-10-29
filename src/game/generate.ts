@@ -229,9 +229,14 @@ export function generateYouth(g: GameState, club: Club, n: number, intake = fals
     const yf = club.facilities.youth;
     const base = 28 + club.reputation * 0.22 + yf * 2 + (age - 15) * 3;
     const ovr = Math.round(Math.max(20, base + normal(0, 4)));
-    // Potential: youth facilities and reputation shift the distribution; rare wonderkids possible
-    let pa = Math.round(ovr + 12 + club.reputation * 0.15 + yf * 2.5 + normal(0, 7));
-    if (chance(0.03 + yf * 0.01)) pa += int(8, 16);
+    // Potential: youth facilities and reputation shift the distribution; rare wonderkids possible.
+    // CM 01/02 careers are stingier (as CM was): otherwise big academies turn out world-class players every year
+    // and a long career fills up with them.
+    const cmEra = g.era === 'cm0102';
+    let pa = cmEra
+      ? Math.round(ovr + 6 + club.reputation * 0.1 + yf * 1.5 + normal(0, 6))
+      : Math.round(ovr + 12 + club.reputation * 0.15 + yf * 2.5 + normal(0, 7));
+    if (chance(cmEra ? 0.012 + yf * 0.004 : 0.03 + yf * 0.01)) pa += int(8, 16);
     pa = Math.max(ovr + 4, Math.min(95, pa));
     const p = generatePlayer(g, { pos: pick(posPool), ovr, age, country: club.country, clubId: club.id, rep: club.reputation, pa });
     p.squad = 'youth';
