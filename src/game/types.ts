@@ -433,6 +433,7 @@ export interface GameState {
   mode: 'classic' | 'create' | 'journey';
   era?: 'cm0102'; // built from the player's own Championship Manager 01/02 database
   manager: string;
+  managerNat?: string; // nationality code (The Journey keeps its own in journey.nat)
   date: string;
   season: number; // year season started
   userClubId: number;

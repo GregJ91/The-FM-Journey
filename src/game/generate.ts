@@ -256,6 +256,7 @@ export interface NewGameOptions {
   };
   slot: string;
   seed?: number;
+  managerNat?: string;
   /** Build the world from the player's CM 01/02 database instead of today's. */
   cm?: CmWorld;
 }
@@ -302,6 +303,7 @@ export function createWorld(opts: NewGameOptions): GameState {
     mode: opts.mode,
     ...(cm ? { era: 'cm0102' as const } : {}),
     manager: opts.manager,
+    ...(opts.managerNat ? { managerNat: opts.managerNat } : {}),
     date: cm ? `${cm.season}-07-01` : START_DATE,
     season: cm ? cm.season : START_SEASON,
     userClubId: -1,

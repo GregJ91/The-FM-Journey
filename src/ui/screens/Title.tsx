@@ -9,6 +9,9 @@ import { startSeason } from '../../game/season';
 import type { CrestPattern, CrestShape } from '../../game/types';
 import { deleteSave, listSaves, loadCmWorld, loadGame, saveCmWorld, saveGame, setGame, type SaveMeta } from '../../store';
 import { CrestSvg } from '../components/Crest';
+import { NATIONS } from '../../game/data/names';
+
+const HOME_NATIONS = ['ENG', 'SCO', 'WAL', 'NIR', 'IRL'];
 import { ConfirmButton } from '../components/common';
 import { BadgesSheet } from '../components/BadgesSheet';
 import { JourneySetup } from './JourneySetup';
@@ -110,6 +113,8 @@ function ClassicSetup({ onBack, cm }: { onBack: () => void; cm?: CmWorld }) {
   const [league, setLeague] = useState(defs[0].id);
   const [club, setClub] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [nat, setNat] = useState('ENG');
+  const [profileDone, setProfileDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const def = defs.find((l) => l.id === league)!;
   const clubs = def.clubs.map((line) => {
@@ -120,11 +125,35 @@ function ClassicSetup({ onBack, cm }: { onBack: () => void; cm?: CmWorld }) {
     if (!club) return;
     setBusy(true);
     await new Promise((r) => setTimeout(r, 30));
-    await begin(createWorld({ mode: 'classic', manager: name.trim() || 'The Gaffer', clubName: club, slot: slotId(), cm }));
+    await begin(createWorld({ mode: 'classic', manager: name.trim() || 'The Gaffer', managerNat: nat, clubName: club, slot: slotId(), cm }));
   };
+  // Step 1: the manager profile (just name and nationality)
+  if (!profileDone) {
+    return (
+      <div className="setup-page">
+        <Back onBack={onBack} title="Manager profile" />
+        <div className="setup-fill js-page">
+          <section className="card js-panel">
+            <div className="card-h"><h3>Who are you?</h3></div>
+            <div className="col" style={{ gap: 10 }}>
+              <label className="js-field"><span>Name</span><input className="input" value={name} placeholder="Your name" onChange={(e) => setName(e.target.value)} /></label>
+              <label className="js-field"><span>Nationality</span>
+                <select className="input" value={nat} onChange={(e) => setNat(e.target.value)}>
+                  {[...HOME_NATIONS, ...Object.keys(NATIONS).filter((c) => !HOME_NATIONS.includes(c)).sort((a, b) => NATIONS[a].localeCompare(NATIONS[b]))].map((c) => <option key={c} value={c}>{NATIONS[c]}</option>)}
+                </select>
+              </label>
+            </div>
+          </section>
+        </div>
+        <div className="setup-cta">
+          <button className="continue-btn" disabled={!name.trim()} onClick={() => setProfileDone(true)}>{name.trim() ? 'Next: choose your club ▶' : 'Enter your name'}</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="setup-page">
-      <Back onBack={onBack} title={cm ? `CM 01/02 · ${cm.season}/${String(cm.season + 1).slice(2)}` : 'Choose a club'} />
+      <Back onBack={() => setProfileDone(false)} title={cm ? `CM 01/02 · ${cm.season}/${String(cm.season + 1).slice(2)}` : 'Choose a club'} />
       <div className="row" style={{ marginBottom: 12, gap: 8 }}>
         <select className="input" style={{ flex: 1 }} value={league} onChange={(e) => { setLeague(e.target.value); setClub(null); }}>
           {defs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -143,7 +172,6 @@ function ClassicSetup({ onBack, cm }: { onBack: () => void; cm?: CmWorld }) {
         ))}
       </div></Fit>
       <div className="setup-cta">
-        <input className="input" value={name} placeholder="Manager name (optional)" onChange={(e) => setName(e.target.value)} />
         <button className="continue-btn" disabled={!club || busy} onClick={start}>{busy ? 'Building the world…' : club ? `Manage ${club} ▶` : 'Pick a club'}</button>
       </div>
     </div>

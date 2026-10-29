@@ -6,6 +6,7 @@ import { useUI } from '../context';
 import { Card, Meter, SectionPage } from '../components/common';
 import { ClubBadgeButton } from '../components/BadgesSheet';
 import { useState } from 'react';
+import { NATIONS } from '../../game/data/names';
 import { MANAGER_ATTRS, defaultProfile, managerStyle } from '../../game/manager';
 import { BACKGROUNDS, repLabel } from '../../game/journey';
 import { Crest } from '../components/Crest';
@@ -41,7 +42,7 @@ function ManagerCard() {
   // Read-only view of the profile (created with defaults for older saves)
   const prof = g.managerProfile ?? defaultProfile();
   return (
-    <Card title={`Manager: ${g.manager}`} tag={managerStyle(g)} tagColor="var(--violet)">
+    <Card title={`Manager: ${g.manager}${NATIONS[g.managerNat ?? g.journey?.nat ?? ''] ? ` · ${NATIONS[g.managerNat ?? g.journey?.nat ?? '']}` : ''}`} tag={managerStyle(g)} tagColor="var(--violet)">
       <div className="list">
         {MANAGER_ATTRS.map((a) => {
           const v = prof.skills[a.key];

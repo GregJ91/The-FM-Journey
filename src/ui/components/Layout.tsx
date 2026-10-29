@@ -12,6 +12,10 @@ import { useUI, type Screen } from '../context';
 import { Sheet } from './common';
 import { BadgesSheet } from './BadgesSheet';
 import { Crest } from './Crest';
+import { NATIONS } from '../../game/data/names';
+import type { GameState } from '../../game/types';
+
+const managerNation = (g: GameState) => NATIONS[g.managerNat ?? g.journey?.nat ?? ''] ?? '';
 
 const TABS: { id: Screen; label: string; Icon: ComponentType<{ strokeWidth?: number }> }[] = [
   { id: 'home', label: 'Home', Icon: House },
@@ -48,7 +52,7 @@ export function Header() {
       {menu && (
         <Sheet title="Menu" onClose={() => setMenu(false)}>
           <div className="sheet-b col">
-            <div className="small muted bold">Manager {g.manager} · Season {seasonLabel(g.season)} · {g.mode === 'create' ? 'Create-a-club' : 'Classic'}</div>
+            <div className="small muted bold">Manager {g.manager}{managerNation(g) ? ` (${managerNation(g)})` : ''} · Season {seasonLabel(g.season)} · {g.era ? 'CM 01/02' : g.mode === 'create' ? 'Create-a-club' : g.mode === 'journey' ? 'The Journey' : 'Classic'}</div>
             <button className="btn block" onClick={async () => { try { await saveGame(); ui.toast('Game saved'); } catch { ui.toast('Save failed', true); } setMenu(false); }}><Save /> Save game</button>
             <button className="btn block" onClick={() => { setMenu(false); ui.go('competitions'); }}><Trophy /> Competitions</button>
             <button className="btn block" onClick={() => { setMenu(false); ui.go('inbox'); }}><Mail /> Inbox</button>
