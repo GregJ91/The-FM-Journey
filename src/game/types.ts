@@ -246,6 +246,12 @@ export interface Cup {
   teams?: number[]; // league-phase entrants
   lp?: number; // number of league-phase matchdays
   groups?: number[][]; // Club World Cup groups
+  /** CM 01/02 careers: the 2002/03 formats (qualifying, two group stages, two-legged knockouts, Intertoto) */
+  format?: '2002';
+  kinds?: ('ko' | 'g1' | 'g2' | 'final')[]; // per round: knockout round, matchday of the first / second group stage, final
+  groupSets?: number[][][]; // [first group stage, second group stage]
+  carry?: number[]; // clubs waiting for the next draw (winners, and clubs dropping in from other competitions)
+  direct?: number[]; // Champions League: clubs going straight into the group stage
 }
 
 export interface IntlMatch {

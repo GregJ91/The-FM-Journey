@@ -1,5 +1,6 @@
 import { boardMonthly, checkFacilityUpgrade, clampConf, monthlyFinances, prizeMoney, recordLedger, setBoardObjective, setSeasonBudgets, weeklyWages } from './club';
 import { compName, leagueTable, progressCup, scheduleLeague, setupCups } from './competitions';
+import { tickEurope2002 } from './europe2002';
 import { computeEntrants, ensureEurope, europeFor, initialEntrants, progressEurope, setupEurope } from './europe';
 import { guestLevel, isGuest, isTransferOnly } from './guests';
 import { intlDay } from './intl';
@@ -37,7 +38,8 @@ export function startSeason(g: GameState) {
   ensureEurope(g);
   resetRegistration(g);
   setupCups(g);
-  setupEurope(g, g.europe ?? (g.season === START_SEASON ? initialEntrants(g) : computeEntrants(g)));
+  // First season: the real line-ups (2026/27, or 2002/03 in CM 01/02 careers)
+  setupEurope(g, g.europe ?? (g.season === START_SEASON || (g.era && !g.history.length) ? initialEntrants(g) : computeEntrants(g)));
   g.europe = undefined;
   setupYouth(g);
   setSeasonBudgets(g);
@@ -87,8 +89,10 @@ export function playDayFixtures(g: GameState) {
       postFixture(g, f);
     }
   });
+  // CM 01/02: European competitions in their 2002/03 formats run themselves (draws wait for the competitions feeding them)
+  if (g.era) for (const cup of tickEurope2002(g)) cupWon(g, cup, g.fixtures.some((f) => f.comp === cup.id && f.knockout && f.neutral && (f.home === g.userClubId || f.away === g.userClubId)));
   for (const cup of g.cups) {
-    if (cup.winner) continue;
+    if (cup.winner || cup.format === '2002') continue;
     const before = cup.current;
     const round = g.fixtures.filter((f) => f.comp === cup.id && f.round === cup.current + 1);
     if (cup.lp !== undefined || cup.type === 'world') {

@@ -12,6 +12,8 @@ import { SquadList } from './Squad';
 import type { Cup, Message, Player } from '../../game/types';
 import { EURO_PLACES } from '../../game/data/europe';
 import { europeFor, europeTable } from '../../game/europe';
+import { groupLetter, groupTable } from '../../game/europe2002';
+import { Fit } from '../components/Fit';
 import { guestLeagueName } from '../../game/guests';
 import { CwcView, IntlView, NationsCard, UpcomingCard } from './WorldViews';
 import { respondAction } from '../../game/actions';
@@ -81,13 +83,14 @@ export function Competitions() {
       )}
 
       {cup && cup.lp !== undefined && <EuropeView key={cup.id} cup={cup} />}
+      {cup && cup.format === '2002' && <Europe2002View key={cup.id} cup={cup} />}
       {cup && cup.type === 'world' && <CwcView key={cup.id} cup={cup} />}
       {intl && <IntlView key={intl.id} t={intl} />}
       {youthComp && <YouthCompView key={youthComp.id} comp={youthComp} />}
       {(comp === 'MY' || intl) && <UpcomingCard />}
       {(comp === 'MY' || intl) && <NationsCard />}
 
-      {cup && cup.lp === undefined && cup.type !== 'world' && (
+      {cup && cup.lp === undefined && cup.type !== 'world' && cup.format !== '2002' && (
         <>
           {cup.winner !== null && (
             <div className="card" style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.22), var(--surface))', borderColor: 'rgba(251,191,36,0.35)' }}>
@@ -241,6 +244,106 @@ function EuropeView({ cup }: { cup: Cup }) {
           </Card>
         );
       })}
+    </>
+  );
+}
+
+/** CM 01/02 careers: the 2002/03 formats (qualifying, group stages, two-legged knockouts). */
+function Europe2002View({ cup }: { cup: Cup }) {
+  const g = useGame();
+  const ui = useUI();
+  const me = g.userClubId;
+  const kinds = cup.kinds ?? [];
+  const stages = (cup.groupSets ?? []).map((_, i) => i);
+  const koRounds = kinds.map((k, i) => (k === 'ko' || k === 'final' ? i + 1 : 0)).filter(Boolean);
+  const myStage = [...stages].reverse().find((st) => cup.groupSets![st].some((grp) => grp.includes(me)));
+  const nextKind = kinds[Math.min(cup.current, kinds.length - 1)];
+  const [view, setView] = useState<string>(nextKind === 'g1' && stages.length ? 'g0' : nextKind === 'g2' && stages.length > 1 ? 'g1' : 'ko');
+  const stage = view.startsWith('g') ? Number(view.slice(1)) : -1;
+  const groups = stage >= 0 ? cup.groupSets![stage] : [];
+  const [group, setGroup] = useState(() => {
+    const st = myStage ?? 0;
+    return Math.max(0, cup.groupSets?.[st]?.findIndex((grp) => grp.includes(me)) ?? 0);
+  });
+  const firstOpenKo = koRounds.find((r) => g.fixtures.some((f) => f.comp === cup.id && f.round === r && !f.result)) ?? koRounds.filter((r) => g.fixtures.some((f) => f.comp === cup.id && f.round === r)).pop() ?? koRounds[0];
+  const [koRound, setKoRound] = useState(firstOpenKo);
+  const fx = g.fixtures.filter((f) => f.comp === cup.id);
+  const inIt = (cup.teams ?? []).includes(me);
+  const about = cup.id === 'UCL'
+    ? 'Third qualifying round, then 8 groups of four and a second group stage of 4 groups of four (top two go through), two-legged quarter- and semi-finals and the final. Qualifying losers go into the UEFA Cup, group-stage thirds into its third round.'
+    : cup.id === 'UEL'
+      ? 'Two-legged knockout rounds from September, with Champions League qualifying losers and Intertoto winners in the first round and Champions League thirds from the third round. One-off final in May.'
+      : 'Summer competition: the three finals winners go into the UEFA Cup first round.';
+  const ties = (round: number) => {
+    const rf = fx.filter((f) => f.round === round);
+    const list = [...new Set(rf.map((f) => f.tie ?? f.id))].map((t) => rf.filter((f) => (f.tie ?? f.id) === t).sort((a, b) => (a.date < b.date ? -1 : 1)));
+    return list.sort((a, b) => Number(b.some((f) => f.home === me || f.away === me)) - Number(a.some((f) => f.home === me || f.away === me)));
+  };
+  return (
+    <>
+      {cup.winner !== null && (
+        <div className="card" style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.22), var(--surface))', borderColor: 'rgba(251,191,36,0.35)' }}>
+          <div className="row"><span style={{ fontSize: 34 }}>🏆</span><Crest club={g.clubs[cup.winner]} size={46} /><div><div className="small bold">{cup.name} winners</div><h2 style={{ fontSize: 22 }}>{g.clubs[cup.winner].name}</h2></div></div>
+        </div>
+      )}
+      <div className="small muted" style={{ marginBottom: 10 }}>{about}{inIt ? '' : ` ${g.clubs[me].name} aren't in it this season.`}</div>
+      <div className="ns-bar-row" style={{ marginBottom: 10 }}>
+        <select className="input" aria-label="Stage" value={view} onChange={(e) => { setView(e.target.value); if (e.target.value.startsWith('g')) { const st = Number(e.target.value.slice(1)); setGroup(Math.max(0, cup.groupSets![st].findIndex((grp) => grp.includes(me)))); } }}>
+          {stages.map((st) => <option key={st} value={`g${st}`}>{st === 0 ? 'Group stage' : 'Second group stage'}</option>)}
+          <option value="ko">Knockout rounds</option>
+        </select>
+        {stage >= 0 && (
+          <select className="input" aria-label="Group" value={group} onChange={(e) => setGroup(Number(e.target.value))} style={{ flex: 'none', width: 110 }}>
+            {groups.map((grp, i) => <option key={i} value={i}>Group {groupLetter(i)}{grp.includes(me) ? ' ★' : ''}</option>)}
+          </select>
+        )}
+        {stage < 0 && (
+          <select className="input" aria-label="Round" value={koRound} onChange={(e) => setKoRound(Number(e.target.value))} style={{ flex: 'none', width: 170 }}>
+            {koRounds.map((r) => <option key={r} value={r}>{cup.rounds[r - 1].name}</option>)}
+          </select>
+        )}
+      </div>
+      {stage >= 0 && groups[group] && (
+        <Card title={`Group ${groupLetter(group)}`} tag={stage === 0 ? 'Group stage' : 'Second group stage'} tagColor={cup.color}>
+          <table className="t dense">
+            <thead><tr><th>#</th><th>Club</th><th className="r">P</th><th className="r">W-D-L</th><th className="r">GD</th><th className="r">Pts</th></tr></thead>
+            <tbody>
+              {groupTable(g, cup, stage, group).map((r, i) => {
+                const c = g.clubs[r.clubId];
+                return (
+                  <tr key={r.clubId} className={`click ${i < 2 ? 'zone-up' : i === 2 && stage === 0 && cup.id === 'UCL' ? 'zone-po' : 'zone-down'} ${r.clubId === me ? 'me' : ''}`} onClick={() => ui.go('club', r.clubId)}>
+                    <td className="num bold">{i + 1}</td>
+                    <td><span className="row" style={{ gap: 6 }}><Crest club={c} size={18} /><span className="ellipsis" style={{ maxWidth: 130 }}>{c.name}</span></span></td>
+                    <td className="r num">{r.p}</td>
+                    <td className="r num small">{r.w}-{r.d}-{r.l}</td>
+                    <td className="r num">{r.gf - r.ga > 0 ? '+' : ''}{r.gf - r.ga}</td>
+                    <td className="r num bold">{r.pts}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div className="small muted" style={{ margin: '8px 0 4px' }}>Matches</div>
+          {fx.filter((f) => kinds[f.round - 1] === (stage === 0 ? 'g1' : 'g2') && groups[group].includes(f.home)).sort((a, b) => (a.date < b.date ? -1 : 1)).map((f) => <FixtureRow key={f.id} g={g} f={f} showComp={false} compact />)}
+        </Card>
+      )}
+      {stage < 0 && koRound !== undefined && (
+        <Card title={cup.rounds[koRound - 1].name} tag={fmtShort(cup.rounds[koRound - 1].date)} tagColor="var(--muted)">
+          <Fit><div className="list">
+            {ties(koRound).map((legs) => {
+              const last = legs[legs.length - 1];
+              const w = winnerOf(last);
+              return (
+                <div key={last.id} className="tie">
+                  {legs.map((f) => <FixtureRow key={f.id} g={g} f={f} showComp={false} />)}
+                  {w !== null && <div className="through">{g.clubs[w].name} {cup.rounds[koRound - 1].name === 'Final' ? 'win the trophy' : 'go through'}{last.result?.pens ? ' on penalties' : ''}</div>}
+                </div>
+              );
+            })}
+            {!ties(koRound).length && <div className="empty">Draw to come.</div>}
+          </div></Fit>
+        </Card>
+      )}
     </>
   );
 }

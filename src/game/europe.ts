@@ -8,6 +8,7 @@ import { leagueTable, type TableRow, avoidLeagueClash } from './competitions';
 import { addDays, nextWeekday } from './dates';
 import { nextId } from './generate';
 import { addGuestClubs } from './guests';
+import { computeEntrants2002, ensureEurope2002, initialEntrants2002, setupEurope2002 } from './europe2002';
 import { sendMessage } from './inbox';
 import { winnerOf } from './match';
 import { hash, normal, shuffle } from './rng';
@@ -24,8 +25,9 @@ const OLD_NAMES: Record<string, [string, string]> = { UEL: ['UEFA Cup', 'UEFA'],
 
 /** Add the rest-of-Europe clubs and the three competitions if they're missing (new games and older saves). */
 export function ensureEurope(g: GameState) {
-  // CM 01/02 careers bring their own guest clubs from the database
-  if (!g.era) addGuestClubs(g, EURO_CLUBS, EURO_PLAYERS, EURO_GUEST_LEAGUE);
+  // CM 01/02 careers: their own guest clubs from the database, and the 2002/03 formats
+  if (g.era) return ensureEurope2002(g);
+  addGuestClubs(g, EURO_CLUBS, EURO_PLAYERS, EURO_GUEST_LEAGUE);
   // Replace the old single knockout cup from earlier versions
   g.cups = g.cups.filter((c) => c.type !== 'continental' || c.lp !== undefined);
   for (const def of EURO_COMPS) {
@@ -38,6 +40,7 @@ export function ensureEurope(g: GameState) {
 
 /** The real 2026/27 line-ups. */
 export function initialEntrants(g: GameState): Record<string, number[]> {
+  if (g.era) return initialEntrants2002(g);
   const byName: Record<string, number> = {};
   for (const c of Object.values(g.clubs)) byName[c.name] = c.id;
   const out: Record<string, number[]> = {};
@@ -65,6 +68,7 @@ function topUp(g: GameState, out: Record<string, number[]>) {
  * Call before promotion/relegation.
  */
 export function computeEntrants(g: GameState): Record<string, number[]> {
+  if (g.era) return computeEntrants2002(g);
   const out: Record<string, number[]> = { UCL: [], UEL: [], UECL: [] };
   const taken = new Set<number>();
   const add = (comp: string, id: number) => { if (!taken.has(id)) { out[comp].push(id); taken.add(id); return true; } return false; };
@@ -116,6 +120,7 @@ function roundDates(season: number, def: EuroCompDef) {
 }
 
 export function setupEurope(g: GameState, entrants: Record<string, number[]>) {
+  if (g.era) return setupEurope2002(g, entrants);
   for (const def of EURO_COMPS) {
     const cup = g.cups.find((c) => c.id === def.id);
     if (!cup) continue;
