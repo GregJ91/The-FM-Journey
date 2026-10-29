@@ -7,6 +7,13 @@ const ROW_PARENTS = 'tbody, .list, .feed, .pane-list, .inbox-rows';
 
 const PAGER_H = 34;
 
+/** Top of an element in layout space (unaffected by CSS transforms such as the sideways-phone portrait lock). */
+function layoutTop(el: HTMLElement) {
+  let y = 0;
+  for (let n: HTMLElement | null = el; n; n = n.offsetParent as HTMLElement | null) y += n.offsetTop;
+  return y;
+}
+
 /** Page breaks for the rows of `box` so that each page fits the panel (`fit` is the whole Fit, pager included). */
 function measure(fit: HTMLElement, body: HTMLElement, box: HTMLElement): number[] {
   const rows = Array.from(box.children).filter((el) => el.tagName !== 'STYLE') as HTMLElement[];
@@ -14,16 +21,17 @@ function measure(fit: HTMLElement, body: HTMLElement, box: HTMLElement): number[
   const total = fit.clientHeight;
   if (body.scrollHeight <= total + 1) return [0];
   const avail = total - PAGER_H;
-  const top = body.getBoundingClientRect().top;
-  const first = rows[0].getBoundingClientRect().top - top;
-  const last = rows[rows.length - 1].getBoundingClientRect().bottom - top;
+  const top = layoutTop(body);
+  const lastRow = rows[rows.length - 1];
+  const first = layoutTop(rows[0]) - top;
+  const last = layoutTop(lastRow) + lastRow.offsetHeight - top;
   // Room for rows = what's left after everything that isn't a row (headings, notes under the list)
   const other = body.scrollHeight - (last - first);
   const room = Math.max(rows[0].offsetHeight, avail - other);
   const starts = [0];
   let used = 0;
   rows.forEach((r, i) => {
-    const h = r.getBoundingClientRect().height;
+    const h = r.offsetHeight;
     if (used + h > room && used > 0) { starts.push(i); used = 0; }
     used += h;
   });

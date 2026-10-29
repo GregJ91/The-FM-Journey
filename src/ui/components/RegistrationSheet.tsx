@@ -22,7 +22,7 @@ export function RegistrationSheet({ scope, onClose }: { scope: 'league' | 'europ
         <span className="chip">+{young} under-{REGISTRATION_AGE}s (exempt)</span>
         <button className="chip" onClick={() => setSel(new Set(suggestedRegistration(g)))}>Suggested</button>
       </div>
-      <div className="list" style={{ maxHeight: '52vh', overflowY: 'auto' }}>
+      <div className="list" style={{ maxHeight: 'calc(var(--app-h) * 0.52)', overflowY: 'auto' }}>
         {list.map((p) => (
           <div key={p.id} className="li" onClick={() => toggle(p.id)}>
             <PosTag pos={p.pos} />

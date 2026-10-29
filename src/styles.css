@@ -58,6 +58,9 @@
   --app-w: 480px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
+  /* The app's screen size: the viewport, or the turned viewport when a phone is held sideways (portrait lock) */
+  --app-h: 100dvh;
+  --app-wd: 100vw;
   color-scheme: dark;
 }
 
@@ -86,7 +89,7 @@ h1, h2, h3, h4 { font-family: var(--display); margin: 0; letter-spacing: -0.03em
   position: relative;
   width: 100%;
   max-width: var(--app-w);
-  height: 100dvh;
+  height: var(--app-h);
   margin: 0 auto;
   background:
     radial-gradient(90% 40% at 50% -5%, color-mix(in srgb, var(--team) 32%, transparent), transparent 70%),
@@ -354,7 +357,7 @@ button.chip { cursor: pointer; }
 .sheet-wrap { position: fixed; inset: 0; z-index: 50; display: flex; justify-content: center; align-items: flex-end; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: fade 0.18s; }
 @keyframes fade { from { opacity: 0; } }
 .sheet {
-  width: 100%; max-width: var(--app-w); max-height: 92dvh; overflow-y: auto; background: var(--surface); border: 1px solid var(--line-2); border-bottom: none;
+  width: 100%; max-width: var(--app-w); max-height: calc(var(--app-h) * 0.92); overflow-y: auto; background: var(--surface); border: 1px solid var(--line-2); border-bottom: none;
   border-radius: 28px 28px 0 0; animation: up 0.26s cubic-bezier(.2, .9, .3, 1); padding-bottom: calc(18px + var(--safe-b)); scrollbar-width: none;
 }
 @keyframes up { from { transform: translateY(60px); opacity: 0; } }
@@ -387,7 +390,7 @@ button.chip { cursor: pointer; }
 
 /* ---------- Title / new game ---------- */
 .title-screen {
-  height: 100dvh; overflow-y: auto; padding: calc(28px + var(--safe-t)) 18px 0; scrollbar-width: none;
+  height: var(--app-h); overflow-y: auto; padding: calc(28px + var(--safe-t)) 18px 0; scrollbar-width: none;
   background:
     radial-gradient(60% 35% at 15% 5%, rgba(198, 244, 50, 0.18), transparent 70%),
     radial-gradient(60% 35% at 95% 25%, rgba(56, 189, 248, 0.16), transparent 70%),
@@ -422,7 +425,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 /* ---------- Match (portrait) ---------- */
 .match-screen { position: fixed; inset: 0; z-index: 40; display: flex; justify-content: center; background: #040507; }
 .match-inner {
-  width: 100%; max-width: var(--app-w); height: 100dvh; color: #fff; display: flex; flex-direction: column;
+  width: 100%; max-width: var(--app-w); height: var(--app-h); color: #fff; display: flex; flex-direction: column;
   background: radial-gradient(90% 35% at 50% 0%, color-mix(in srgb, var(--team) 30%, transparent), transparent 70%), #07090d;
 }
 .scoreboard { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; padding: calc(14px + var(--safe-t)) 14px 12px; }
@@ -433,7 +436,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .match-scroll { flex: 1; overflow-y: auto; padding: 4px 14px 14px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: none; }
 .match-scroll > * { flex: none; }
 .match-pitch {
-  position: relative; flex: none; height: min(46dvh, 140vw); aspect-ratio: 68 / 105; margin: 0 auto; border-radius: 6px; overflow: hidden;
+  position: relative; flex: none; height: min(calc(var(--app-h) * 0.46), calc(var(--app-wd) * 1.4)); aspect-ratio: 68 / 105; margin: 0 auto; border-radius: 6px; overflow: hidden;
   background: radial-gradient(80% 40% at 50% 50%, rgba(255, 255, 255, 0.06), transparent), repeating-linear-gradient(0deg, #15633d 0 9.0909%, #12573a 9.0909% 18.1818%);
   border: 1px solid var(--line-2); box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.9);
 }
@@ -496,7 +499,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .choice.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)) !important; box-shadow: 0 0 0 1px var(--accent); }
 .choice b { display: block; font-size: 14.5px; }
 .choice span { font-size: 11.5px; color: var(--muted); display: block; margin-top: 3px; }
-.sacked { height: 100dvh; display: grid; place-items: center; background: radial-gradient(circle, rgba(225, 29, 72, 0.35), transparent 70%), var(--bg); padding: 20px; }
+.sacked { height: var(--app-h); display: grid; place-items: center; background: radial-gradient(circle, rgba(225, 29, 72, 0.35), transparent 70%), var(--bg); padding: 20px; }
 .filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
 .icon-inline { display: inline-flex; vertical-align: -3px; }
 
@@ -580,7 +583,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   /* Sheets slide in from the right */
   .sheet-wrap { justify-content: flex-end; align-items: stretch; }
   .sheet {
-    max-width: min(460px, 92vw); max-height: 100dvh; height: 100dvh; border-radius: 24px 0 0 24px;
+    max-width: min(460px, 92vw); max-height: var(--app-h); height: var(--app-h); border-radius: 24px 0 0 24px;
     border-bottom: 1px solid var(--line-2); padding-right: env(safe-area-inset-right, 0px);
     animation: slidein 0.22s ease-out;
   }
@@ -598,7 +601,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .match-scroll.live .match-main { justify-content: center; overflow: hidden; }
   .match-scroll.live .match-side { overflow-y: auto; scrollbar-width: none; padding-bottom: 8px; }
   /* The pitch fills everything between the slim scoreboard and the controls */
-  .match-pitch.horizontal { width: min(100%, calc((100dvh - 118px - var(--safe-t) - var(--safe-b)) * 105 / 68)); margin: 0 auto; }
+  .match-pitch.horizontal { width: min(100%, calc((var(--app-h) - 118px - var(--safe-t) - var(--safe-b)) * 105 / 68)); margin: 0 auto; }
   .match-scroll.live { padding-top: 0; padding-bottom: 6px; gap: 12px; }
   .match-scroll.live .shouts { flex-wrap: wrap; overflow: visible; }
   .match-scroll.live .shouts .btn { flex: 1 1 auto; min-height: 34px; padding: 6px 10px; font-size: 12.5px; }
@@ -621,8 +624,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   /* Full-screen pages ignore the rail/header grid */
   .title-screen, .sacked { grid-column: 1 / -1; grid-row: 1 / -1; }
   .title-screen { padding: calc(20px + var(--safe-t)) max(24px, env(safe-area-inset-right, 0px)) 0 max(24px, env(safe-area-inset-left, 0px)); }
-  .title-menu { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 32px; align-items: center; max-width: 1040px; margin: 0 auto; min-height: calc(100dvh - 40px); }
-  .title-logo { font-size: clamp(44px, 9vh, 72px); }
+  .title-menu { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 32px; align-items: center; max-width: 1040px; margin: 0 auto; min-height: calc(var(--app-h) - 40px); }
+  .title-logo { font-size: clamp(44px, calc(var(--app-h) * 0.09), 72px); }
   .title-screen > div:not(.title-menu) { max-width: 860px; margin: 0 auto; }
 }
 @keyframes slidein { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -686,7 +689,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 
 /* ---------- Commentary-only match view ---------- */
 .comm {
-  width: 100%; max-width: 1200px; height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%; max-width: 1200px; height: var(--app-h); display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
   padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   gap: 8px; overflow: hidden;
 }
@@ -719,7 +722,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .comm-feed { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 8px; }
 .comm-feed .ev { opacity: 0.85; }
 .comm-side { display: flex; flex-direction: column; gap: 8px; min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; overflow: hidden; }
-.comm:not(.land) .comm-side { max-height: 34dvh; }
+.comm:not(.land) .comm-side { max-height: calc(var(--app-h) * 0.34); }
 .comm-tabs { flex: none; }
 .comm-stats { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; }
 .comm-stats .mom-strip { margin: 0; }
@@ -1161,7 +1164,7 @@ table.t.fm .ovr { height: 20px; }
   max-width: 1040px; margin: 0 auto; width: 100%;
 }
 .title-intro p { margin: 6px 0 0; font-size: 14px; font-weight: 600; color: var(--muted); }
-.title-logo { font-size: clamp(40px, 8vh, 64px) !important; margin: 0 !important; }
+.title-logo { font-size: clamp(40px, calc(var(--app-h) * 0.08), 64px) !important; margin: 0 !important; }
 .title-actions { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
 .mode-card { padding: 12px 14px !important; }
 .mode-card h2 { font-size: 20px !important; margin: 6px 0 3px !important; }
@@ -1354,9 +1357,9 @@ table.t tr.me td, table.t tbody tr.me:nth-child(even) td { background: var(--hl-
    ===================================================================== */
 @media (orientation: landscape) and (max-height: 520px) and (pointer: coarse) {
   html, body { overflow: hidden; }
-  #root { position: fixed; top: 0; left: 0; width: 100vh; height: 100vw; overflow: hidden; transform-origin: 0 0; transform: translateY(100vh) rotate(-90deg); }
-  html[data-rot="270"] #root { transform: translateX(100vw) rotate(90deg); }
-  #root .phone, #root .comm { height: 100% !important; }
+  :root { --app-h: 100dvw; --app-wd: 100dvh; }
+  #root { position: fixed; top: 0; left: 0; width: 100dvh; height: 100dvw; overflow: hidden; transform-origin: 0 0; transform: translateY(100dvh) rotate(-90deg); }
+  html[data-rot="270"] #root { transform: translateX(100dvw) rotate(90deg); }
 }
 
 /* =====================================================================
