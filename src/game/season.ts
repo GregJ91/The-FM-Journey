@@ -285,9 +285,10 @@ export function endSeason(g: GameState) {
   // European places for next season (before promotion and relegation)
   g.europe = computeEntrants(g);
 
-  // Promotion & relegation (English pyramid)
-  const eng = g.leagues.filter((l) => l.country === 'ENG').sort((a, b) => a.tier - b.tier);
+  // Promotion & relegation within each country's pyramid (England, Scotland)
   const moves: { id: number; to: string }[] = [];
+  for (const country of [...new Set(g.leagues.map((l) => l.country))]) {
+  const eng = g.leagues.filter((l) => l.country === country).sort((a, b) => a.tier - b.tier);
   for (let i = 0; i < eng.length - 1; i++) {
     const upper = eng[i];
     const lower = eng[i + 1];
@@ -296,6 +297,7 @@ export function endSeason(g: GameState) {
     const up = finalTables[lower.id].slice(0, n);
     for (const id of down) moves.push({ id, to: lower.id });
     for (const id of up) moves.push({ id, to: upper.id });
+  }
   }
   for (const mv of moves) {
     const from = g.leagues.find((l) => l.clubIds.includes(mv.id))!;

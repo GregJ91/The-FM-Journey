@@ -31,6 +31,7 @@ export const EURO_PLACES: Record<string, { UCL: number; UEL: number; UECL: numbe
   ITA: { UCL: 4, UEL: 3, UECL: 1 },
   GER: { UCL: 4, UEL: 2, UECL: 1 },
   FRA: { UCL: 3, UEL: 3, UECL: 1 },
+  SCO: { UCL: 1, UEL: 1, UECL: 1 },
 };
 
 export const EURO_GUEST_LEAGUE = 'EUR';
@@ -50,8 +51,6 @@ export const EURO_CLUBS: string[] = [
   'Twente|TWE|#E20613|#FFFFFF|66|69|De Grolsch Veste|30205|plain|NED',
   'N.E.C.|NEC|#E20613|#111111|61|67|Goffertstadion|12500|halves|NED',
   // Scotland
-  'Celtic|CEL|#018749|#FFFFFF|74|70|Celtic Park|60411|hoops|SCO',
-  'Hearts|HEA|#7A1F35|#FFFFFF|58|65|Tynecastle Park|19852|plain|SCO',
   // Belgium
   'Club Brugge|CLU|#0057B8|#111111|75|72|Jan Breydel Stadium|29042|stripes|BEL',
   'Union SG|USG|#FFDA00|#0D3B8C|68|69|Stade Joseph Marien|9400|plain|BEL',
@@ -127,7 +126,6 @@ export const EURO_PLAYERS: Record<string, string[]> = {
   'Fenerbahçe': ['Mason Greenwood|AMR|24|ENG|83|85', 'Mattéo Guendouzi|MC|27|FRA|79', 'Romelu Lukaku|ST|33|BEL|79'],
   'Benfica': ['Jakub Kamiński|AMR|24|POL|73', 'João Palhinha|DM|30|POR|81'],
   'Ajax': ['Thilo Kehrer|DC|29|GER|77', 'Sofyan Amrabat|DM|29|MAR|78', 'Simon Adingra|AML|24|CIV|76', 'Marc-André ter Stegen|GK|34|GER|83', 'Tolu Arokodare|ST|25|NGA|74'],
-  'Celtic': ['Sam Johnstone|GK|33|ENG|74'],
   'Panathinaikos': ['Stefan de Vrij|DC|34|NED|79'],
   'Olympiacos': [
     'Stefan Ortega|GK|33|GER|79',
@@ -204,15 +202,6 @@ export const EURO_PLAYERS: Record<string, string[]> = {
     'Willum Thór Willumsson|MC|28|ISL|70', 'Jamiro Monteiro|MC|32|CPV|67', 'Tjaronn Chery|AMC|38|SUR|68', 'Dušan Tadić|AMC|37|SRB|72',
     'Emre Mor|AMR|29|TUR|69', 'Vito van Crooij|AML|30|NED|67', 'Clement Bischoff|AML|21|DEN|64|72', 'Tobias Storm|ST|26|DEN|65',
     'Kaj Sierhuis|ST|28|NED|67', 'Bryan Linssen|ST|36|NED|66',
-  ],
-  'Hearts': [
-    'Beau Reus|GK|24|NED|66', 'Zander Clark|GK|34|SCO|62', 'Craig Gordon|GK|43|SCO|63', 'Ryan Fulton|GK|30|SCO|63',
-    'Christian Borchgrevink|DR|27|NOR|64', 'Oisin McEntee|DR|25|IRL|64', 'Stuart Findlay|DC|31|SCO|65', 'Jamie McCart|DC|29|SCO|65',
-    'Craig Halkett|DC|31|SCO|64', 'Malachi Fagan-Walcott|DC|24|ENG|64', 'Laurent Mendy|DM|29|FRA|63', 'MJ Kamson-Kamara|DC|20|ENG|60|68',
-    'Ageu|DC|22|BRA|63|68', 'Harry Milne|DL|29|SCO|66', 'Stephen Kingsley|DL|32|SCO|66', 'Jordi Altena|DL|22|NED|63|68',
-    'Tom Renaud|MC|25|FRA|63', 'Tómas Magnússon|MC|24|ISL|63', 'Blair Spittal|AMC|30|SCO|63', 'Yan Dhanda|AMC|27|ENG|66',
-    'Calvin Miller|AML|28|SCO|64', 'Josh McPake|AMR|25|SCO|63', 'Sabri Guendouz|AMR|26|FRA|63', 'Cláudio Braga|ST|27|POR|68',
-    'Amadou Ba-Sy|ST|24|FRA|63', 'JJ Williams|ST|28|USA|63', 'James Wilson|ST|19|SCO|63|72',
   ],
   'Union SG': [
     'Hervé Koffi|GK|30|BFA|68', 'Vic Chambaere|GK|21|BEL|66|74', 'Louis Patris|DR|25|BEL|69', 'Denzel De Roeve|DR|22|BEL|67|72',

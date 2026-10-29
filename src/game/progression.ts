@@ -2,6 +2,7 @@ import { GUEST_LEAGUES } from './guests';
 import { ATTR_GROUPS, POS_WEIGHTS, age, clampAttr, overall, rawOverallAt } from './ratings';
 import { normal } from './rng';
 import { mgr } from './manager';
+import { personalityOf } from './personality';
 import type { AttrKey, GameState, Player, TrainingFocus } from './types';
 
 /**
@@ -114,6 +115,8 @@ export function monthlyChange(g: GameState, p: Player) {
   }
   // A manager good with youngsters gets more out of their under-21s (up to +25%)
   if (isUser && a <= 21 && change > 0) change *= 1 + 0.25 * mgr(g, 'youth');
+  // Personality: model professionals get more out of training, casual players less
+  if (change > 0) change *= personalityOf(p).dev;
   if (curve >= 0 && change > 0 && ovr + change > p.pa) change = Math.max(0, p.pa - ovr);
   return change;
 }

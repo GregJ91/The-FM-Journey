@@ -11,6 +11,7 @@ import { useUI } from '../context';
 import { AttrVal, Card, CondBar, ConfirmButton, Ovr, PosTag, Spark, Stars } from '../components/common';
 import { PlayerStats } from '../components/PlayerStats';
 import { Crest } from '../components/Crest';
+import { personalityOf } from '../../game/personality';
 
 const FOCUS_LABEL: Record<TrainingFocus, string> = { balanced: 'Balanced', attacking: 'Attack', defending: 'Defend', technical: 'Technical', physical: 'Physical', mental: 'Mental' };
 
@@ -54,6 +55,7 @@ export function PlayerModal() {
   const radar: [string, number][] = isGK
     ? [['Shot stopping', a.reflexes], ['Handling', a.handling], ['Aerial', a.aerial], ['Distribution', a.distribution], ['Positioning', a.positioning], ['Mental', avg('decisions', 'composure')]]
     : [['Attacking', avg('finishing', 'composure')], ['Technique', avg('dribbling', 'firstTouch', 'passing')], ['Vision', avg('vision', 'decisions')], ['Defending', avg('tackling', 'positioning')], ['Aerial', avg('heading', 'strength')], ['Physical', avg('stamina', 'strength', 'workRate')], ['Speed', a.pace]];
+  const pers = personalityOf(p);
   const mood = p.morale >= 80 ? ['Superb', 'var(--grass)'] : p.morale >= 65 ? ['Good', 'var(--grass)'] : p.morale >= 45 ? ['Okay', 'var(--yellow)'] : p.morale >= 30 ? ['Poor', 'var(--orange)'] : ['Very poor', 'var(--coral)'];
 
   return (
@@ -119,6 +121,7 @@ export function PlayerModal() {
                 <div><span>Wage</span><b>{fmtMoney(p.wage)}/wk</b></div>
                 <div><span>Contract</span><b>{p.clubId === null ? '—' : `June ${p.contractEnd}`}</b></div>
                 <div><span>Condition</span><b><CondBar v={p.condition} /> {Math.round(p.condition)}%</b></div>
+                <div><span>Personality</span><b style={{ color: pers.good === true ? 'var(--grass)' : pers.good === false ? 'var(--coral)' : undefined }} title={pers.blurb}>{pers.name}</b></div>
                 <div><span>Morale</span><b style={{ color: mood[1] }}>{mood[0]}</b></div>
                 <div><span>Form</span><b>{p.form.length ? <Spark values={p.form} /> : null}<span style={{ color: p.lastChange > 0 ? 'var(--good)' : p.lastChange < 0 ? 'var(--bad)' : undefined }}>{p.lastChange > 0 ? `▲ +${p.lastChange}` : p.lastChange < 0 ? `▼ ${p.lastChange}` : p.form.length ? '' : '—'}</span></b></div>
                 <div><span>Season</span><b>{p.stats.apps} apps · {p.stats.goals} gls · {p.stats.assists} ast</b></div>

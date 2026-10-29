@@ -4,6 +4,7 @@ import { shuffle } from './rng';
 import { winnerOf } from './match';
 import type { Cup, Fixture, GameState, League } from './types';
 import { REAL_FIXTURES, REAL_FIXTURES_SEASON } from './data/realFixtures';
+import { LEAGUE_DEFS } from './data/leagues';
 
 export interface TableRow {
   clubId: number;
@@ -84,7 +85,12 @@ export function scheduleLeague(g: GameState, league: League) {
     for (const m of real) g.fixtures.push({ id: nextId(g), comp: league.id, date: m.date, round: m.round, home: m.home, away: m.away, result: null });
     return;
   }
-  const rounds = roundRobin(shuffle([...league.clubIds]));
+  const double = roundRobin(shuffle([...league.clubIds]));
+  // Leagues where clubs meet more than twice (Scotland) repeat the cycle, alternating home and away
+  const meetings = LEAGUE_DEFS.find((d) => d.id === league.id)?.meetings ?? 2;
+  const half = double.length / 2;
+  const rounds: [number, number][][] = [];
+  for (let k = 0; k < meetings; k++) rounds.push(...double.slice(k % 2 ? half : 0, k % 2 ? double.length : half));
   const dates = leagueDates(g.season, rounds.length);
   rounds.forEach((pairs, i) => {
     for (const [home, away] of pairs) {

@@ -65,6 +65,7 @@ export interface Player {
   dob: string; // ISO date
   pos: Pos;
   alt: Pos[];
+  personality?: string; // FM-style personality (see personality.ts); derived from the id when unset
   foot: 'L' | 'R' | 'B';
   attrs: Attrs; // floats 1-20; displayed rounded
   pa: number; // potential overall (1-99)
