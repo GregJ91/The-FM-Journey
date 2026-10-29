@@ -79,7 +79,8 @@ export function PlayerModal() {
           <span className="pf-meta"><PosTag pos={p.pos} /> {age(p, g.date)} years · {NATIONS[p.nat] ?? nationName(p.nat)} · {p.foot === 'L' ? 'Left' : p.foot === 'R' ? 'Right' : 'Either'} foot</span>
         </div>
         <div className="pf-club">{club ? <><Crest club={club} size={40} /><span>{club.name}</span></> : <span className="chip">Free agent</span>}</div>
-        <div className="pf-ability">{scouted && olo !== ohi ? <span className="ovr lg plain">{olo}-{ohi}</span> : <Ovr value={ovr} lg />}<Stars ovr={scoutedPotential(p, own)} /></div>
+        {/* CM 01/02 never showed other clubs' players' ability: you judge them by their attributes */}
+        {!(g.era === 'cm0102' && !own) && <div className="pf-ability">{scouted && olo !== ohi ? <span className="ovr lg plain">{olo}-{ohi}</span> : <Ovr value={ovr} lg />}<Stars ovr={scoutedPotential(p, own)} /></div>}
         <button className="pf-close" onClick={close} aria-label="Close">✕</button>
       </div>
 
@@ -102,7 +103,7 @@ export function PlayerModal() {
       <div className="pf-body">
         {(tab === 'attrs' || tab === 'info') && (
           <div className="win-list pf-one">
-            {tab === 'attrs' && <Card title="Attributes" tag={`${ovr} OVR`} tagColor="var(--accent)">
+            {tab === 'attrs' && <Card title="Attributes" tag={g.era === 'cm0102' && !own ? undefined : `${ovr} OVR`} tagColor="var(--accent)">
               {cmAttributes(p) ? (
                 <div className="pf-attrs cm-attrs">
                   {cmAttributes(p)!.map((gr) => (
@@ -224,7 +225,7 @@ export function PlayerModal() {
                   {offer.status === 'accepted' && offer.contract?.state === 'pending' && <><b>Contract offered</b><span>{fmtMoney(offer.contract.wage)}/wk · {offer.contract.years} yr · {ROLE_LABEL[offer.contract.role]}{offer.contract.bonus ? ` · ${fmtMoney(offer.contract.bonus)} signing-on` : ''}. Awaiting his answer: continue to the next day.</span></>}
                   {offer.status === 'accepted' && offer.contract?.state === 'rejected' && <><b>Contract rejected</b><span>{offer.contract.note} {3 - offer.contract.tries} more offer{3 - offer.contract.tries > 1 ? 's' : ''} before talks break down.</span></>}
                   {offer.status === 'countered' && <><b>Counter offer</b><span>{seller.name} rejected {fmtMoney(offer.fee)} but would accept {fmtMoney(offer.counter ?? 0)}.</span>
-                    <button className="btn primary block" onClick={() => act(() => acceptCounter(g, offer.id))}>Accept {fmtMoney(offer.counter ?? 0)}</button></>}
+                    <button className="btn primary block" onClick={() => { const r = mutate(() => acceptCounter(g, offer.id)); setBidErr(r.ok ? '' : r.msg); }}>Accept {fmtMoney(offer.counter ?? 0)}</button></>}
                   {offer.status === 'rejected' && <><b>Bid rejected</b><span>{seller.name} turned down {fmtMoney(offer.fee)}.</span></>}
                   {offer.status === 'collapsed' && <><b>Deal collapsed</b><span>The bid of {fmtMoney(offer.fee)} fell through.</span></>}
                 </div>
@@ -232,13 +233,13 @@ export function PlayerModal() {
               {bidErr && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {bidErr}</div>}
               {interest && !interest.ok && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {interest.reason}</div>}
               {!windowOpen(g) && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>Window closed — bids open in January and July.</div>}
-              {offer?.status === 'accepted' && offer.contract?.state !== 'pending' && <ContractForm g={g} p={p} offerId={offer.id} onResult={(r) => { ui.toast(r.msg, !r.ok); setBidErr(r.ok ? '' : r.msg); }} />}
+              {offer?.status === 'accepted' && offer.contract?.state !== 'pending' && <ContractForm g={g} p={p} offerId={offer.id} onResult={(r) => setBidErr(r.ok ? '' : r.msg)} />}
               {!live && <>
                 <div className="row">
                   <input type="range" min={Math.round(ask * 0.4)} max={Math.max(ask * 1.6, 10000)} step={Math.max(1000, Math.round(ask / 100))} value={bidVal} onChange={(e) => { setBid(Number(e.target.value)); setBidErr(''); }} style={{ flex: 1, height: 30 }} />
                   <b style={{ minWidth: 64, textAlign: 'right', fontFamily: 'var(--display)', fontSize: 18 }}>{fmtMoney(bidVal)}</b>
                 </div>
-                <button className="btn primary block" disabled={!windowOpen(g)} onClick={() => { const r = mutate(() => userBid(g, p.id, bidVal)); ui.toast(r.msg, !r.ok); setBidErr(r.ok ? '' : r.msg); }}>{offer ? 'Bid again' : 'Submit bid'}</button>
+                <button className="btn primary block" disabled={!windowOpen(g)} onClick={() => { const r = mutate(() => userBid(g, p.id, bidVal)); setBidErr(r.ok ? '' : r.msg); }}>{offer ? 'Bid again' : 'Submit bid'}</button>
               </>}
               <button className="btn block" onClick={toggleShortlist}>{shortlisted ? '★ Shortlisted' : '☆ Add to shortlist'}</button>
               <div className="small muted">Your budget: {fmtMoney(user.transferBudget)}</div>

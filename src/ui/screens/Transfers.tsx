@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
 import { fmtShort } from '../../game/dates';
 import { wageBill } from '../../game/generate';
-import { POS_GROUP, age, fmtMoney, fullName, marketValue, overall, shortName } from '../../game/ratings';
+import { POS_GROUP, age, fmtMoney, fullName, marketValue, overall, scoutedPotential, shortName } from '../../game/ratings';
+import { nationName } from '../../game/intl';
 import { acceptCounter, askingPrice, respondIncoming, windowOpen } from '../../game/transfers';
-import type { GameState, Offer, Player } from '../../game/types';
+import type { GameState, Offer, Player, Pos } from '../../game/types';
+
+const range = (a: number, b: number, step = 1) => Array.from({ length: Math.floor((b - a) / step) + 1 }, (_, i) => a + i * step);
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { Fit } from '../components/Fit';
@@ -11,17 +14,58 @@ import { Ovr, PosTag, Sheet } from '../components/common';
 import { Crest } from '../components/Crest';
 
 type Tab = 'search' | 'free' | 'shortlist' | 'bids' | 'incoming' | 'news';
+type SortKey = 'ability' | 'potential' | 'value' | 'age' | 'youngest' | 'name';
 
-function Results({ g, players, free, title }: { g: GameState; players: Player[]; free?: boolean; title: string }) {
+/** CM 01/02-style player search: every filter the scout screen offered. */
+interface Filters {
+  pos: string; // 'ALL', a group (GK/DEF/MID/ATT) or an exact position ("can play there")
+  ageMin: number;
+  ageMax: number;
+  minOvr: number;
+  minPot: number;
+  maxVal: number;
+  maxWage: number;
+  nat: string;
+  country: string;
+  league: string; // 'ALL', a league id, or 'OTHER' (clubs that don't play in the game)
+  status: 'any' | 'listed' | 'expiring';
+  squad: 'any' | 'senior' | 'youth';
+  foot: 'any' | 'L' | 'R' | 'B';
+  sort: SortKey;
+}
+const NO_FILTERS: Filters = { pos: 'ALL', ageMin: 15, ageMax: 45, minOvr: 0, minPot: 0, maxVal: 0, maxWage: 0, nat: 'ALL', country: 'ALL', league: 'ALL', status: 'any', squad: 'any', foot: 'any', sort: 'ability' };
+const EXACT_POS: Pos[] = ['GK', 'DL', 'DC', 'DR', 'DM', 'ML', 'MC', 'MR', 'AML', 'AMC', 'AMR', 'ST'];
+const SORTS: [SortKey, string][] = [['ability', 'Ability'], ['potential', 'Potential (scouted)'], ['value', 'Value'], ['youngest', 'Youngest'], ['age', 'Oldest'], ['name', 'Name']];
+
+function sortPlayers(g: GameState, players: Player[], sort: SortKey) {
+  const key: Record<SortKey, (p: Player) => number | string> = {
+    ability: (p) => -overall(p),
+    potential: (p) => -scoutedPotential(p, p.clubId === g.userClubId),
+    value: (p) => -marketValue(p, g.date),
+    youngest: (p) => -Date.parse(p.dob),
+    age: (p) => Date.parse(p.dob),
+    name: (p) => `${p.last} ${p.first}`.toLowerCase(),
+  };
+  const k = key[sort];
+  return players.map((p) => ({ p, v: k(p) })).sort((a, b) => (a.v < b.v ? -1 : a.v > b.v ? 1 : 0)).map((x) => x.p);
+}
+
+function activeFilters(f: Filters) {
+  return (Object.keys(NO_FILTERS) as (keyof Filters)[]).filter((k) => k !== 'sort' && k !== 'pos' && f[k] !== NO_FILTERS[k]).length;
+}
+
+const SHOW = 200;
+
+function Results({ g, players, free, title, sort = 'ability', hideAbility }: { g: GameState; players: Player[]; free?: boolean; title: string; sort?: SortKey; hideAbility?: boolean }) {
   const ui = useUI();
-  const shown = [...players].sort((a, b) => overall(b) - overall(a)).slice(0, 80);
+  const shown = sortPlayers(g, players, sort).slice(0, SHOW);
   return (
     <div className="card fill squad-ns">
-      <div className="card-h"><h3>{title}</h3><div className="right tile-sub">{players.length > 80 ? `top 80 of ${players.length}` : `${players.length} players`}</div></div>
+      <div className="card-h"><h3>{title}</h3><div className="right tile-sub">{players.length > SHOW ? `top ${SHOW} of ${players.length}` : `${players.length} players`}</div></div>
       {!shown.length ? <div className="empty">No players match.</div> : (
         <Fit>
         <table className="t dense">
-          <thead><tr><th>Pos</th><th>Name</th><th>Club</th><th className="r">Age</th><th className="r">Ab</th><th className="r">{free ? 'Wage' : 'Price'}</th></tr></thead>
+          <thead><tr><th>Pos</th><th>Name</th><th>Club</th><th className="r">Age</th>{!hideAbility && <th className="r">Ab</th>}<th className="r">{free ? 'Wage' : 'Price'}</th></tr></thead>
           <tbody>
             {shown.map((p) => (
               <tr key={p.id} className="click" onClick={() => ui.openPlayer(p.id)}>
@@ -29,7 +73,7 @@ function Results({ g, players, free, title }: { g: GameState; players: Player[];
                 <td className="nm"><b>{shortName(p)}</b></td>
                 <td className="muted">{p.clubId !== null ? g.clubs[p.clubId].short : 'Free'}</td>
                 <td className="r num">{age(p, g.date)}</td>
-                <td className="r"><Ovr value={overall(p)} /></td>
+                {!hideAbility && <td className="r"><Ovr value={overall(p)} /></td>}
                 <td className="r num">{free || p.clubId === null ? `${fmtMoney(p.wage)}` : fmtMoney(askingPrice(g, p))}</td>
               </tr>
             ))}
@@ -51,7 +95,7 @@ function OfferCard({ g, o, incoming, act }: { g: GameState; o: Offer; incoming?:
       <div className="row" onClick={() => ui.openPlayer(p.id)} style={{ cursor: 'pointer' }}>
         <Crest club={other} size={32} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="bold ellipsis">{fullName(p)} <span className="muted">({overall(p)})</span></div>
+          <div className="bold ellipsis">{fullName(p)} {!(g.era === 'cm0102' && !incoming) && <span className="muted">({overall(p)})</span>}</div>
           <div className="small muted">{incoming ? `Bid from ${other.name}` : `To ${other.name}`} · {fmtShort(o.date)}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -81,12 +125,11 @@ export function Transfers() {
   const ui = useUI();
   const [tab, setTab] = useState<Tab>('search');
   const [q, setQ] = useState('');
-  const [grp, setGrp] = useState<'ALL' | 'GK' | 'DEF' | 'MID' | 'ATT'>('ALL');
   const [showFilters, setShowFilters] = useState(false);
-  const [minOvr, setMinOvr] = useState(0);
-  const [maxAge, setMaxAge] = useState(40);
-  const [maxVal, setMaxVal] = useState(0);
-  const [league, setLeague] = useState('ALL');
+  // CM 01/02 never showed a player's ability: no searching or sorting by it (you judge players by their attributes)
+  const hideAbility = g.era === 'cm0102';
+  const [f, setF] = useState<Filters>(hideAbility ? { ...NO_FILTERS, sort: 'value' } : NO_FILTERS);
+  const set = (patch: Partial<Filters>) => setF((x) => ({ ...x, ...patch }));
   const club = g.clubs[g.userClubId];
   const open = windowOpen(g);
   const bill = wageBill(g, club.id);
@@ -94,19 +137,35 @@ export function Transfers() {
   const results = useMemo(() => {
     if (tab !== 'search' && tab !== 'free') return [];
     const needle = q.trim().toLowerCase();
-    const leagueClubs = league === 'ALL' ? null : new Set(g.leagues.find((l) => l.id === league)?.clubIds ?? []);
+    const leagueClubs = f.league === 'ALL' || f.league === 'OTHER' ? null : new Set(g.leagues.find((l) => l.id === f.league)?.clubIds ?? []);
+    const inLeague = new Set(g.leagues.flatMap((l) => l.clubIds));
+    const groups = ['GK', 'DEF', 'MID', 'ATT'];
     return Object.values(g.players).filter((p) => {
-      if (p.clubId === club.id || p.squad === 'youth') return false;
+      // CM 01/02: anyone can be bought, academy players included (Cherno Samba at Millwall…)
+      if (p.clubId === club.id || (p.squad === 'youth' && g.era !== 'cm0102')) return false;
       if (tab === 'free' ? p.clubId !== null : p.clubId === null) return false;
       if (needle && !fullName(p).toLowerCase().includes(needle)) return false;
-      if (grp !== 'ALL' && POS_GROUP[p.pos] !== grp) return false;
-      if (minOvr && overall(p) < minOvr) return false;
-      if (maxAge < 40 && age(p, g.date) > maxAge) return false;
-      if (maxVal && marketValue(p, g.date) > maxVal) return false;
+      if (f.pos !== 'ALL' && (groups.includes(f.pos) ? POS_GROUP[p.pos] !== f.pos : p.pos !== f.pos && !p.alt.includes(f.pos as Pos))) return false;
+      const a = age(p, g.date);
+      if (a < f.ageMin || a > f.ageMax) return false;
+      if (f.minOvr && overall(p) < f.minOvr) return false;
+      if (f.minPot && scoutedPotential(p, false) < f.minPot) return false;
+      if (f.maxVal && marketValue(p, g.date) > f.maxVal) return false;
+      if (f.maxWage && p.wage > f.maxWage) return false;
+      if (f.nat !== 'ALL' && p.nat !== f.nat) return false;
+      if (f.country !== 'ALL' && (p.clubId === null || g.clubs[p.clubId].country !== f.country)) return false;
       if (leagueClubs && (p.clubId === null || !leagueClubs.has(p.clubId))) return false;
+      if (f.league === 'OTHER' && (p.clubId === null || inLeague.has(p.clubId))) return false;
+      if (f.status === 'listed' && !p.listed) return false;
+      if (f.status === 'expiring' && p.contractEnd > g.season + 1) return false;
+      if (f.squad !== 'any' && p.squad !== (f.squad === 'youth' ? 'youth' : 'first')) return false;
+      if (f.foot !== 'any' && p.foot !== f.foot) return false;
       return true;
     });
-  }, [g, q, grp, minOvr, maxAge, maxVal, league, tab, club.id]);
+  }, [g, q, f, tab, club.id]);
+  const nats = useMemo(() => [...new Set(Object.values(g.players).map((p) => p.nat))].map((c) => [c, nationName(c)] as const).sort((a, b) => a[1].localeCompare(b[1])), [g]);
+  const countries = useMemo(() => [...new Set(Object.values(g.clubs).map((c) => c.country))].map((c) => [c, nationName(c)] as const).sort((a, b) => a[1].localeCompare(b[1])), [g]);
+  const nActive = activeFilters(f);
 
   const myBids = g.offers.filter((o) => o.from === club.id).slice().reverse();
   const incoming = g.offers.filter((o) => o.to === club.id).slice().reverse();
@@ -127,11 +186,13 @@ export function Transfers() {
           {TABS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
         </select>
         {(tab === 'search' || tab === 'free') && (
-          <select className="input" aria-label="Position" value={grp} onChange={(e) => setGrp(e.target.value as typeof grp)} style={{ flex: 'none', width: 92 }}>
-            {(['ALL', 'GK', 'DEF', 'MID', 'ATT'] as const).map((x) => <option key={x} value={x}>{x === 'ALL' ? 'All pos' : x}</option>)}
+          <select className="input" aria-label="Position" value={f.pos} onChange={(e) => set({ pos: e.target.value })} style={{ flex: 'none', width: 92 }}>
+            <option value="ALL">All pos</option>
+            <optgroup label="Area">{['GK', 'DEF', 'MID', 'ATT'].map((x) => <option key={x} value={x}>{x === 'GK' ? 'Keepers' : x === 'DEF' ? 'Defenders' : x === 'MID' ? 'Midfield' : 'Attack'}</option>)}</optgroup>
+            <optgroup label="Can play">{EXACT_POS.filter((x) => x !== 'GK').map((x) => <option key={x} value={x}>{x}</option>)}</optgroup>
           </select>
         )}
-        {(tab === 'search' || tab === 'free') && <button className={`btn sm ${showFilters ? 'primary' : ''}`} style={{ minHeight: 32 }} onClick={() => setShowFilters(true)}>Filters</button>}
+        {(tab === 'search' || tab === 'free') && <button className={`btn sm ${nActive ? 'primary' : ''}`} style={{ minHeight: 32 }} onClick={() => setShowFilters(true)}>Filters{nActive ? ` (${nActive})` : ''}</button>}
       </div>
       {(tab === 'search' || tab === 'free') && <input className="input ns-search" placeholder="Search players by name" value={q} onChange={(e) => setQ(e.target.value)} />}
       <div className="ns-status">
@@ -140,8 +201,8 @@ export function Transfers() {
         <span className={open ? 'ok' : 'bad'}>{open ? 'Window open' : 'Window shut'}</span>
       </div>
 
-      {(tab === 'search' || tab === 'free') && <Results g={g} players={results} free={tab === 'free'} title={SECTION_TITLE[tab]} />}
-      {tab === 'shortlist' && <Results g={g} players={g.shortlist.map((id) => g.players[id]).filter(Boolean)} title="Shortlist" />}
+      {(tab === 'search' || tab === 'free') && <Results g={g} players={results} free={tab === 'free'} title={SECTION_TITLE[tab]} sort={f.sort} hideAbility={hideAbility} />}
+      {tab === 'shortlist' && <Results g={g} players={g.shortlist.map((id) => g.players[id]).filter(Boolean)} title="Shortlist" sort={hideAbility ? 'value' : 'ability'} hideAbility={hideAbility} />}
 
       {(tab === 'bids' || tab === 'incoming') && (
         <div className="card fill squad-ns">
@@ -173,27 +234,39 @@ export function Transfers() {
       )}
 
       {showFilters && (
-        <Sheet title="Filters" onClose={() => setShowFilters(false)}>
-          <div className="sheet-b filters">
-            <div className="field"><label>Min ability</label><input className="input" type="number" inputMode="numeric" value={minOvr || ''} onChange={(e) => setMinOvr(Number(e.target.value))} /></div>
-            <div className="field"><label>Max age</label><input className="input" type="number" inputMode="numeric" value={maxAge >= 40 ? '' : maxAge} onChange={(e) => setMaxAge(Number(e.target.value) || 40)} /></div>
-            {tab === 'search' && (
-              <>
-                <div className="field"><label>Max value</label>
-                  <select className="input" value={maxVal} onChange={(e) => setMaxVal(Number(e.target.value))}>
-                    <option value={0}>Any</option>
-                    {[100_000, 500_000, 1_000_000, 5_000_000, 10_000_000, 25_000_000, 50_000_000, 100_000_000].map((v) => <option key={v} value={v}>{fmtMoney(v)}</option>)}
-                  </select>
-                </div>
-                <div className="field"><label>League</label>
-                  <select className="input" value={league} onChange={(e) => setLeague(e.target.value)}>
-                    <option value="ALL">All</option>
-                    {g.leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                  </select>
-                </div>
-              </>
-            )}
-            <button className="btn primary block" onClick={() => setShowFilters(false)}>Show {results.length} players</button>
+        <Sheet title="Player search" onClose={() => setShowFilters(false)} right={<button className="btn sm" onClick={() => setF({ ...NO_FILTERS, pos: f.pos, sort: hideAbility ? 'value' : 'ability' })}>Reset</button>}>
+          <div className="sheet-b ti-grid filters">
+            <label className="ti-field"><span>Age from</span>
+              <select className="input" value={f.ageMin} onChange={(e) => set({ ageMin: Number(e.target.value) })}>{range(15, 40).map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
+            <label className="ti-field"><span>Age to</span>
+              <select className="input" value={f.ageMax} onChange={(e) => set({ ageMax: Number(e.target.value) })}>{range(15, 45).map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
+            {!hideAbility && <label className="ti-field"><span>Min ability</span>
+              <select className="input" value={f.minOvr} onChange={(e) => set({ minOvr: Number(e.target.value) })}><option value={0}>Any</option>{range(40, 90, 5).map((v) => <option key={v} value={v}>{v}+</option>)}</select></label>}
+            {!hideAbility && <label className="ti-field"><span>Min potential</span>
+              <select className="input" value={f.minPot} onChange={(e) => set({ minPot: Number(e.target.value) })}><option value={0}>Any</option>{range(60, 95, 5).map((v) => <option key={v} value={v}>{v}+</option>)}</select></label>}
+            {tab === 'search' && <label className="ti-field"><span>Max value</span>
+              <select className="input" value={f.maxVal} onChange={(e) => set({ maxVal: Number(e.target.value) })}><option value={0}>Any</option>{[50_000, 100_000, 250_000, 500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000, 20_000_000].map((v) => <option key={v} value={v}>{fmtMoney(v)}</option>)}</select></label>}
+            <label className="ti-field"><span>Max wage</span>
+              <select className="input" value={f.maxWage} onChange={(e) => set({ maxWage: Number(e.target.value) })}><option value={0}>Any</option>{[500, 1_000, 2_500, 5_000, 10_000, 20_000, 40_000].map((v) => <option key={v} value={v}>{fmtMoney(v)}/wk</option>)}</select></label>
+            <label className="ti-field"><span>Nationality</span>
+              <select className="input" value={f.nat} onChange={(e) => set({ nat: e.target.value })}><option value="ALL">Any</option>{nats.map(([c, n]) => <option key={c} value={c}>{n}</option>)}</select></label>
+            {tab === 'search' && <label className="ti-field"><span>Club country</span>
+              <select className="input" value={f.country} onChange={(e) => set({ country: e.target.value })}><option value="ALL">Any</option>{countries.map(([c, n]) => <option key={c} value={c}>{n}</option>)}</select></label>}
+            {tab === 'search' && <label className="ti-field wide"><span>Division</span>
+              <select className="input" value={f.league} onChange={(e) => set({ league: e.target.value })}>
+                <option value="ALL">Any</option>
+                {g.leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                <option value="OTHER">Other clubs (not playing in the game)</option>
+              </select></label>}
+            {tab === 'search' && <label className="ti-field"><span>Status</span>
+              <select className="input" value={f.status} onChange={(e) => set({ status: e.target.value as Filters['status'] })}><option value="any">Any</option><option value="listed">Transfer listed</option><option value="expiring">Contract ending</option></select></label>}
+            <label className="ti-field"><span>Squad</span>
+              <select className="input" value={f.squad} onChange={(e) => set({ squad: e.target.value as Filters['squad'] })}><option value="any">Any</option><option value="senior">First team</option><option value="youth">Youth</option></select></label>
+            <label className="ti-field"><span>Foot</span>
+              <select className="input" value={f.foot} onChange={(e) => set({ foot: e.target.value as Filters['foot'] })}><option value="any">Any</option><option value="L">Left</option><option value="R">Right</option><option value="B">Both</option></select></label>
+            <label className="ti-field"><span>Sort by</span>
+              <select className="input" value={f.sort} onChange={(e) => set({ sort: e.target.value as SortKey })}>{SORTS.filter(([k]) => !hideAbility || (k !== 'ability' && k !== 'potential')).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+            <button className="btn primary block wide-btn" onClick={() => setShowFilters(false)}>Show {results.length} players</button>
           </div>
         </Sheet>
       )}

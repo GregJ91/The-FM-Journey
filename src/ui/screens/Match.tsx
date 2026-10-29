@@ -382,7 +382,7 @@ function PreMatch({ g, fixture, onKick, onInstant, onTactics }: { g: GameState; 
               <div className="small muted" style={{ marginBottom: 8 }}>{fixture.neutral ? 'Neutral venue' : home.stadium}</div>
               {leg1?.result && <div className="small bold" style={{ marginBottom: 8 }}>First leg: {g.clubs[leg1.home].short} {leg1.result.hg}-{leg1.result.ag} {g.clubs[leg1.away].short}</div>}
               <div className="section-label" style={{ marginTop: 0 }}>Danger men</div>
-              {opp.map((p) => <div key={p.id} className="row pane-row"><PosTag pos={p.pos} /><b className="ellipsis" style={{ flex: 1 }}>{shortName(p)}</b><Ovr value={overall(p)} /></div>)}
+              {opp.map((p) => <div key={p.id} className="row pane-row"><PosTag pos={p.pos} /><b className="ellipsis" style={{ flex: 1 }}>{shortName(p)}</b>{g.era !== 'cm0102' && <Ovr value={overall(p)} />}</div>)}
               {out.length > 0 && <div className="small" style={{ marginTop: 8, color: 'var(--bad)', fontWeight: 700 }}>Unavailable: {out.map((p) => `${p.last} ${p.injury ? '🩹' : '🟥'}`).join(', ')}</div>}
             </div>
           </div>

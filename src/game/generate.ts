@@ -201,8 +201,7 @@ export function wageBill(g: GameState, clubId: number) {
  * then signs real free agents (players released or out of contract, and regens). New players only enter the game
  * through the yearly youth intakes, as in CM.
  */
-function fillCmSquad(g: GameState, club: Club, level: number, min: number) {
-  const all = Object.values(g.players).filter((p) => p.clubId === club.id);
+function fillCmSquad(g: GameState, club: Club, level: number, min: number, all = Object.values(g.players).filter((p) => p.clubId === club.id)) {
   let n = all.filter((p) => p.squad === 'first').length;
   if (n >= min) return;
   for (const p of all.filter((x) => x.squad === 'youth' && ageOn(x.dob, g.date) >= 17).sort((x, y) => overall(y) - overall(x))) {
@@ -229,11 +228,12 @@ function fillCmSquad(g: GameState, club: Club, level: number, min: number) {
       counts[best.pos] = (counts[best.pos] ?? 0) + 1;
     }
   }
-  assignShirtNumbers(g, club.id);
+  assignShirtNumbers(g, club.id, Object.values(g.players).filter((p) => p.clubId === club.id));
 }
 
-export function fillSquad(g: GameState, club: Club, level: number, target = 24) {
-  if (g.era === 'cm0102') return fillCmSquad(g, club, level, Math.min(target, 16));
+/** `players`: the club's players when the caller has them grouped already (saves a pass over the world). */
+export function fillSquad(g: GameState, club: Club, level: number, target = 24, players?: Player[]) {
+  if (g.era === 'cm0102') return fillCmSquad(g, club, level, Math.min(target, 16), players);
   const squad = Object.values(g.players).filter((p) => p.clubId === club.id && p.squad === 'first');
   const counts: Partial<Record<Pos, number>> = {};
   for (const p of squad) counts[p.pos] = (counts[p.pos] ?? 0) + 1;
@@ -317,14 +317,14 @@ export function cmClubLine(c: CmWorld['clubs'][number]) {
 }
 
 /** CM players for one club (or free agents when clubId is null). */
-function addCmPlayers(g: GameState, cm: CmWorld, idx: number, clubId: number | null) {
+function addCmPlayers(g: GameState, list: CmWorld['players'], clubId: number | null) {
   const club = clubId !== null ? g.clubs[clubId] : null;
   const taken = new Set<number>();
-  for (const sp of cm.players) {
-    if (sp.club !== idx) continue;
+  for (const sp of list) {
     const age = Math.max(16, ageOn(sp.dob, g.date));
     const p = createPlayer(g, { ...sp, age, ovr: 0, real: true }, clubId, club?.reputation ?? 40);
-    p.pa = Math.max(sp.pa, overall(p));
+    // CM's random potentials are rolled per career
+    p.pa = Math.max(sp.paRange ? int(sp.paRange[0], sp.paRange[1]) : sp.pa, overall(p));
     p.personality = sp.personality;
     if (sp.cm) p.cm = { v: sp.cm, o: overall(p) };
     if (sp.past) p.past = sp.past.map((h) => [...h] as [number, number, number, number, number]);
@@ -437,8 +437,10 @@ export function createWorld(opts: NewGameOptions): GameState {
       setClubFinances(club, 3);
     }
     g.pastClubs = cm.pastClubs;
-    for (const [id, i] of Object.entries(cmIndex)) addCmPlayers(g, cm, i, Number(id));
-    addCmPlayers(g, cm, -1, null);
+    const byCmClub = new Map<number, CmWorld['players']>();
+    for (const sp of cm.players) (byCmClub.get(sp.club) ?? byCmClub.set(sp.club, []).get(sp.club)!).push(sp);
+    for (const [id, i] of Object.entries(cmIndex)) addCmPlayers(g, byCmClub.get(i) ?? [], Number(id));
+    addCmPlayers(g, byCmClub.get(-1) ?? [], null);
   }
 
   // Real players
@@ -473,9 +475,10 @@ export function createWorld(opts: NewGameOptions): GameState {
   // Fill squads + youth (academies are topped up to 7-10 with generated players)
   const youthCount: Record<number, number> = {};
   for (const p of Object.values(g.players)) if (p.squad === 'youth' && p.clubId !== null) youthCount[p.clubId] = (youthCount[p.clubId] ?? 0) + 1;
+  const startSquads = playersByClub(g);
   for (const club of Object.values(g.clubs)) {
     if (club.leagueId === TRANSFER_ONLY_LEAGUE) continue;
-    fillSquad(g, club, levels[club.id]);
+    fillSquad(g, club, levels[club.id], 24, startSquads.get(club.id) ?? []);
     // CM 01/02: squads and academies are the database's; new names only arrive through yearly intakes
     if (cm) continue;
     generateYouth(g, club, club.custom ? 4 : Math.max(2, int(7, 10) - (youthCount[club.id] ?? 0)));

@@ -8,6 +8,7 @@ import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
 import { normaliseTactics, roleFor, ROLES } from './tactics';
 import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, Pos, StatLine, Tactics } from './types';
+import { playersByClub } from './shirts';
 
 export function emptyLine(): StatLine {
   return { goals: 0, assists: 0, mins: 0, yellows: 0, reds: 0, shots: 0, sot: 0, xg: 0, kp: 0, xa: 0, passes: 0, passC: 0, drb: 0, drbA: 0, tkl: 0, int: 0, clr: 0, fouls: 0, saves: 0, conceded: 0 };
@@ -156,9 +157,21 @@ function avgAttr(g: GameState, list: LivePlayer[], k: keyof Player['attrs']) {
   return list.reduce((s, lp) => s + g.players[lp.id].attrs[k], 0) / list.length;
 }
 
+// While a day's computer fixtures are simulated, squads come from one grouping of the world (a CM world has 50,000 players)
+let squadCache: Map<number, Player[]> | null = null;
+export function withSquadCache<T>(g: GameState, fn: () => T): T {
+  squadCache = playersByClub(g);
+  try {
+    return fn();
+  } finally {
+    squadCache = null;
+  }
+}
+
 function buildSide(g: GameState, club: Club, isUser: boolean, cupTie = false, comp = ''): Side {
   // The manager's unregistered senior players can't play in league or European games
-  const squad = Object.values(g.players).filter((p) => p.clubId === club.id && p.squad === 'first' && (!isUser || isEligible(g, p, comp)));
+  const pool = squadCache?.get(club.id) ?? Object.values(g.players).filter((p) => p.clubId === club.id);
+  const squad = pool.filter((p) => p.clubId === club.id && p.squad === 'first' && (!isUser || isEligible(g, p, comp)));
   if (isUser) {
     validateLineup(club, squad);
   } else {

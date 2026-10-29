@@ -3,7 +3,7 @@ import { del, get, set } from 'idb-keyval';
 import { CM_REV, type CmWorld } from './game/cm0102/parse';
 import { CM_ECONOMY, setEconomy } from './game/economy';
 import { getSeed, seed } from './game/rng';
-import { ATTR_KEYS, type Attrs, type GameState } from './game/types';
+import { ATTR_KEYS, type Attrs, type GameState, type Player } from './game/types';
 import { SAVE_VERSION, emptyStats, withNaturalAlt } from './game/generate';
 import { normaliseTactics } from './game/tactics';
 import { assignAllShirtNumbers } from './game/shirts';
@@ -67,9 +67,23 @@ export interface SaveMeta {
 const META_KEY = 'fmj-saves';
 const saveKey = (slot: string) => `fmj-save-${slot}`;
 
+// Player fields left out of a save when they hold their usual value (a CM world has 50,000 players)
+const PLAYER_DEFAULTS = { listed: false, injury: null, suspended: 0, yellowAcc: 0, monthMins: 0, lastChange: 0, focus: null } as const;
+const PLAYER_LISTS = ['history', 'monthRatings', 'form'] as const;
+
+function slimPlayer(p: Player) {
+  const out: Record<string, unknown> = { ...p };
+  for (const [k, v] of Object.entries(PLAYER_DEFAULTS)) if (out[k] === v) delete out[k];
+  for (const k of PLAYER_LISTS) if (!p[k].length) delete out[k];
+  if (Object.values(p.stats).every((x) => x === 0)) delete out.stats;
+  return out;
+}
+
 // Attributes are stored as arrays in ATTR_KEYS order to keep saves small.
 export function compact(g: GameState) {
-  return JSON.stringify(g, (k, v) => {
+  const players: Record<string, unknown> = {};
+  for (const [id, p] of Object.entries(g.players)) players[id] = slimPlayer(p);
+  return JSON.stringify({ ...g, players }, (k, v) => {
     if (k === 'attrs' && v && typeof v === 'object' && !Array.isArray(v)) return ATTR_KEYS.map((a) => Math.round((v as Attrs)[a] * 100) / 100);
     return typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 100) / 100 : v;
   });
@@ -79,6 +93,8 @@ export function expand(raw: string): GameState {
   const g = JSON.parse(raw) as GameState;
   const blank = emptyStats();
   for (const p of Object.values(g.players)) {
+    for (const [k, v] of Object.entries(PLAYER_DEFAULTS)) if (!(k in p)) (p as unknown as Record<string, unknown>)[k] = v;
+    for (const k of PLAYER_LISTS) p[k] ??= [];
     const a = p.attrs as unknown;
     if (Array.isArray(a)) p.attrs = Object.fromEntries(ATTR_KEYS.map((k, i) => [k, a[i]])) as Attrs;
     // saves from before detailed stats existed
@@ -116,17 +132,31 @@ export async function listSaves(): Promise<SaveMeta[]> {
   }
 }
 
-// Game date of the last save per slot, so autosave only writes once a game week.
+// Game date of the last save per slot, so autosave only writes once a game week
+// (once a game month in CM 01/02 careers, whose 50,000-player worlds take a moment to write;
+// leaving or backgrounding the app still saves straight away).
 const lastSaved: Record<string, string> = {};
 const AUTOSAVE_DAYS = 7;
+const CM_AUTOSAVE_DAYS = 28;
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
 
-/** Autosave: overwrites the career's single save file, at most once every 7 game days. */
+/** Autosave: overwrites the career's single save file, at most once every 7 (CM: 28) game days. */
 export async function autoSave(g: GameState | null = game, force = false) {
   if (!g) return;
   const last = lastSaved[g.slot];
-  if (!force && last && daysBetween(last, g.date) < AUTOSAVE_DAYS) return;
+  if (!force && last && daysBetween(last, g.date) < (g.era === 'cm0102' ? CM_AUTOSAVE_DAYS : AUTOSAVE_DAYS)) return;
   await saveGame(g);
+}
+
+// Saves are gzipped (a CM 01/02 world is tens of megabytes of JSON); older saves are plain strings
+async function gzip(text: string) {
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function gunzip(data: Uint8Array) {
+  const stream = new Blob([data as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Response(stream).text();
 }
 
 export async function saveGame(g: GameState = game!) {
@@ -134,16 +164,16 @@ export async function saveGame(g: GameState = game!) {
   lastSaved[g.slot] = g.date;
   g.rng = getSeed();
   const club = g.clubs[g.userClubId];
-  await set(saveKey(g.slot), compact(g));
+  await set(saveKey(g.slot), await gzip(compact(g)));
   const metas = (await listSaves()).filter((m) => m.slot !== g.slot);
   metas.unshift({ slot: g.slot, manager: g.manager, club: club.name, colors: club.colors, date: g.date, mode: g.mode, era: g.era, savedAt: Date.now() });
   await set(META_KEY, metas);
 }
 
 export async function loadGame(slot: string) {
-  const raw = (await get(saveKey(slot))) as string | undefined;
-  if (!raw) throw new Error('Save not found');
-  const g = expand(raw);
+  const stored = (await get(saveKey(slot))) as string | Uint8Array | undefined;
+  if (!stored) throw new Error('Save not found');
+  const g = expand(typeof stored === 'string' ? stored : await gunzip(stored));
   if (g.saveVersion !== SAVE_VERSION) throw new Error('This save is from an incompatible version.');
   // JSON turns numeric record keys into strings; that's fine for lookups.
   lastSaved[g.slot] = g.date;

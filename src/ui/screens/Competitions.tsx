@@ -327,7 +327,7 @@ export function ClubView() {
           <span className="pill">🏟️ {club.stadium}</span>
           <span className="pill">⭐ Rep {club.reputation}</span>
           <span className="pill">🏆 {club.trophies.length}</span>
-          {best && <span className="pill">Star: {fullName(best)} ({overall(best)})</span>}
+          {best && <span className="pill">Star: {fullName(best)}{g.era === 'cm0102' && id !== g.userClubId ? '' : ` (${overall(best)})`}</span>}
         </div>
         <div style={{ marginTop: 12 }}><ClubBadgeButton club={club} /></div>
       </div>
@@ -399,8 +399,9 @@ export function Inbox() {
           {regScope && <RegistrationSheet scope={regScope} onClose={() => setRegScope(null)} />}
           {msg.offerId && !msg.action && (() => {
             const o = g.offers.find((x) => x.id === msg.offerId);
-            return o && o.from === g.userClubId && o.status === 'accepted'
-              ? <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.openPlayer(o.playerId)}>Offer contract →</button>
+            // Your own bids: open the player, where the bid and contract are handled
+            return o && o.from === g.userClubId
+              ? <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.openPlayer(o.playerId)}>{o.status === 'accepted' && o.contract?.state !== 'pending' ? 'Offer contract →' : 'View player →'}</button>
               : <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('transfers')}>Go to Transfers →</button>;
           })()}
           {msg.kind === 'youth' && <button className="btn primary block" style={{ marginTop: 16 }} onClick={() => ui.go('youth')}>See youth team →</button>}

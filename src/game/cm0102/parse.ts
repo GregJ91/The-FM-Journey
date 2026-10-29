@@ -29,6 +29,7 @@ export interface CmPlayer {
   foot: 'L' | 'R' | 'B';
   attrs: Attrs;
   pa: number; // potential overall
+  paRange?: [number, number]; // random potential (CM's -1 / -2): each new career rolls inside this range, as CM did
   contractEnd: number;
   shirt?: number;
   caps: number;
@@ -63,15 +64,18 @@ export interface CmWorld {
 }
 
 /** The database that ships with the game (in public/, built by tests/cm0102.test.ts with CM_EXPORT=1; see pack.ts). */
-export const CM_BUILTIN = 'cm0102-v3.txt';
-/** Bumped whenever the built-in database gains data (2: career histories, real squads only; 3: every decent player). */
-export const CM_REV = 3;
-/** CM current ability from which a player counts as "decent": included wherever he plays (about a 60 rating here). */
-const GOOD_CA = 100;
-/** …or a prospect with CM potential from here (the wonderkids). */
-const GOOD_PA = 140;
-const GOOD_PA_OVR = ovrFromCa(GOOD_PA);
-const isGood = (ca: number, pa: number) => ca >= GOOD_CA || pa >= GOOD_PA;
+export const CM_BUILTIN = 'cm0102-v4.txt';
+/** Bumped whenever the built-in database gains data (2: career histories, real squads only; 3: every decent player; 4: half the database and random potentials). */
+export const CM_REV = 4;
+/** CM current ability from which a player counts as "decent": included wherever he plays (about a 49 rating here: half of the database). */
+const GOOD_CA = 70;
+/** …or a prospect with CM potential from here, or a random potential (the wonderkids CM is remembered for). */
+const GOOD_PA = 120;
+/** …or any youngster (20 or under when the database starts): every youth player is in, as in CM. */
+const YOUTH_FROM = 1982;
+const isGood = (ca: number, pa: number, born: number) => ca >= GOOD_CA || pa >= GOOD_PA || pa < 0 || born >= YOUTH_FROM;
+/** Free agents: the better ones and every prospect (the rest of the unemployed are left out). */
+const FREE_CA = 90;
 
 /** Our league ids → CM 01/02 club_comp names. */
 export const CM_LEAGUES: Record<string, string> = {
@@ -144,12 +148,14 @@ export function ovrFromCa(ca: number) {
   return Math.max(25, Math.min(97, 22.8 + 0.371 * ca));
 }
 
-/** Negative potentials in the database are ranges; take a point inside the range. */
-function potential(pa: number, ca: number, seed: number) {
-  if (pa > 0) return Math.max(pa, ca);
-  const n = Math.min(10, Math.max(1, -pa));
-  const lo = n * 20 - 20;
-  return Math.max(ca, lo + Math.round((seed % 1000) / 1000 * 20));
+/**
+ * CM 01/02's random potentials: -2 (Cherno Samba, Torres, Quaresma…) is rolled high, -1 (Tsigalko, Pandev…) anywhere
+ * from decent to world class. Each new career rolls its own, so a wonderkid can boom in one save and flop in the next.
+ */
+function potentialRange(pa: number, ca: number): [number, number] | null {
+  if (pa === -2) return [Math.max(ca + 10, 165), 200];
+  if (pa < 0) return [Math.max(ca + 10, 110), 195];
+  return null;
 }
 
 // Player record attribute order (offset 27 onwards)
@@ -325,7 +331,7 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
     const clubCm = staff.i32(o + 57);
     if (pd < 0 || pd >= playerT.count || clubCm < 0 || picked.has(clubCm)) continue;
     const po = playerT.offset + pd * playerSize;
-    if (isGood(staff.i16(po + 5), staff.i16(po + 7))) good.add(clubCm);
+    if (isGood(staff.i16(po + 5), staff.i16(po + 7), staff.i16(o + 18))) good.add(clubCm);
   }
   const others: number[] = [];
   for (const c of raw) if (good.has(c.id) && !picked.has(c.id)) others.push(addClub(c));
@@ -369,7 +375,7 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
     const po = playerT.offset + pd * playerSize;
     const ca = staff.i16(po + 5);
     if (ca <= 0) continue;
-    if (ci !== undefined && otherSet.has(ci) && !isGood(ca, staff.i16(po + 7))) continue; // transfer-only clubs: their good players and prospects only
+    if (ci !== undefined && otherSet.has(ci) && !isGood(ca, staff.i16(po + 7), staff.i16(o + 18))) continue; // transfer-only clubs: their good players and prospects only
     let dob = dateFrom(staff, o + 16);
     // A few records have no real birth date: assume mid-twenties
     if (!dob || dob < '1955') dob = `${1977 + (i % 6)}-0${1 + (i % 9)}-15`;
@@ -386,19 +392,22 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
     const lf = a.leftFoot;
     const rf = a.rightFoot;
     const shirt = staff.u8(po + 4);
+    const paRaw = staff.i16(po + 7);
+    const range = potentialRange(paRaw, ca);
     const p: RawP = {
       club: ci ?? -1, youth: false,
       first: cn ? '' : fn, last: cn || sn || fn, nat: nationCode.get(staff.i32(o + 26)) ?? (ci !== undefined ? clubs[ci].country : 'ENG'), dob,
       pos, alt, foot: lf >= 15 && rf >= 15 ? 'B' : lf > rf ? 'L' : 'R',
       attrs: mapped.attrs,
       cm: cmVals,
-      pa: Math.round(ovrFromCa(potential(staff.i16(po + 7), ca, i * 7919))),
+      pa: Math.round(ovrFromCa(Math.max(paRaw, ca))),
       contractEnd: Number((dateFrom(staff, o + 70) ?? '0').slice(0, 4)),
       shirt: shirt > 0 && shirt < 100 ? shirt : undefined,
       caps: staff.u8(o + 34), intGoals: staff.u8(o + 35),
       personality: personalityFrom(staff, o),
       ca,
     };
+    if (range) { p.paRange = [Math.round(ovrFromCa(range[0])), Math.round(ovrFromCa(range[1]))]; p.pa = Math.round((p.paRange[0] + p.paRange[1]) / 2); }
     const past = history.get(staff.i32(o));
     if (past?.length) p.past = past.sort((x, y) => x[0] - y[0]);
     if (ci === undefined) free.push(p);
@@ -425,7 +434,7 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
   }
   free.sort((x, y) => y.ca - x.ca);
   // Free agents: every good one, and a deep pool of the rest for clubs short of players
-  for (const p of free.filter((x, i) => x.ca >= GOOD_CA || x.pa >= GOOD_PA_OVR || i < 800)) players.push(strip(p));
+  for (const p of free.filter((x, i) => x.ca >= FREE_CA || x.paRange || x.pa >= ovrFromCa(GOOD_PA) || x.dob >= `${YOUTH_FROM}` || i < 1500)) players.push(strip(p));
   // Only the clubs someone in the game actually played for
   const used = new Set<number>();
   for (const p of players) for (const h of p.past ?? []) used.add(h[1]);

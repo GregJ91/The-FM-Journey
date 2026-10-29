@@ -13,7 +13,7 @@ import { LEAGUE_DEFS } from './data/leagues';
 import { cheatOn } from './cheats';
 import { START_SEASON, emptyStats, fillSquad, generatePlayer, generateYouth, leagueOf, squadOf } from './generate';
 import { sendMessage, unreadImportant } from './inbox';
-import { applyResult, createMatch, randomInjury, simulateFixture, simulateToEnd } from './match';
+import { applyResult, createMatch, randomInjury, simulateFixture, simulateToEnd, withSquadCache } from './match';
 import { monthlyDevelopment } from './progression';
 import { monthlyManager } from './manager';
 import { journeyDaily, journeyMonthly } from './journey';
@@ -80,11 +80,13 @@ export function pendingUserFixture(g: GameState) {
 /** Simulate every unplayed fixture today (except the user's, which must be played interactively). */
 export function playDayFixtures(g: GameState) {
   const today = g.fixtures.filter((f) => f.date === g.date && !f.result);
-  for (const f of today) {
-    if (f.home === g.userClubId || f.away === g.userClubId) continue;
-    simulateFixture(g, f);
-    postFixture(g, f);
-  }
+  withSquadCache(g, () => {
+    for (const f of today) {
+      if (f.home === g.userClubId || f.away === g.userClubId) continue;
+      simulateFixture(g, f);
+      postFixture(g, f);
+    }
+  });
   for (const cup of g.cups) {
     if (cup.winner) continue;
     const before = cup.current;
@@ -378,14 +380,17 @@ export function endSeason(g: GameState) {
   }
 
   // AI squads: trim to 28, fill to 22+
+  const byClub = playersByClub(g);
   for (const club of Object.values(g.clubs)) {
     if (club.isUser || isTransferOnly(club)) continue;
-    const squad = squadOf(g, club.id);
+    let all = byClub.get(club.id) ?? [];
+    const squad = all.filter((p) => p.squad === 'first');
     if (squad.length > 28) {
       squad.sort((a, b) => overall(a) - overall(b)).slice(0, squad.length - 28).forEach((p) => { p.clubId = null; });
+      all = all.filter((p) => p.clubId === club.id);
     }
     const lvl = isGuest(club) ? guestLevel(club) : leagueLevel(club.leagueId) + (club.reputation - 50) * 0.12;
-    fillSquad(g, club, Math.round(lvl), 22);
+    fillSquad(g, club, Math.round(lvl), 22, all);
   }
   // Refresh free-agent pool
   const free = Object.values(g.players).filter((p) => p.clubId === null);
