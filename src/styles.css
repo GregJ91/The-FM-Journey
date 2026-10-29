@@ -1629,3 +1629,6 @@ html[data-era="cm0102"] .ovr, html[data-era="cm0102"] .stars, html[data-era="cm0
 html[data-era="cm0102"] .ab-alt { display: inline; }
 /* Squad page: which squad (first team / reserves / youth team) */
 .ns-toggle .squad-pick { min-height: 32px; width: auto; min-width: 118px; padding: 3px 8px; font-weight: 700; }
+/* Half-time */
+.ht-score { display: flex; align-items: center; justify-content: center; gap: 14px; font-family: var(--display); font-size: 22px; }
+.ht-score span { font-size: 34px; font-weight: 800; }

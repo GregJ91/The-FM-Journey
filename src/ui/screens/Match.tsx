@@ -76,10 +76,10 @@ export function MatchScreen() {
         pauseUntil.current = Date.now() + 1400 / speed;
         navigator.vibrate?.(120);
       }
+      // Half-time: the match stops (as in CM) until you start the second half
       if (evs.some((e) => e.type === 'ht')) {
         setHalfTime(true);
-        pauseUntil.current = Date.now() + 2500 / speed;
-        setTimeout(() => setHalfTime(false), 2500 / speed);
+        setPaused(true);
       }
       setTick((t) => t + 1);
       if (m.finished) finish();
@@ -185,13 +185,13 @@ export function MatchScreen() {
   );
 
   const tacticsSheet = tacticsOpen && (
-    <Sheet title={`Tactics · ${m.minute}'`} onClose={() => { setTacticsOpen(false); setPaused(false); }} right={<span className="chip">{userTeam.tactics.formation}</span>}>
+    <Sheet title={`Tactics · ${m.minute}'`} onClose={() => { setTacticsOpen(false); setPaused(halfTime); }} right={<span className="chip">{userTeam.tactics.formation}</span>}>
       <div className="sheet-b">
         <TeamInstructions g={g} live tactics={userTeam.tactics}
           lineup={FORMATIONS[userTeam.tactics.formation].map((_, i) => userTeam.onPitch.find((lp) => lp.slot === i)?.id ?? null)}
           onChange={(t) => { changeTactics(getGame()!, m, userSide, t); refresh(); }}
           autoSubs={g.autoSubs} onAutoSubs={(v) => { mutate((gg) => { gg.autoSubs = v; }); refresh(); }} />
-        <button className="btn primary block" onClick={() => { setTacticsOpen(false); setPaused(false); }}>Back to the match</button>
+        <button className="btn primary block" onClick={() => { setTacticsOpen(false); setPaused(halfTime); }}>{halfTime ? 'Back to half-time' : 'Back to the match'}</button>
       </div>
     </Sheet>
   );
@@ -266,7 +266,7 @@ export function MatchScreen() {
           <div className="comm-actions">
             <button className="btn yellow" disabled={finished} onClick={() => { setPaused(true); setDrawer(true); }}>Subs</button>
             <button className="btn" disabled={finished} onClick={() => { setPaused(true); setTacticsOpen(true); }}>Tactics</button>
-            <button className="btn" disabled={finished} onClick={() => setPaused(!paused)}>{paused ? 'Play' : 'Pause'}</button>
+            <button className="btn" disabled={finished} onClick={() => { if (halfTime) setHalfTime(false); setPaused(!paused); }}>{halfTime ? '2nd half' : paused ? 'Play' : 'Pause'}</button>
             <div className="seg">
               {[1, 2, 4].map((sp) => <button key={sp} className={speed === sp ? 'on' : ''} onClick={() => setSpeed(sp)}>{sp}x</button>)}
             </div>
@@ -275,8 +275,27 @@ export function MatchScreen() {
         </div>
       </div>
       {drawer && (
-        <Sheet title="Substitutions" onClose={() => { setDrawer(false); setPaused(false); }}>
+        <Sheet title="Substitutions" onClose={() => { setDrawer(false); setPaused(halfTime); }}>
           <div className="sheet-b col" style={{ gap: 12 }}>{subsPanel}</div>
+        </Sheet>
+      )}
+      {/* (after any goal celebration has finished) */}
+      {halfTime && flash === null && !drawer && !tacticsOpen && !m.finished && (
+        <Sheet title="Half-time" onClose={() => { setHalfTime(false); setPaused(false); }}>
+          <div className="sheet-b col ht-panel" style={{ gap: 12 }}>
+            <div className="ht-score"><b>{home.short}</b><span>{m.score[0]} - {m.score[1]}</span><b>{away.short}</b></div>
+            {keyEvents.length > 0 && <div className="small muted">{keyEvents.map((e) => `${e.type === 'goal' ? '⚽' : '🟥'} ${e.player !== undefined && g.players[e.player] ? shortName(g.players[e.player]) : ''} ${e.minute}'`).join('  ·  ')}</div>}
+            <div className="comm-stats">
+              <StatBar label="Possession" a={pct(m.stats.poss[0])} b={pct(m.stats.poss[1])} c={colors} pct />
+              <StatBar label="Shots" a={m.stats.shots[0]} b={m.stats.shots[1]} c={colors} />
+              <StatBar label="On target" a={m.stats.onTarget[0]} b={m.stats.onTarget[1]} c={colors} />
+            </div>
+            <div className="grid2">
+              <button className="btn yellow" onClick={() => setDrawer(true)}>Substitutions ({userTeam.subsLeft} left)</button>
+              <button className="btn" onClick={() => setTacticsOpen(true)}>Tactics</button>
+            </div>
+            <button className="btn primary block" onClick={() => { setHalfTime(false); setPaused(false); }}>Second half ▶</button>
+          </div>
         </Sheet>
       )}
       {goalFlash}
