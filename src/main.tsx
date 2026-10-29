@@ -14,11 +14,7 @@ window.addEventListener('pointerdown', lockPortrait, { once: true });
 const hint = document.createElement('div');
 hint.className = 'rotate-hint';
 hint.innerHTML = '<div class="phone-ico"></div><h2>Turn your phone upright</h2><p>The FM Journey plays in portrait.</p><button class="btn primary" type="button">Switch to portrait</button>';
-hint.querySelector('button')!.addEventListener('click', () => {
-  // Full screen first: browsers only allow an orientation lock there (or in the installed app)
-  const el = document.documentElement as HTMLElement & { requestFullscreen?: () => Promise<void> };
-  (document.fullscreenElement ? Promise.resolve() : el.requestFullscreen?.() ?? Promise.resolve()).catch(() => {}).then(lockPortrait);
-});
+hint.querySelector('button')!.addEventListener('click', lockPortrait);
 document.body.appendChild(hint);
 
 // Offline support once installed to the home screen (production builds only)

@@ -9,20 +9,18 @@ import { pickLineup, validateLineup } from '../../game/selection';
 import type { Club, GameState, Player, Tactics as TacticsT } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
-import { Card, CondBar, Ovr, OvrChange, PlayerRow, PosTag, Sheet, Spark, Stars, StatusIcons } from '../components/common';
+import { CondBar, Ovr, OvrChange, PosTag, Sheet, Spark, Stars, StatusIcons } from '../components/common';
 import { useLandscape } from '../useLandscape';
 import { Fit } from '../components/Fit';
-import { FormationPitch } from '../components/Pitch';
 
 type SortKey = 'pos' | 'ovr' | 'age' | 'value' | 'pot' | 'goals' | 'rating' | 'xg' | 'kp' | 'pass' | 'def';
 const SORTS: [SortKey, string][] = [['pos', 'Position'], ['ovr', 'Overall'], ['pot', 'Potential'], ['age', 'Age'], ['value', 'Value'], ['rating', 'Avg rating'], ['goals', 'Goals'], ['xg', 'xG'], ['kp', 'Key passes'], ['pass', 'Pass %'], ['def', 'Tackles + Int']];
 const STAT_SORTS: SortKey[] = ['goals', 'rating', 'xg', 'kp', 'pass', 'def'];
 const passPct = (p: Player) => (p.stats.passes ? (p.stats.passC / p.stats.passes) * 100 : 0);
 const POS_ORDER = ['GK', 'DR', 'DC', 'DL', 'DM', 'MR', 'MC', 'ML', 'AMR', 'AMC', 'AML', 'ST'];
-const GROUP_NAME = { GK: 'Goalkeepers', DEF: 'Defenders', MID: 'Midfielders', ATT: 'Attackers' } as const;
 
 /** Mobile squad list with sort chips; grouped by position when sorted by position. */
-export function SquadList({ g, players, own = true }: { g: GameState; players: Player[]; own?: boolean }) {
+export function SquadList({ g, players, own = true, title, toolbar }: { g: GameState; players: Player[]; own?: boolean; title?: string; toolbar?: React.ReactNode }) {
   const [sort, setSort] = useState<SortKey>('pos');
   const get: Record<SortKey, (p: Player) => number> = {
     pos: (p) => POS_ORDER.indexOf(p.pos) * 100 - overall(p),
@@ -52,46 +50,45 @@ export function SquadList({ g, players, own = true }: { g: GameState; players: P
   const landscape = useLandscape();
   if (landscape) return <SquadTable g={g} rows={rows} own={own} sort={sort} setSort={setSort} />;
   const ui = useUI();
-  const lastLabel = STAT_SORTS.includes(sort) || sort === 'value' || sort === 'pot' ? SORTS.find(([k]) => k === sort)![1].replace('Avg rating', 'Rat').replace('Key passes', 'KP').replace('Tackles + Int', 'T+I').replace('Potential', 'Pot') : own ? 'Fit' : 'Contract';
+  const stat = STAT_SORTS.includes(sort) || sort === 'value';
+  const lastLabel = stat ? SORTS.find(([k]) => k === sort)![1].replace('Avg rating', 'Rat').replace('Key passes', 'KP').replace('Tackles + Int', 'T+I') : own ? 'Fit' : 'Con';
   const last = (p: Player) => {
     if (sort === 'value') return fmtMoney(marketValue(p, g.date));
-    if (sort === 'pot') return <Stars ovr={scoutedPotential(p, own)} />;
     if (STAT_SORTS.includes(sort)) return end(p);
     if (!own) return p.contractEnd;
     return <span className={p.condition < 85 ? 'bad' : 'ok'}>{Math.round(p.condition)}%</span>;
   };
-  let lastGroup = '';
-  // Championship Manager-style squad table: position, name, age, ability, fitness; paged, never scrolled
+  // Championship Manager-style squad list: dense rows, sorted from a dropdown, paged instead of scrolled
   return (
-    <>
-      <div className="tabs">
-        {SORTS.map(([k, label]) => <button key={k} className={`tab ${sort === k ? 'active' : ''}`} onClick={() => setSort(k)}>{label}</button>)}
+    <div className="win-list">
+      <div className="ns-bar-row">
+        {toolbar}
+        <select className="input" aria-label="Sort by" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+          {SORTS.map(([k, label]) => <option key={k} value={k}>Sort: {label}</option>)}
+        </select>
       </div>
       <div className="card fill squad-ns">
+        <div className="card-h"><h3>{title ?? 'Players'}</h3><div className="right tile-sub">{players.length} players</div></div>
         <Fit>
-        <table className="t">
-          <thead><tr><th>Pos</th><th>Name</th><th className="r">Age</th><th className="r">Ab</th><th className="r">{lastLabel}</th></tr></thead>
+        <table className="t dense">
+          <thead><tr><th>No</th><th>Pos</th><th>Name</th><th className="r">Age</th><th className="r">Ab</th><th className="r">{lastLabel}</th>{own && <th />}</tr></thead>
           <tbody>
-            {rows.flatMap((p) => {
-              const grp = POS_GROUP[p.pos];
-              const header = sort === 'pos' && grp !== lastGroup;
-              lastGroup = grp;
-              const row = (
-                <tr key={p.id} className="click" onClick={() => ui.openPlayer(p.id)}>
-                  <td><PosTag pos={p.pos} /></td>
-                  <td className="nm"><b>{shortName(p)}</b> <StatusIcons p={p} /><OvrChange v={p.lastChange} /></td>
-                  <td className="r num">{age(p, g.date)}</td>
-                  <td className="r"><Ovr value={overall(p)} /></td>
-                  <td className="r num">{last(p)}</td>
-                </tr>
-              );
-              return header ? [<tr key={`g-${grp}`} className="grp"><td colSpan={5}>{GROUP_NAME[grp]}</td></tr>, row] : [row];
-            })}
+            {rows.map((p) => (
+              <tr key={p.id} className="click" onClick={() => ui.openPlayer(p.id)}>
+                <td className="muted num">{p.shirt ?? ''}</td>
+                <td><PosTag pos={p.pos} /></td>
+                <td className="nm"><b>{shortName(p)}</b> <StatusIcons p={p} /></td>
+                <td className="r num">{age(p, g.date)}</td>
+                <td className="r"><Ovr value={overall(p)} /></td>
+                <td className="r num">{last(p)}</td>
+                {own && <td><span className="mood-dot" style={{ background: MORALE(p.morale)[1] }} title={`Morale: ${MORALE(p.morale)[0]}`} /></td>}
+              </tr>
+            ))}
           </tbody>
         </table>
         </Fit>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -147,48 +144,58 @@ export function Squad() {
   const [tab, setTab] = useState<'squad' | 'tactics'>(ui.param === 'tactics' ? 'tactics' : 'squad');
   const club = g.clubs[g.userClubId];
   const squad = squadOf(g, club.id);
-  return (
-    <div>
-      <div className="page-title">
-        <div className="kicker">{club.name}</div>
-        <h1>First Team</h1>
-        <div className="chips">
-          <span className="chip">{squad.length} players</span>
-          <span className="chip">Avg age {(squad.reduce((s, p) => s + age(p, g.date), 0) / Math.max(1, squad.length)).toFixed(1)}</span>
-          <span className="chip">{club.tactics.formation}</span>
-        </div>
-      </div>
-      <div className="seg" style={{ marginBottom: 12 }}>
-        <button className={tab === 'squad' ? 'on' : ''} onClick={() => setTab('squad')}>Squad</button>
-        <button className={tab === 'tactics' ? 'on' : ''} onClick={() => setTab('tactics')}>Tactics & Lineup</button>
-      </div>
-      {tab === 'squad' ? <SquadList g={g} players={squad} /> : <Tactics g={g} club={club} squad={squad} />}
+  const avgAge = (squad.reduce((s, p) => s + age(p, g.date), 0) / Math.max(1, squad.length)).toFixed(1);
+  const toolbar = (
+    <div className="ns-toggle">
+      <button className={`btn sm ${tab === 'squad' ? 'primary' : ''}`} onClick={() => setTab('squad')}>Squad</button>
+      <button className={`btn sm ${tab === 'tactics' ? 'primary' : ''}`} onClick={() => setTab('tactics')}>Tactics</button>
     </div>
   );
+  return tab === 'squad'
+    ? <SquadList g={g} players={squad} title={`First team · avg age ${avgAge}`} toolbar={toolbar} />
+    : <Tactics g={g} club={club} squad={squad} toolbar={toolbar} />;
 }
 
-function Tactics({ g, club, squad }: { g: GameState; club: Club; squad: Player[] }) {
+type Pick = { kind: 'xi'; i: number } | { kind: 'sub' | 'res'; id: number };
+
+/** CM 01/02-style tactics: the team on a pitch in name boxes, the selection listed underneath (1-11, subs, reserves);
+ * tap one player then another to swap them. Team instructions open in a sheet. */
+function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad: Player[]; toolbar: React.ReactNode }) {
   const ui = useUI();
-  const [sel, setSel] = useState<number | null>(null);
-  const [benchPick, setBenchPick] = useState(false);
+  const [pick, setPick] = useState<Pick | null>(null);
+  const [instr, setInstr] = useState(false);
   const slots = FORMATIONS[club.tactics.formation];
   const lineup = club.lineup.length === slots.length ? club.lineup : new Array(slots.length).fill(null);
   const inXI = new Set(lineup.filter((x): x is number => x !== null));
-  const subs = club.subs.filter((id) => g.players[id]?.clubId === club.id);
+  const subs = club.subs.filter((id) => g.players[id]?.clubId === club.id && !inXI.has(id));
+  const reserves = squad.filter((p) => !inXI.has(p.id) && !subs.includes(p.id)).sort((a, b) => overall(b) - overall(a));
+  const out = (p: Player) => !!p.injury || p.suspended > 0 || !!p.away;
 
-  const assign = (pid: number) => {
-    if (sel === null) return;
+  const idOf = (k: Pick) => (k.kind === 'xi' ? lineup[k.i] : k.id);
+  const tap = (k: Pick) => {
+    if (!pick) { setPick(k); return; }
+    const a = pick;
+    setPick(null);
+    if (a.kind === k.kind && (a.kind === 'xi' ? a.i === (k as { i: number }).i : a.id === (k as { id: number }).id)) return;
+    const [x, y] = a.kind === 'xi' ? [a, k] : k.kind === 'xi' ? [k, a] : [a, k];
+    const incoming = idOf(y);
+    if (x.kind === 'xi' && incoming !== null && y.kind !== 'xi' && out(g.players[incoming])) { ui.toast(`${shortName(g.players[incoming])} isn't available`, true); return; }
     mutate(() => {
       const lu = [...lineup];
-      const existing = lu.indexOf(pid);
-      if (existing >= 0) lu[existing] = lu[sel];
-      lu[sel] = pid;
+      let sb = [...subs];
+      if (x.kind === 'xi' && y.kind === 'xi') { [lu[x.i], lu[y.i]] = [lu[y.i], lu[x.i]]; }
+      else if (x.kind === 'xi') {
+        const leaving = lu[x.i];
+        lu[x.i] = incoming;
+        if (y.kind === 'sub') sb = sb.map((id) => (id === incoming ? leaving : id)).filter((id): id is number => id !== null);
+      } else if (x.kind === 'sub' && y.kind === 'res') sb = sb.map((id) => (id === x.id ? y.id : id));
+      else if (x.kind === 'res' && y.kind === 'sub') sb = sb.map((id) => (id === y.id ? x.id : id));
       club.lineup = lu;
-      club.subs = club.subs.filter((id) => id !== pid);
+      club.subs = sb;
       validateLineup(club, squad);
     });
-    setSel(null);
   };
+  const isPicked = (k: Pick) => !!pick && pick.kind === k.kind && (k.kind === 'xi' ? (pick as { i: number }).i === k.i : (pick as { id: number }).id === (k as { id: number }).id);
   const autoPick = () => mutate(() => { const r = pickLineup(club, squad); club.lineup = r.lineup; club.subs = r.subs; });
   const updateTactics = (t: Partial<TacticsT>) => {
     const msg = mutate((gg) => {
@@ -201,62 +208,66 @@ function Tactics({ g, club, squad }: { g: GameState; club: Club; squad: Player[]
     if (msg) ui.toast(msg);
   };
 
+  const row = (p: Player, k: Pick, no: string, pos: string, rating: number, warn = false) => (
+    <tr key={`${k.kind}-${p.id}`} className={`click ${isPicked(k) ? 'me' : ''}`} style={{ opacity: out(p) ? 0.5 : 1 }} onClick={() => tap(k)}>
+      <td className="muted num">{no}</td>
+      <td><span className={`pos ${POS_GROUP[pos as keyof typeof POS_GROUP] ?? ''}`}>{pos}</span></td>
+      <td className={`nm ${warn ? 'bad' : ''}`}><b>{shortName(p)}</b> <StatusIcons p={p} /></td>
+      <td className="r"><Ovr value={Math.round(rating)} /></td>
+      <td className="r num"><span className={p.condition < 85 ? 'bad' : 'ok'}>{Math.round(p.condition)}%</span></td>
+    </tr>
+  );
+
   return (
-    <div>
-      <Card title="Lineup" tag={club.tactics.formation} right={<button className="btn sm primary" onClick={autoPick}>⚡ Auto-pick</button>}>
-        <FormationPitch g={g} club={club} lineup={lineup} selected={sel} onSlot={setSel} />
-        <p className="small muted" style={{ textAlign: 'center', margin: '8px 0 0' }}>Tap a position to choose a player. Red names are out of position.</p>
-      </Card>
-
-      <TacticsEditor g={g} tactics={club.tactics} lineup={lineup} onChange={updateTactics} />
-      <div className="card" style={{ padding: 4 }}>
-        <button className="li" style={{ width: '100%', background: 'none', border: 'none', color: 'inherit', textAlign: 'left', padding: '10px 12px' }} onClick={() => mutate((gg) => { gg.autoSubs = !gg.autoSubs; })}>
-          <div className="main"><div className="t">Assistant makes substitutions</div><div className="s">Tired or struggling players are swapped automatically during matches.</div></div>
-          <span className={`switch ${g.autoSubs ? 'on' : ''}`}><span /></span>
-        </button>
+    <div className="cm-tactics">
+      <div className="ns-bar-row">
+        {toolbar}
+        <select className="input" aria-label="Formation" value={club.tactics.formation} onChange={(e) => updateTactics({ formation: e.target.value })}>
+          {Object.keys(FORMATIONS).map((f) => <option key={f} value={f}>{f}</option>)}
+        </select>
       </div>
-
-      <Card title="Substitutes" tag={`${subs.length}/9`} tagColor="var(--yellow)" right={<button className="btn sm" disabled={subs.length >= 9} onClick={() => setBenchPick(true)}>+ Add</button>}>
-        <div className="list">
-          {subs.map((id) => {
-            const p = g.players[id];
+      <section className="card cm-pitch-win">
+        <div className="card-h"><h3>{club.tactics.name?.trim() || 'Tactics'}</h3><div className="right" style={{ display: 'flex', gap: 4 }}>
+          <button className="btn sm" onClick={() => setInstr(true)}>Instructions</button>
+          <button className="btn sm" onClick={autoPick}>Auto</button>
+        </div></div>
+        <div className="cm-pitch">
+          {slots.map((s, i) => {
+            const id = lineup[i];
+            const p = id !== null && id !== undefined ? g.players[id] : null;
+            const warn = !!p && familiarity(p, s.pos) < 0.9;
+            const top = 92 - (s.x - 5) * (84 / 79);
+            const left = 9 + s.y * 0.82;
             return (
-              <PlayerRow key={id} p={p} sub={<CondBar v={p.condition} />} end={<button className="btn sm" onClick={(e) => { e.stopPropagation(); mutate(() => { club.subs = club.subs.filter((x) => x !== id); }); }}>Remove</button>} />
+              <button key={i} className={`cm-box ${isPicked({ kind: 'xi', i }) ? 'sel' : ''} ${warn ? 'warn' : ''}`} style={{ top: `${top}%`, left: `${left}%` }} onClick={() => tap({ kind: 'xi', i })}>
+                <i>{p?.shirt ?? i + 1}</i>{p ? p.last : s.pos}
+              </button>
             );
           })}
-          {!subs.length && <div className="muted small">No substitutes selected.</div>}
         </div>
-      </Card>
-
-      {sel !== null && (
-        <Sheet title={`Choose ${slots[sel].pos}`} onClose={() => setSel(null)}>
-          <div className="sheet-b list">
-            {[...squad].sort((a, b) => ratingAt(b, slots[sel].pos) - ratingAt(a, slots[sel].pos)).map((p) => {
-              const fam = familiarity(p, slots[sel].pos);
-              const out = !!p.injury || p.suspended > 0 || !!p.away;
-              return (
-                <div key={p.id} style={{ opacity: out ? 0.45 : 1 }}>
-                  <PlayerRow p={p} ovr={Math.round(ratingAt(p, slots[sel].pos))}
-                    sub={`${fam >= 1 ? 'Natural' : fam >= 0.95 ? 'Accomplished' : fam >= 0.85 ? 'Unconvincing' : 'Awkward'}${inXI.has(p.id) ? ' · in XI' : subs.includes(p.id) ? ' · bench' : ''}`}
-                    end={<CondBar v={p.condition} />}
-                    onClick={() => !out && assign(p.id)} />
-                </div>
-              );
-            })}
-          </div>
-        </Sheet>
-      )}
-      {benchPick && (
-        <Sheet title="Add to bench" onClose={() => setBenchPick(false)}>
-          <div className="sheet-b list">
-            {squad.filter((p) => !inXI.has(p.id) && !subs.includes(p.id)).sort((a, b) => overall(b) - overall(a)).map((p) => {
-              const out = !!p.injury || p.suspended > 0 || !!p.away;
-              return (
-                <div key={p.id} style={{ opacity: out ? 0.45 : 1 }}>
-                  <PlayerRow p={p} sub={shortName(p)} end={<CondBar v={p.condition} />} onClick={() => { if (out) return; mutate(() => { club.subs.push(p.id); }); if (subs.length + 1 >= 9) setBenchPick(false); }} />
-                </div>
-              );
-            })}
+      </section>
+      <div className="card fill squad-ns">
+        <div className="card-h"><h3>Selection</h3><div className="right tile-sub">{pick ? 'Now tap who to swap with' : 'Tap two players to swap'}</div></div>
+        <Fit>
+        <table className="t dense">
+          <tbody>
+            {slots.map((s, i) => { const id = lineup[i]; const p = id !== null ? g.players[id] : null; return p ? row(p, { kind: 'xi', i }, String(i + 1), s.pos, ratingAt(p, s.pos), familiarity(p, s.pos) < 0.9) : null; })}
+            <tr className="grp"><td colSpan={5}>Substitutes</td></tr>
+            {subs.map((id, n) => row(g.players[id], { kind: 'sub', id }, `S${n + 1}`, g.players[id].pos, overall(g.players[id])))}
+            <tr className="grp"><td colSpan={5}>Reserves</td></tr>
+            {reserves.map((p) => row(p, { kind: 'res', id: p.id }, '', p.pos, overall(p)))}
+          </tbody>
+        </table>
+        </Fit>
+      </div>
+      {instr && (
+        <Sheet title="Team instructions" onClose={() => setInstr(false)}>
+          <div className="sheet-b">
+            <TacticsEditor g={g} tactics={club.tactics} lineup={lineup} onChange={updateTactics} />
+            <button className="li" style={{ width: '100%', background: 'none', border: 'none', color: 'inherit', textAlign: 'left', padding: '10px 4px' }} onClick={() => mutate((gg) => { gg.autoSubs = !gg.autoSubs; })}>
+              <div className="main"><div className="t">Assistant makes substitutions</div><div className="s">Tired or struggling players are swapped automatically during matches.</div></div>
+              <span className={`switch ${g.autoSubs ? 'on' : ''}`}><span /></span>
+            </button>
           </div>
         </Sheet>
       )}

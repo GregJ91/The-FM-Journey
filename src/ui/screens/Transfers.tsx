@@ -1,35 +1,42 @@
 import { useMemo, useState } from 'react';
 import { fmtShort } from '../../game/dates';
 import { wageBill } from '../../game/generate';
-import { POS_GROUP, age, fmtMoney, fullName, marketValue, overall } from '../../game/ratings';
+import { POS_GROUP, age, fmtMoney, fullName, marketValue, overall, shortName } from '../../game/ratings';
 import { acceptCounter, agreeTerms, askingPrice, respondIncoming, windowOpen } from '../../game/transfers';
 import type { GameState, Offer, Player } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { Fit } from '../components/Fit';
-import { Card, PlayerRow } from '../components/common';
+import { Ovr, PosTag, Sheet } from '../components/common';
 import { Crest } from '../components/Crest';
 
 type Tab = 'search' | 'free' | 'shortlist' | 'bids' | 'incoming' | 'news';
 
-function Results({ g, players, free }: { g: GameState; players: Player[]; free?: boolean }) {
+function Results({ g, players, free, title }: { g: GameState; players: Player[]; free?: boolean; title: string }) {
+  const ui = useUI();
   const shown = [...players].sort((a, b) => overall(b) - overall(a)).slice(0, 80);
-  if (!shown.length) return <div className="empty">No players match.</div>;
   return (
-    <div className="card fill" style={{ paddingTop: 4, paddingBottom: 4 }}>
-      <Fit>
-      <div className="list">
-        {shown.map((p) => (
-          <PlayerRow
-            key={p.id}
-            p={p}
-            sub={`${age(p, g.date)}y · ${p.clubId !== null ? g.clubs[p.clubId].name : 'Free agent'}${p.real ? ' ✓' : ''}`}
-            end={free || p.clubId === null ? 'Free' : fmtMoney(askingPrice(g, p))}
-            endSub={free || p.clubId === null ? `${fmtMoney(p.wage)}/wk` : `val ${fmtMoney(marketValue(p, g.date))}`}
-          />
-        ))}
-      </div>
-      </Fit>
+    <div className="card fill squad-ns">
+      <div className="card-h"><h3>{title}</h3><div className="right tile-sub">{players.length > 80 ? `top 80 of ${players.length}` : `${players.length} players`}</div></div>
+      {!shown.length ? <div className="empty">No players match.</div> : (
+        <Fit>
+        <table className="t dense">
+          <thead><tr><th>Pos</th><th>Name</th><th>Club</th><th className="r">Age</th><th className="r">Ab</th><th className="r">{free ? 'Wage' : 'Price'}</th></tr></thead>
+          <tbody>
+            {shown.map((p) => (
+              <tr key={p.id} className="click" onClick={() => ui.openPlayer(p.id)}>
+                <td><PosTag pos={p.pos} /></td>
+                <td className="nm"><b>{shortName(p)}</b></td>
+                <td className="muted">{p.clubId !== null ? g.clubs[p.clubId].short : 'Free'}</td>
+                <td className="r num">{age(p, g.date)}</td>
+                <td className="r"><Ovr value={overall(p)} /></td>
+                <td className="r num">{free || p.clubId === null ? `${fmtMoney(p.wage)}` : fmtMoney(askingPrice(g, p))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        </Fit>
+      )}
     </div>
   );
 }
@@ -108,88 +115,88 @@ export function Transfers() {
     const r = mutate(fn);
     ui.toast(r.msg, !r.ok);
   };
-  const TABS: [Tab, string][] = [['search', 'Search'], ['free', 'Free Agents'], ['shortlist', `Shortlist ${g.shortlist.length || ''}`], ['bids', 'My Bids'], ['incoming', `Offers${pendingIn ? ` (${pendingIn})` : ''}`], ['news', 'News']];
+  const TABS: [Tab, string][] = [['search', 'Search'], ['free', 'Free agents'], ['shortlist', `Shortlist (${g.shortlist.length})`], ['bids', `My bids (${myBids.length})`], ['incoming', `Offers${pendingIn ? ` (${pendingIn} new)` : ''}`], ['news', 'Latest transfers']];
 
+  const SECTION_TITLE: Record<Tab, string> = { search: 'Transfer search', free: 'Free agents', shortlist: 'Shortlist', bids: 'My bids', incoming: 'Offers for your players', news: 'Latest transfers' };
+
+  // Championship Manager-style: one toolbar, one status line, one big window of results
   return (
-    <div className="split-page">
-      <div className="sp-side">
-      <div className="page-title">
-        <div className="kicker">{club.name}</div>
-        <h1>Transfers</h1>
-        <div className="chips">
-          <span className="chip">💷 {fmtMoney(club.transferBudget)}</span>
-          <span className="chip" style={{ background: bill > club.wageBudget ? 'var(--coral)' : undefined }}>Wages {fmtMoney(bill)}/{fmtMoney(club.wageBudget)}</span>
+    <div className="win-list">
+      <div className="ns-bar-row">
+        <select className="input" aria-label="Section" value={tab} onChange={(e) => setTab(e.target.value as Tab)}>
+          {TABS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+        </select>
+        {(tab === 'search' || tab === 'free') && (
+          <select className="input" aria-label="Position" value={grp} onChange={(e) => setGrp(e.target.value as typeof grp)} style={{ flex: 'none', width: 92 }}>
+            {(['ALL', 'GK', 'DEF', 'MID', 'ATT'] as const).map((x) => <option key={x} value={x}>{x === 'ALL' ? 'All pos' : x}</option>)}
+          </select>
+        )}
+        {(tab === 'search' || tab === 'free') && <button className={`btn sm ${showFilters ? 'primary' : ''}`} style={{ minHeight: 32 }} onClick={() => setShowFilters(true)}>Filters</button>}
+      </div>
+      {(tab === 'search' || tab === 'free') && <input className="input ns-search" placeholder="Search players by name" value={q} onChange={(e) => setQ(e.target.value)} />}
+      <div className="ns-status">
+        <span>Budget <b>{fmtMoney(club.transferBudget)}</b></span>
+        <span>Wages <b className={bill > club.wageBudget ? 'bad' : ''}>{fmtMoney(bill)}</b> / {fmtMoney(club.wageBudget)}</span>
+        <span className={open ? 'ok' : 'bad'}>{open ? 'Window open' : 'Window shut'}</span>
+      </div>
+
+      {(tab === 'search' || tab === 'free') && <Results g={g} players={results} free={tab === 'free'} title={SECTION_TITLE[tab]} />}
+      {tab === 'shortlist' && <Results g={g} players={g.shortlist.map((id) => g.players[id]).filter(Boolean)} title="Shortlist" />}
+
+      {(tab === 'bids' || tab === 'incoming') && (
+        <div className="card fill squad-ns">
+          <div className="card-h"><h3>{SECTION_TITLE[tab]}</h3></div>
+          <Fit><div className="list offers-list">
+            {(tab === 'bids' ? myBids : incoming).map((o) => <OfferCard key={o.id} g={g} o={o} incoming={tab === 'incoming'} act={act} />)}
+            {!(tab === 'bids' ? myBids : incoming).length && <div className="empty">{tab === 'bids' ? 'No bids yet. Open a player and tap Transfer → Submit bid.' : 'No offers yet. Transfer-list players to attract bids.'}</div>}
+          </div></Fit>
         </div>
-      </div>
-      <div className={`banner ${open ? 'open' : 'closed'}`}>
-        {open ? '🟢 Transfer window OPEN' : '🔴 Window CLOSED · opens 1 Jul & 1 Jan. Free agents can sign any time.'}
-      </div>
-      <div className="tabs">
-        {TABS.map(([id, label]) => <button key={id} className={`tab ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>{label}</button>)}
-      </div>
-
-      {(tab === 'search' || tab === 'free') && (
-          <div className="card" style={{ padding: 12 }}>
-            <div className="row">
-              <input className="input" placeholder="Search players…" value={q} onChange={(e) => setQ(e.target.value)} />
-              <button className={`btn ${showFilters ? 'primary' : ''}`} onClick={() => setShowFilters(!showFilters)}>⚙︎</button>
-            </div>
-            <div className="seg" style={{ marginTop: 8 }}>
-              {(['ALL', 'GK', 'DEF', 'MID', 'ATT'] as const).map((x) => <button key={x} className={grp === x ? 'on' : ''} onClick={() => setGrp(x)}>{x}</button>)}
-            </div>
-            {showFilters && (
-              <div className="filters">
-                <div className="field"><label>Min OVR</label><input className="input" type="number" inputMode="numeric" value={minOvr || ''} onChange={(e) => setMinOvr(Number(e.target.value))} /></div>
-                <div className="field"><label>Max age</label><input className="input" type="number" inputMode="numeric" value={maxAge >= 40 ? '' : maxAge} onChange={(e) => setMaxAge(Number(e.target.value) || 40)} /></div>
-                {tab === 'search' && (
-                  <>
-                    <div className="field"><label>Max value</label>
-                      <select className="input" value={maxVal} onChange={(e) => setMaxVal(Number(e.target.value))}>
-                        <option value={0}>Any</option>
-                        {[100_000, 500_000, 1_000_000, 5_000_000, 10_000_000, 25_000_000, 50_000_000, 100_000_000].map((v) => <option key={v} value={v}>{fmtMoney(v)}</option>)}
-                      </select>
-                    </div>
-                    <div className="field"><label>League</label>
-                      <select className="input" value={league} onChange={(e) => setLeague(e.target.value)}>
-                        <option value="ALL">All</option>
-                        {g.leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                      </select>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            <div className="small muted bold" style={{ marginTop: 8 }}>{results.length} players{results.length > 80 ? ' · top 80 shown' : ''}</div>
-          </div>
       )}
-      </div>
-
-      <div className="sp-main">
-      {(tab === 'search' || tab === 'free') && <Results g={g} players={results} free={tab === 'free'} />}
-
-      {tab === 'shortlist' && <Results g={g} players={g.shortlist.map((id) => g.players[id]).filter(Boolean)} />}
-
-      {tab === 'bids' && (myBids.length ? myBids.map((o) => <OfferCard key={o.id} g={g} o={o} act={act} />) : <div className="empty">No bids yet. Open a player and tap Transfer → Submit bid.</div>)}
-
-      {tab === 'incoming' && (incoming.length ? incoming.map((o) => <OfferCard key={o.id} g={g} o={o} incoming act={act} />) : <div className="empty">No offers yet. Transfer-list players to attract bids.</div>)}
 
       {tab === 'news' && (
-        <Card>
-          <div className="list">
-            {g.transfers.slice(-50).reverse().map((t, i) => (
-              <div key={i} className="li" onClick={() => g.players[t.playerId] && ui.openPlayer(t.playerId)}>
-                <div className="main">
-                  <div className="t">{t.name}</div>
-                  <div className="s">{t.from !== null ? g.clubs[t.from].name : 'Free agent'} → {t.to !== null ? g.clubs[t.to].name : 'Released'} · {fmtShort(t.date)}</div>
-                </div>
-                <div className="end"><div className="v">{t.fee ? fmtMoney(t.fee) : 'Free'}</div></div>
-              </div>
-            ))}
-            {!g.transfers.length && <div className="empty">No transfers yet.</div>}
-          </div>
-        </Card>
+        <div className="card fill squad-ns">
+          <div className="card-h"><h3>{SECTION_TITLE.news}</h3></div>
+          <Fit>
+          <table className="t dense">
+            <tbody>
+              {g.transfers.slice(-50).reverse().map((t, i) => (
+                <tr key={i} className="click" onClick={() => g.players[t.playerId] && ui.openPlayer(t.playerId)}>
+                  <td className="nm"><b>{t.name}</b><div className="muted small">{t.from !== null ? g.clubs[t.from].short : 'Free'} → {t.to !== null ? g.clubs[t.to].short : 'Released'} · {fmtShort(t.date)}</div></td>
+                  <td className="r num">{t.fee ? fmtMoney(t.fee) : 'Free'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!g.transfers.length && <div className="empty">No transfers yet.</div>}
+          </Fit>
+        </div>
       )}
-      </div>
+
+      {showFilters && (
+        <Sheet title="Filters" onClose={() => setShowFilters(false)}>
+          <div className="sheet-b filters">
+            <div className="field"><label>Min ability</label><input className="input" type="number" inputMode="numeric" value={minOvr || ''} onChange={(e) => setMinOvr(Number(e.target.value))} /></div>
+            <div className="field"><label>Max age</label><input className="input" type="number" inputMode="numeric" value={maxAge >= 40 ? '' : maxAge} onChange={(e) => setMaxAge(Number(e.target.value) || 40)} /></div>
+            {tab === 'search' && (
+              <>
+                <div className="field"><label>Max value</label>
+                  <select className="input" value={maxVal} onChange={(e) => setMaxVal(Number(e.target.value))}>
+                    <option value={0}>Any</option>
+                    {[100_000, 500_000, 1_000_000, 5_000_000, 10_000_000, 25_000_000, 50_000_000, 100_000_000].map((v) => <option key={v} value={v}>{fmtMoney(v)}</option>)}
+                  </select>
+                </div>
+                <div className="field"><label>League</label>
+                  <select className="input" value={league} onChange={(e) => setLeague(e.target.value)}>
+                    <option value="ALL">All</option>
+                    {g.leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+            <button className="btn primary block" onClick={() => setShowFilters(false)}>Show {results.length} players</button>
+          </div>
+        </Sheet>
+      )}
     </div>
   );
 }

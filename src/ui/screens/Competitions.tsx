@@ -33,14 +33,11 @@ export function Competitions() {
   const intl = comp.startsWith('INTL:') ? g.intl?.find((t) => t.id === comp.slice(5)) : undefined;
   const youthComp = comp.startsWith('YOUTH:') ? g.youth?.find((c) => c.id === comp.slice(6)) : undefined;
 
+  // One window at a time, filling the screen (no columns to swipe to)
   return (
-    <div className="cols">
-      <div className="page-title">
-        <div className="kicker">World of football</div>
-        <h1>Competitions</h1>
-      </div>
-      <div className="field" style={{ marginBottom: 12 }}>
-        <select className="input" value={comp} onChange={(e) => { setComp(e.target.value); setTab('table'); }}>
+    <div className="win-list comp-page">
+      <div className="ns-bar-row">
+        <select className="input" aria-label="Competition" value={comp} onChange={(e) => { setComp(e.target.value); setTab('table'); }}>
           <option value="MY">📅 My fixtures</option>
           <optgroup label="Leagues">
             {g.leagues.map((l) => <option key={l.id} value={l.id}>{l.name}{l.id === myLeague.id ? ' (yours)' : ''}</option>)}
@@ -67,13 +64,13 @@ export function Competitions() {
 
       {comp === 'MY' && (
         <Card title="All fixtures" tag={club.short} tagColor="var(--sky)">
-          {clubFixtures(g, club.id).map((f) => <FixtureRow key={f.id} g={g} f={f} />)}
+          <div className="list">{clubFixtures(g, club.id).map((f) => <FixtureRow key={f.id} g={g} f={f} />)}</div>
         </Card>
       )}
 
       {league && (
         <>
-          <div className="seg" style={{ marginBottom: 12 }}>
+          <div className="seg" style={{ flex: 'none' }}>
             {(['table', 'fixtures', 'scorers'] as const).map((t) => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'table' ? 'Table' : t === 'fixtures' ? 'Fixtures' : 'Players'}</button>)}
           </div>
           {tab === 'table' && <LeagueTableCard leagueId={league.id} />}
