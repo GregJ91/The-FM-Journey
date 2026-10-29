@@ -48,6 +48,7 @@ export function MatchScreen() {
   const [speed, setSpeed] = useState(1);
   const [paused, setPaused] = useState(false);
   const [flash, setFlash] = useState<number | null>(null);
+  const [flashGoal, setFlashGoal] = useState<MatchEvent | null>(null);
   const [halfTime, setHalfTime] = useState(false);
   const [subOff, setSubOff] = useState<number | null>(null);
   const [subOn, setSubOn] = useState<number | null>(null);
@@ -68,8 +69,10 @@ export function MatchScreen() {
       if (Date.now() < pauseUntil.current) return;
       const evs = stepMinute(getGame()!, m);
       histRef.current.push({ min: m.minute, xg: [...m.stats.xg] as [number, number], shots: [...m.stats.shots] as [number, number], poss: [...m.stats.poss] as [number, number] });
-      if (evs.some((e) => e.type === 'goal')) {
+      const goal = evs.find((e) => e.type === 'goal');
+      if (goal) {
         setFlash(m.events.length);
+        setFlashGoal(goal);
         pauseUntil.current = Date.now() + 1400 / speed;
         navigator.vibrate?.(120);
       }
@@ -192,21 +195,41 @@ export function MatchScreen() {
       </div>
     </Sheet>
   );
-  const goalFlash = flash !== null && <div className="goal-flash" key={flash} onAnimationEnd={() => setFlash(null)}><div>GOAL!</div></div>;
+  const scorerClub = flashGoal && flashGoal.team >= 0 ? (flashGoal.team === 0 ? home : away) : null;
+  const goalFlash = flash !== null && (
+    <div className="goal-flash" key={flash} onAnimationEnd={() => setFlash(null)} style={scorerClub ? ({ '--gf': scorerClub.colors[0] } as React.CSSProperties) : undefined}>
+      <div>GOAL!</div>
+      {flashGoal && (
+        <p>
+          {flashGoal.player !== undefined && g.players[flashGoal.player] ? `${shortName(g.players[flashGoal.player])} ${flashGoal.minute}'` : `${flashGoal.minute}'`}
+          <br /><b>{home.short} {m.score[0]} - {m.score[1]} {away.short}</b>
+        </p>
+      )}
+    </div>
+  );
 
   // Commentary-only match view (Championship Manager style): everything fits the screen, nothing to scroll
   const pct = (a: number) => Math.round((a / total) * 100);
   const big = [...m.events].reverse().find((e) => e.type !== 'kickoff' && e.type !== 'sub') ?? lastEv;
-  const feed = [...m.events].reverse().filter((e) => e !== big);
+  const keyEvents = m.events.filter((e) => e.type === 'goal' || e.type === 'red');
   return (
     <div className="match-screen">
       <div className={`comm ${landscape ? 'land' : ''}`}>
         <CommTop home={home} away={away} mid={`${m.score[0]} - ${m.score[1]}`} sub={`${m.finished ? 'FULL TIME' : halfTime ? 'HALF-TIME' : `${m.minute}'`} · ${m.agg0 ? `agg ${aggGoals(m, 0)}-${aggGoals(m, 1)}` : compName(g, fixture.comp)}`} progress={(m.minute / 90) * 100} />
 
         <div className="comm-body">
+          {/* Championship Manager-style commentary: one bar that updates as the match goes */}
           <div className="comm-main">
-            {big && <div className={`comm-big ${big.type}`} key={m.events.length}><span className="m">{big.minute}'</span>{big.text}</div>}
-            <div className="comm-feed feed">{feed.map((e, i) => <EventRow key={feed.length - i} e={e} />)}</div>
+            <div className={`comm-bar ${big?.type ?? ''}`} key={m.events.length}>{big && <><span className="m">{big.minute}'</span><span className="txt">{big.text}</span></>}</div>
+            {keyEvents.length > 0 && (
+              <div className="comm-keys">
+                {keyEvents.map((e, i) => (
+                  <span key={i} className={`ke ${e.team === 1 ? 'away' : 'home'}`}>
+                    {e.type === 'goal' ? '⚽' : '🟥'} {e.player !== undefined && g.players[e.player] ? shortName(g.players[e.player]) : ''} {e.minute}'
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="comm-side">
             <div className="seg comm-tabs">
@@ -296,16 +319,6 @@ function momentum(hist: Snap[], side: 0 | 1) {
   const bars = per.slice(-15);
   while (bars.length < 15) bars.unshift(0);
   return { label, tone, bars };
-}
-
-function EventRow({ e }: { e: MatchEvent }) {
-  const ico: Partial<Record<MatchEvent['type'], string>> = { goal: '⚽', yellow: '🟨', red: '🟥', injury: '🩹', sub: '🔁', save: '🧤', miss: '💨', ft: '🏁', ht: '⏸️', kickoff: '📣', pens: '🎯' };
-  return (
-    <div className={`ev ${e.type}`}>
-      <span className="m">{`${e.minute}'`}</span>
-      <span>{ico[e.type] ?? ''} {e.text}</span>
-    </div>
-  );
 }
 
 function StatBar({ label, a, b, c, pct }: { label: string; a: number; b: number; c: [string, string]; pct?: boolean }) {

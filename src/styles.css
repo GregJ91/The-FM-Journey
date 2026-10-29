@@ -1550,3 +1550,26 @@ table.t.dense td.nm { max-width: 140px; overflow: hidden; text-overflow: ellipsi
 .ti-roles { display: flex; flex-direction: column; gap: 4px; }
 .ti-role { display: grid; grid-template-columns: 38px minmax(0, 1fr) minmax(0, 1.3fr); align-items: center; gap: 6px; font-weight: 700; font-size: 12.5px; }
 .ti-role .input { min-height: 30px; padding: 3px 6px; font-size: 12.5px; }
+
+/* Live match: CM's single commentary bar (updates in place), key events under it, stats get the rest */
+.comm-body { grid-template-rows: auto minmax(0, 1fr) !important; }
+.comm:not(.land) .comm-side { max-height: none !important; }
+.comm-main { flex: none; }
+.comm-bar {
+  display: flex; gap: 10px; align-items: center; min-height: 92px; padding: 12px 14px;
+  font-family: var(--mono); font-weight: 600; font-size: 17px; line-height: 1.35; color: var(--text);
+  background: #000; border: 2px solid; border-color: var(--bev-lo) var(--bev-hi) var(--bev-hi) var(--bev-lo);
+  animation: comm-in 0.3s ease-out;
+}
+.comm-bar .m { color: var(--muted); flex: none; font-size: 15px; }
+.comm-bar .txt { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.comm-bar.goal { background: #2b2a00; color: #ffe866; font-size: 19px; }
+.comm-bar.red { color: #ff6b62; }
+.comm-bar.yellow { color: #f5c451; }
+.comm-bar.ht, .comm-bar.ft { color: #ffe866; }
+.comm-keys { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 10px; padding: 5px 8px; font-size: 12px; font-weight: 700; }
+.comm-keys .ke.home { grid-column: 1; }
+.comm-keys .ke.away { grid-column: 2; text-align: right; }
+.goal-flash { background: radial-gradient(circle at center, color-mix(in srgb, var(--gf, var(--accent)) 55%, transparent), transparent 65%); flex-direction: column; gap: 6px; }
+.goal-flash p { margin: 0; text-align: center; font-size: 20px; font-weight: 700; color: #fff; text-shadow: 0 2px 8px #000; animation: goal 1.8s ease-out forwards; }
+.goal-flash p b { font-family: var(--pixel); font-weight: 400; font-size: 34px; color: #ffe866; }
