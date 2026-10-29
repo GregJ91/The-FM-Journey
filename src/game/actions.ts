@@ -7,6 +7,7 @@ import { sendMessage } from './inbox';
 import { age, fmtMoney, fullName, marketValue, overall, roundMoney } from './ratings';
 import { chance } from './rng';
 import { mgr, note } from './manager';
+import { respondJob } from './journey';
 import { completeTransfer, renewContract, renewDemand, respondIncoming, wageDemand, windowOpen } from './transfers';
 import type { ActionType, Fixture, GameState, Message, MessageAction, Player } from './types';
 
@@ -247,6 +248,10 @@ export function respondAction(g: GameState, messageId: number, option: string): 
       else { p.morale = Math.max(5, p.morale - 8); result = `${fullName(p)} didn't take it well.`; }
       break;
     }
+    case 'job': {
+      result = respondJob(g, option);
+      break;
+    }
     case 'press': {
       const squad = squadOf(g, g.userClubId);
       note(g, 'media', 1);
@@ -268,6 +273,6 @@ export function autoResolveActions(g: GameState) {
   for (const m of openActions(g)) {
     const a = m.action!;
     if (a.type === 'registration') registerSquad(g, a.scope!, suggestedRegistration(g));
-    else respondAction(g, m.id, a.type === 'offer' ? 'reject' : a.type === 'contract' ? 'offer' : a.type === 'unhappy' ? 'promise' : 'cautious');
+    else respondAction(g, m.id, a.type === 'offer' ? 'reject' : a.type === 'contract' ? 'offer' : a.type === 'unhappy' ? 'promise' : a.type === 'job' ? (a.options.some((o) => o.id === 'stay') ? 'stay' : a.options[0].id) : 'cautious');
   }
 }

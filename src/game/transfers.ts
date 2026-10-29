@@ -48,6 +48,7 @@ export function windowOpen(g: GameState) {
 export function userBid(g: GameState, playerId: number, fee: number): { ok: boolean; msg: string } {
   const user = g.clubs[g.userClubId];
   const p = g.players[playerId];
+  if (g.mode === 'journey') return { ok: false, msg: 'In The Journey your director of football handles signings: use Recruitment.' };
   if (!p || p.clubId === null) return { ok: false, msg: 'Player not available.' };
   if (p.clubId === user.id) return { ok: false, msg: 'That player is already at your club.' };
   if (!windowOpen(g)) return { ok: false, msg: 'The transfer window is closed. It reopens in January / July.' };
@@ -164,6 +165,7 @@ export function signFreeAgent(g: GameState, playerId: number): { ok: boolean; ms
   const user = g.clubs[g.userClubId];
   const p = g.players[playerId];
   if (p.clubId !== null) return { ok: false, msg: 'Not a free agent.' };
+  if (g.mode === 'journey') return { ok: false, msg: 'In The Journey your director of football handles signings: use Recruitment.' };
   const interest = playerInterest(g, p, user);
   if (!interest.ok) return { ok: false, msg: interest.reason };
   const wage = wageDemand(g, p, user);

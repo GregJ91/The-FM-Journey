@@ -306,7 +306,7 @@ export interface Message {
   action?: MessageAction;
 }
 
-export type ActionType = 'offer' | 'registration' | 'contract' | 'unhappy' | 'press';
+export type ActionType = 'offer' | 'registration' | 'contract' | 'unhappy' | 'press' | 'job';
 
 export interface MessageAction {
   type: ActionType;
@@ -316,6 +316,7 @@ export interface MessageAction {
   playerId?: number;
   fixtureId?: number;
   scope?: 'league' | 'europe'; // registration
+  clubIds?: number[]; // job offers (The Journey)
   result?: string; // what happened after the response
 }
 
@@ -386,10 +387,48 @@ export interface ManagerProfile {
   last: Partial<Record<ManagerAttr, number>>; // change at the last monthly update
 }
 
+/** The Journey: a player your director of football has found for a request. */
+export interface Candidate {
+  playerId: number;
+  chance: number; // 0-100 likelihood of signing
+  reasons: { good: boolean; text: string }[];
+  fee: number;
+  wage: number;
+  status: 'open' | 'pursuing' | 'signed' | 'failed' | 'rejected';
+  resolveOn?: string;
+}
+
+export interface RecruitRequest {
+  id: number;
+  slot: number; // formation slot the player is for
+  pos: Pos;
+  role: string;
+  maxAge: number;
+  maxWage: number;
+  created: string;
+  ready: string;
+  status: 'scouting' | 'ready' | 'closed';
+  candidates: Candidate[];
+}
+
+export interface Journey {
+  background: string;
+  nat?: string; // manager nationality
+  age?: number; // manager age at the start
+  rep: number; // manager reputation 1-100
+  dof: number; // director of football level 1-5
+  scouting: number; // scouting department level 1-5
+  requests: RecruitRequest[];
+  upgrade: { kind: 'dof' | 'scouting'; ready: string } | null;
+  lastAsk: string | null; // month of the last upgrade request (YYYY-MM)
+  vacancies: { clubId: number; since: string; offered?: boolean }[];
+  career: { clubId: number; from: string; to?: string }[];
+}
+
 export interface GameState {
   saveVersion: number;
   slot: string;
-  mode: 'classic' | 'create';
+  mode: 'classic' | 'create' | 'journey';
   manager: string;
   date: string;
   season: number; // year season started
@@ -414,6 +453,7 @@ export interface GameState {
   continental: number[]; // legacy (pre-Europe saves)
   europe?: Record<string, number[]>;
   managerProfile?: ManagerProfile;
+  journey?: Journey;
   intl?: IntlTournament[]; // international tournaments (current and recent)
   youth?: YouthComp[]; // this season's youth competitions
   deductions?: Deduction[]; // points deductions (this and past seasons)

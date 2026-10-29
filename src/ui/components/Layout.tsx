@@ -96,12 +96,13 @@ export function ContinueBar() {
 
 export function TabBar() {
   const ui = useUI();
+  const g = useGame();
   return (
     <nav className="tabbar">
       {TABS.map((t) => (
         <button key={t.id} className={ui.screen === t.id ? 'on' : ''} onClick={() => ui.go(t.id)}>
           <t.Icon strokeWidth={ui.screen === t.id ? 2.4 : 2} />
-          <span>{t.label}</span>
+          <span>{t.id === 'transfers' && g.mode === 'journey' ? 'Recruitment' : t.label}</span>
         </button>
       ))}
     </nav>

@@ -1,4 +1,5 @@
 // Finances and board logic
+import { journeySacked } from './journey';
 import { leaguePosition, leagueTable } from './competitions';
 import { month, monthName } from './dates';
 import { GUEST_LEAGUES } from './guests';
@@ -119,7 +120,14 @@ export function clampConf(v: number) {
 }
 
 export function checkSacking(g: GameState) {
-  if (g.mode !== 'classic' || g.sacked) return;
+  if (g.mode === 'create' || g.sacked) return;
+  if (g.board.confidence <= 5 && g.mode === 'journey') {
+    // The Journey goes on: sacked, but other clubs come calling
+    if (g.inbox.some((m) => m.action?.type === 'job' && m.action.status === 'open' && !m.action.options.some((o) => o.id === 'stay'))) return;
+    sendMessage(g, { from: 'The Board', kind: 'board', title: 'You have been sacked', body: `The board has lost all confidence in your ability to deliver. Your time at ${g.clubs[g.userClubId].name} is over.` });
+    journeySacked(g);
+    return;
+  }
   if (g.board.confidence <= 5) {
     g.sacked = true;
     sendMessage(g, { from: 'The Board', kind: 'board', title: 'You have been sacked', body: `The board has lost all confidence in your ability to deliver. Your contract with ${g.clubs[g.userClubId].name} has been terminated.` });

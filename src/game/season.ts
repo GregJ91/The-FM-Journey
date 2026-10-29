@@ -15,6 +15,7 @@ import { sendMessage, unreadImportant } from './inbox';
 import { applyResult, createMatch, randomInjury, simulateFixture, simulateToEnd } from './match';
 import { monthlyDevelopment } from './progression';
 import { monthlyManager } from './manager';
+import { journeyDaily, journeyMonthly } from './journey';
 import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
 import { chance, int, normal, pick } from './rng';
 import { aiBidsForUser, aiTransfers, expireOffers, respondToUserBids } from './transfers';
@@ -155,6 +156,7 @@ export function quickPlayUserMatch(g: GameState) {
 }
 
 function daily(g: GameState) {
+  journeyDaily(g);
   const intensity = g.training.intensity;
   const userTrainMult = intensity === 'low' ? 0.6 : intensity === 'high' ? 1.8 : 1;
   const userRecovery = intensity === 'low' ? 2 : intensity === 'high' ? -2 : 0;
@@ -191,6 +193,7 @@ function newDay(g: GameState) {
   if (day === 1) {
     monthlyAwards(g);
     monthlyManager(g);
+    journeyMonthly(g);
     recordLedger(g);
     monthlyFinances(g);
     const dev = monthlyDevelopment(g);

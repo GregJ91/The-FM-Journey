@@ -8,6 +8,7 @@ import { Squad } from './ui/screens/Squad';
 import { Youth } from './ui/screens/Youth';
 import { Training } from './ui/screens/Training';
 import { Transfers } from './ui/screens/Transfers';
+import { Recruitment } from './ui/screens/Recruitment';
 import { Board } from './ui/screens/Board';
 import { ClubView, Competitions, Inbox } from './ui/screens/Competitions';
 import { PlayerModal } from './ui/screens/PlayerModal';
@@ -49,7 +50,7 @@ function Game() {
       case 'squad': return <Squad key={String(ui.param)} />;
       case 'youth': return <Youth />;
       case 'training': return <Training />;
-      case 'transfers': return <Transfers />;
+      case 'transfers': return g.mode === 'journey' ? <Recruitment /> : <Transfers />;
       case 'board': return <Board />;
       case 'competitions': return <Competitions key={String(ui.param)} />;
       case 'inbox': return <Inbox key={String(ui.param)} />;

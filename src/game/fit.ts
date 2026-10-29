@@ -25,7 +25,8 @@ const DEF: Pos[] = ['DC', 'DL', 'DR', 'DM'];
 const WIDE: Pos[] = ['AML', 'AMR', 'ML', 'MR', 'DL', 'DR'];
 
 /** Fit of `p` for a slot (position + role id) in a team playing `t`. Score 0-100. */
-export function systemFit(p: Player, pos: Pos, roleId: string | undefined, t: Tactics): Fit {
+export function systemFit(p: Player, pos: Pos, roleId: string | undefined, t: Tactics, exact = true): Fit {
+  const num = (v: number) => (exact ? ` ${v}` : '');
   const role = roleFor(pos, roleId);
   const lines: FitLine[] = [];
   const rating = ratingAt(p, pos);
@@ -37,8 +38,8 @@ export function systemFit(p: Player, pos: Pos, roleId: string | undefined, t: Ta
   for (const k of keys) {
     const v = Math.round(p.attrs[k]);
     keyAvg += v;
-    if (v >= 14) lines.push({ good: true, text: `${ATTR_LABEL[k]} ${v}: suits a ${role.name}` });
-    else if (v <= 9) lines.push({ good: false, text: `${ATTR_LABEL[k]} ${v}: weak for a ${role.name}` });
+    if (v >= 14) lines.push({ good: true, text: `${ATTR_LABEL[k]}${num(v)}: suits a ${role.name}` });
+    else if (v <= 9) lines.push({ good: false, text: `${ATTR_LABEL[k]}${num(v)}: weak for a ${role.name}` });
   }
   keyAvg = keys.length ? keyAvg / keys.length : 10;
 
@@ -47,8 +48,8 @@ export function systemFit(p: Player, pos: Pos, roleId: string | undefined, t: Ta
   const demand = (cond: boolean, k: AttrKey, why: string) => {
     if (!cond) return;
     const v = Math.round(p.attrs[k]);
-    if (v >= 14) { tactical += 1; lines.push({ good: true, text: `${ATTR_LABEL[k]} ${v}: ${why}` }); }
-    else if (v <= 10) { tactical -= 1; lines.push({ good: false, text: `${ATTR_LABEL[k]} ${v}: ${why}` }); }
+    if (v >= 14) { tactical += 1; lines.push({ good: true, text: `${ATTR_LABEL[k]}${num(v)}: ${why}` }); }
+    else if (v <= 10) { tactical -= 1; lines.push({ good: false, text: `${ATTR_LABEL[k]}${num(v)}: ${why}` }); }
   };
   demand(t.pressing === 2, 'workRate', 'your high press needs work rate');
   demand(t.pressing === 2 && !DEF.includes(pos) && pos !== 'GK', 'stamina', 'pressing all game needs stamina');

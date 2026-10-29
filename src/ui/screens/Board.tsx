@@ -7,7 +7,32 @@ import { Card, Meter } from '../components/common';
 import { ClubBadgeButton } from '../components/BadgesSheet';
 import { useState } from 'react';
 import { MANAGER_ATTRS, defaultProfile, managerStyle } from '../../game/manager';
+import { BACKGROUNDS, repLabel } from '../../game/journey';
+import { Crest } from '../components/Crest';
 import type { ManagerAttr } from '../../game/types';
+
+/** The Journey: reputation and the clubs managed so far. */
+function CareerCard() {
+  const g = useGame();
+  const j = g.journey!;
+  return (
+    <Card title="The Journey" tag={repLabel(j.rep)} tagColor="var(--yellow)">
+      <div className="kpis" style={{ marginBottom: 8 }}>
+        <div className="kpi" style={{ '--k': 'var(--yellow)' } as React.CSSProperties}><span className="kk">Reputation</span><span className="kv">{Math.round(j.rep)}</span><Meter value={j.rep} /></div>
+        <div className="kpi" style={{ '--k': 'var(--sky)' } as React.CSSProperties}><span className="kk">Clubs</span><span className="kv">{j.career.length}</span><span className="ks">{BACKGROUNDS.find((b) => b.id === j.background)?.name} background</span></div>
+      </div>
+      <div className="list">
+        {[...j.career].reverse().map((c, i) => (
+          <div key={i} className="li">
+            <Crest club={g.clubs[c.clubId]} size={20} />
+            <div className="main"><div className="t">{g.clubs[c.clubId].name}</div><div className="s">{c.from} → {c.to ?? 'now'}</div></div>
+          </div>
+        ))}
+      </div>
+      <div className="small muted" style={{ marginTop: 6 }}>Clubs approach you when your reputation reaches their level. Win, and bigger clubs will call.</div>
+    </Card>
+  );
+}
 
 /** The manager's attributes, which drift each month towards how they actually manage. */
 function ManagerCard() {
@@ -73,6 +98,7 @@ export function Board() {
       </Card>
 
       <ManagerCard />
+      {g.journey && g.mode === 'journey' && <CareerCard />}
 
       <Card title="Finances" tag="£" tagColor="var(--grass)">
         <div className="col" style={{ gap: 7 }}>

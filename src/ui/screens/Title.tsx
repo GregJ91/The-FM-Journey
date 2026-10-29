@@ -9,8 +9,9 @@ import { deleteSave, listSaves, loadGame, saveGame, setGame, type SaveMeta } fro
 import { CrestSvg } from '../components/Crest';
 import { ConfirmButton } from '../components/common';
 import { BadgesSheet } from '../components/BadgesSheet';
+import { JourneySetup } from './JourneySetup';
 
-type Step = 'menu' | 'classic' | 'create' | 'load';
+type Step = 'menu' | 'classic' | 'create' | 'load' | 'journey';
 
 /** Create a Club is switched off for now (existing create-a-club saves still load). */
 const CREATE_CLUB_ENABLED = false;
@@ -48,6 +49,11 @@ export function Title() {
               <p>Design your own club and start in the National League. Climb five divisions to the top.</p>
             </button>
           )}
+          <button className="mode-card journey-card" style={{ '--glow': 'rgba(250,204,21,0.32)' } as React.CSSProperties} onClick={() => setStep('journey')}>
+            <span className="chip">🧭 Career mode</span>
+            <h2>The Journey</h2>
+            <p>Create your manager and get drawn a random bottom-league club in England or Scotland. Your director of football finds the players. Climb as far as your reputation takes you.</p>
+          </button>
           <button className="mode-card" style={{ '--glow': 'rgba(56,189,248,0.32)' } as React.CSSProperties} onClick={() => setStep('classic')}>
             <span className="chip">⚽ Classic</span>
             <h2>Choose a Club</h2>
@@ -60,6 +66,7 @@ export function Title() {
         </div>
       )}
       {step === 'classic' && <ClassicSetup onBack={() => setStep('menu')} />}
+      {step === 'journey' && <JourneySetup onBack={() => setStep('menu')} />}
       {CREATE_CLUB_ENABLED && step === 'create' && <CreateSetup onBack={() => setStep('menu')} />}
       {step === 'load' && <LoadList saves={saves} onBack={() => setStep('menu')} onChange={() => listSaves().then(setSaves)} />}
     </div>

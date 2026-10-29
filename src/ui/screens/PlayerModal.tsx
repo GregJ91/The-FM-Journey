@@ -12,6 +12,7 @@ import { AttrVal, Card, CondBar, ConfirmButton, Ovr, PosTag, Spark, Stars } from
 import { PlayerStats } from '../components/PlayerStats';
 import { Crest } from '../components/Crest';
 import { personalityOf } from '../../game/personality';
+import { journey, scoutRange } from '../../game/journey';
 
 const FOCUS_LABEL: Record<TrainingFocus, string> = { balanced: 'Balanced', attacking: 'Attack', defending: 'Defend', technical: 'Technical', physical: 'Physical', mental: 'Mental' };
 
@@ -56,6 +57,9 @@ export function PlayerModal() {
     ? [['Shot stopping', a.reflexes], ['Handling', a.handling], ['Aerial', a.aerial], ['Distribution', a.distribution], ['Positioning', a.positioning], ['Mental', avg('decisions', 'composure')]]
     : [['Attacking', avg('finishing', 'composure')], ['Technique', avg('dribbling', 'firstTouch', 'passing')], ['Vision', avg('vision', 'decisions')], ['Defending', avg('tackling', 'positioning')], ['Aerial', avg('heading', 'strength')], ['Physical', avg('stamina', 'strength', 'workRate')], ['Speed', a.pace]];
   const pers = personalityOf(p);
+  const scouted = !!journey(g) && !own;
+  const range = (v: number, salt = 0) => scoutRange(g, v, p.id, salt);
+  const [olo, ohi] = range(ovr);
   const mood = p.morale >= 80 ? ['Superb', 'var(--grass)'] : p.morale >= 65 ? ['Good', 'var(--grass)'] : p.morale >= 45 ? ['Okay', 'var(--yellow)'] : p.morale >= 30 ? ['Poor', 'var(--orange)'] : ['Very poor', 'var(--coral)'];
 
   return (
@@ -68,7 +72,7 @@ export function PlayerModal() {
           <span className="pf-meta"><PosTag pos={p.pos} /> {age(p, g.date)} years · {NATIONS[p.nat] ?? nationName(p.nat)} · {p.foot === 'L' ? 'Left' : p.foot === 'R' ? 'Right' : 'Either'} foot</span>
         </div>
         <div className="pf-club">{club ? <><Crest club={club} size={40} /><span>{club.name}</span></> : <span className="chip">Free agent</span>}</div>
-        <div className="pf-ability"><Ovr value={ovr} lg /><Stars ovr={scoutedPotential(p, own)} /></div>
+        <div className="pf-ability">{scouted && olo !== ohi ? <span className="ovr lg plain">{olo}-{ohi}</span> : <Ovr value={ovr} lg />}<Stars ovr={scoutedPotential(p, own)} /></div>
         <button className="pf-close" onClick={close} aria-label="Close">✕</button>
       </div>
 
@@ -97,7 +101,7 @@ export function PlayerModal() {
                       <div key={gr.name}>
                         <h4>{gr.name}</h4>
                         {gr.keys.map((k) => (
-                          <div key={k} className="pf-attr"><span>{ATTR_LABEL[k]}</span><AttrVal v={p.attrs[k]} /></div>
+                          <div key={k} className="pf-attr"><span>{ATTR_LABEL[k]}</span>{scouted && range(p.attrs[k], k.length)[0] !== range(p.attrs[k], k.length)[1] ? <span className="attr a1 rng">{range(p.attrs[k], k.length).join('-')}</span> : <AttrVal v={p.attrs[k]} />}</div>
                         ))}
                       </div>
                     ))}
@@ -173,7 +177,15 @@ export function PlayerModal() {
           </div>
         )}
 
-        {tab === 'actions' && !own && p.clubId !== null && (
+        {tab === 'actions' && !own && scouted && (
+          <div className="col pf-actions">
+            <div className="objective">🧭 In The Journey your director of football handles all signings. Ask him for a player in this position from the Recruitment screen.</div>
+            <button className="btn primary block" onClick={() => { close(); ui.go('transfers'); }}>Go to Recruitment</button>
+            <button className="btn block" onClick={toggleShortlist}>{shortlisted ? '★ Shortlisted' : '☆ Add to shortlist'}</button>
+          </div>
+        )}
+
+        {tab === 'actions' && !own && !scouted && p.clubId !== null && (
           <div className="col pf-actions">
             <div className="small">Asking price <b>{fmtMoney(ask)}</b> · wants <b>{fmtMoney(wageDemand(g, p, user))}/wk</b></div>
             {interest && !interest.ok && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {interest.reason}</div>}
@@ -188,7 +200,7 @@ export function PlayerModal() {
           </div>
         )}
 
-        {tab === 'actions' && p.clubId === null && (
+        {tab === 'actions' && p.clubId === null && !scouted && (
           <div className="col pf-actions">
             <div className="small">Free agent · wants <b>{fmtMoney(wageDemand(g, p, user))}/wk</b></div>
             {interest && !interest.ok && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {interest.reason}</div>}
