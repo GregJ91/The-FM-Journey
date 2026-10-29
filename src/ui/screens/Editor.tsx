@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { CM_EXTRA } from '../../game/cm0102/parse';
 import { NATIONS } from '../../game/data/names';
 import { ATTR_GROUPS, ATTR_LABEL, POSITIONS, POS_WEIGHTS, clampAttr, fmtMoney, overall, rawOverallAt } from '../../game/ratings';
+import { applyMetaProfile, isMetaClub } from '../../game/meta';
 import { numberUserSquad } from '../../game/season';
 import { assignShirtNumbers, releaseShirt } from '../../game/shirts';
 import type { AttrKey, Club, GameState, Player, Pos } from '../../game/types';
@@ -78,6 +79,7 @@ export function PlayerEditor({ g, p }: { g: GameState; p: Player }) {
     p.squad = 'first';
     p.listed = false;
     p.joined = gg.date;
+    if (clubId !== null && isMetaClub(gg.clubs[clubId])) applyMetaProfile(p);
     if (clubId === gg.userClubId) numberUserSquad(gg);
     else if (clubId !== null) assignShirtNumbers(gg, clubId);
   });

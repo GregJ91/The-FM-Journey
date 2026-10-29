@@ -1612,3 +1612,4 @@ table.t.dense td.nm { max-width: 140px; overflow: hidden; text-overflow: ellipsi
 .ed-group .ti-field .input { width: 52px; min-height: 26px; text-align: center; flex: none; }
 .ed-group.ed-cm { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; }
 .ed-group.ed-cm h4 { grid-column: span 2; }
+.mode-card.locked { opacity: 0.45; filter: grayscale(0.8); cursor: not-allowed; pointer-events: none; }

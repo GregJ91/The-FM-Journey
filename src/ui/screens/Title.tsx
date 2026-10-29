@@ -21,6 +21,8 @@ type Step = 'menu' | 'classic' | 'create' | 'load' | 'journey' | 'cm';
 
 /** Create a Club is switched off for now (existing create-a-club saves still load). */
 const CREATE_CLUB_ENABLED = false;
+/** Only CM 01/02 careers can be started for now; the modern modes show as locked. */
+const MODERN_LOCKED = true;
 
 const PALETTE = ['#e5484d', '#ff8a3d', '#ffd23f', '#c6f432', '#19b866', '#0f7a4a', '#3ec1f3', '#1d4ed8', '#0b1f5b', '#7b5cff', '#ff7ac6', '#7a1e3a', '#15120f', '#ffffff', '#9a9187', '#f5b700'];
 const SHAPES: CrestShape[] = ['shield', 'circle', 'diamond', 'badge'];
@@ -55,13 +57,13 @@ export function Title() {
                 <p>Design your own club and climb five divisions.</p>
               </button>
             )}
-            <button className="mode-card journey-card" style={{ '--glow': 'rgba(250,204,21,0.32)' } as React.CSSProperties} onClick={() => setStep('journey')}>
-              <span className="chip">🧭 Career</span>
+            <button className={`mode-card journey-card ${MODERN_LOCKED ? 'locked' : ''}`} disabled={MODERN_LOCKED} style={{ '--glow': 'rgba(250,204,21,0.32)' } as React.CSSProperties} onClick={() => setStep('journey')}>
+              <span className="chip">{MODERN_LOCKED ? '🔒 Locked' : '🧭 Career'}</span>
               <h2>The Journey</h2>
               <p>Random bottom-league club. Your DoF finds the players.</p>
             </button>
-            <button className="mode-card" style={{ '--glow': 'rgba(56,189,248,0.32)' } as React.CSSProperties} onClick={() => setStep('classic')}>
-              <span className="chip">⚽ Classic</span>
+            <button className={`mode-card ${MODERN_LOCKED ? 'locked' : ''}`} disabled={MODERN_LOCKED} style={{ '--glow': 'rgba(56,189,248,0.32)' } as React.CSSProperties} onClick={() => setStep('classic')}>
+              <span className="chip">{MODERN_LOCKED ? '🔒 Locked' : '⚽ Classic'}</span>
               <h2>Choose a Club</h2>
               <p>Any club in England, Scotland, Spain, Italy, Germany or France.</p>
             </button>
