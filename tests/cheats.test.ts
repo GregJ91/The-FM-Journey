@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { autoResolveActions } from '../src/game/actions';
 import { activateCheat, cheatOf } from '../src/game/cheats';
+import { parseMoney } from '../src/ui/screens/Editor';
 import { createWorld } from '../src/game/generate';
 import { advanceDay, quickPlayUserMatch, startSeason } from '../src/game/season';
 
@@ -12,6 +13,14 @@ describe('cheats', () => {
     expect(cheatOf('champions')).toBe('champions');
     expect(cheatOf(' Iron-Men ')).toBe('ironmen');
     expect(cheatOf('Champs')).toBe(null);
+    expect(cheatOf('Editor')).toBe('editor');
+  });
+
+  it('reads editor money shorthand', () => {
+    expect(parseMoney('25m')).toBe(25_000_000);
+    expect(parseMoney('£3.5m')).toBe(3_500_000);
+    expect(parseMoney('500k')).toBe(500_000);
+    expect(parseMoney('lots')).toBe(null);
   });
 
   it.skipIf(!existsSync(DB))('"Champions" wins about 90% of games in a CM career', () => {

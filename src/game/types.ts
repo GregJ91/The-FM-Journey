@@ -433,6 +433,7 @@ export interface GameState {
   mode: 'classic' | 'create' | 'journey';
   era?: 'cm0102'; // built from the player's own Championship Manager 01/02 database
   manager: string;
+  editor?: boolean; // the in-game editor is unlocked for this save (CM careers: tactic named "Editor")
   econ?: number; // CM careers: 1 once the save runs at 2002 prices (older CM saves are converted on load)
   managerNat?: string; // nationality code (The Journey keeps its own in journey.nat)
   date: string;

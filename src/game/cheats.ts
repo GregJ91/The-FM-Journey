@@ -2,11 +2,12 @@
 //   "Champions" - your team wins about 90% of its games
 //   "Moneybags" - £25m (2002 money) for transfers, once a season
 //   "Iron Men"  - your players never get injured
+//   "Editor"    - unlocks the in-game editor for this save (players, club finances, board)
 import type { GameState, Tactics } from './types';
 
-export type CheatId = 'champions' | 'moneybags' | 'ironmen';
+export type CheatId = 'champions' | 'moneybags' | 'ironmen' | 'editor';
 
-export const CHEAT_NAMES: Record<CheatId, string> = { champions: 'Champions', moneybags: 'Moneybags', ironmen: 'Iron Men' };
+export const CHEAT_NAMES: Record<CheatId, string> = { champions: 'Champions', moneybags: 'Moneybags', ironmen: 'Iron Men', editor: 'Editor' };
 
 /** Team-strength multiplier for "Champions", calibrated to about 90% wins (tests/cheats.test.ts). */
 export const CHAMPIONS_EDGE = 1.48;
@@ -28,6 +29,11 @@ export function cheatOn(g: GameState, id: CheatId, tactics?: Tactics) {
 export function activateCheat(g: GameState): string | null {
   const id = g.era === 'cm0102' ? cheatOf(g.clubs[g.userClubId].tactics.name) : null;
   if (!id) return null;
+  if (id === 'editor') {
+    if (g.editor) return 'Editor already unlocked';
+    g.editor = true;
+    return 'Editor unlocked: an Edit tab on every player, and Editor on the Board page';
+  }
   if (id === 'moneybags') {
     const key = `cheat-moneybags-${g.season}`;
     g.events = g.events ?? [];

@@ -14,6 +14,7 @@ import { PlayerStats } from '../components/PlayerStats';
 import { Crest } from '../components/Crest';
 import { personalityOf } from '../../game/personality';
 import { journey, scoutRange } from '../../game/journey';
+import { PlayerEditor } from './Editor';
 
 const FOCUS_LABEL: Record<TrainingFocus, string> = { balanced: 'Balanced', attacking: 'Attack', defending: 'Defend', technical: 'Technical', physical: 'Physical', mental: 'Mental' };
 
@@ -22,7 +23,7 @@ export function PlayerModal() {
   const ui = useUI();
   const id = ui.playerId;
   const [bid, setBid] = useState<number | null>(null);
-  const [tab, setTab] = useState<'attrs' | 'info' | 'stats' | 'career' | 'actions'>('attrs');
+  const [tab, setTab] = useState<'attrs' | 'info' | 'stats' | 'career' | 'actions' | 'edit'>('attrs');
   if (id === null) return null;
   const p = g.players[id];
   if (!p) return null;
@@ -83,6 +84,7 @@ export function PlayerModal() {
         <button className={`tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>Stats</button>
         <button className={`tab ${tab === 'career' ? 'active' : ''}`} onClick={() => setTab('career')}>Career</button>
         <button className={`tab ${tab === 'actions' ? 'active' : ''}`} onClick={() => setTab('actions')}>{own ? 'Manage' : 'Bid'}</button>
+        {g.editor && <button className={`tab ${tab === 'edit' ? 'active' : ''}`} onClick={() => setTab('edit')}>Edit</button>}
         {(p.injury || p.suspended > 0 || p.away) && (
           <span className="pf-alert">
             {p.injury && <>🩹 {p.injury.name} ({p.injury.days}d)</>}
@@ -148,6 +150,7 @@ export function PlayerModal() {
           </div>
         )}
 
+        {tab === 'edit' && g.editor && <div className="win-list pf-one"><Card title="Editor" className="grow"><PlayerEditor g={g} p={p} /></Card></div>}
         {tab === 'stats' && <div className="win-list pf-one"><Card title="This season" className="grow"><PlayerStats p={p} /></Card></div>}
 
         {tab === 'career' && (

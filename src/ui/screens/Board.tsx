@@ -4,6 +4,7 @@ import { ordinal, seasonLabel } from '../../game/season';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { Card, Meter, SectionPage } from '../components/common';
+import { ClubEditor } from './Editor';
 import { ClubBadgeButton } from '../components/BadgesSheet';
 import { useState } from 'react';
 import { NATIONS } from '../../game/data/names';
@@ -80,10 +81,10 @@ export function Board() {
     ui.toast(r.msg, !r.ok);
   };
   const used = g.board.lastRequest === g.date.slice(0, 7);
-  const [sec, setSec] = useState<'board' | 'money' | 'club' | 'you' | 'honours'>('board');
+  const [sec, setSec] = useState<'board' | 'money' | 'club' | 'you' | 'honours' | 'editor'>('board');
   const stars = (n: number) => <span className="stars">{'★'.repeat(n)}<span className="off">{'★'.repeat(5 - n)}</span></span>;
   return (
-    <SectionPage sections={[['board', 'Board'], ['money', 'Finances'], ['club', 'Club'], ['you', 'Manager'], ['honours', 'Honours']]} sec={sec} setSec={setSec}
+    <SectionPage sections={[['board', 'Board'], ['money', 'Finances'], ['club', 'Club'], ['you', 'Manager'], ['honours', 'Honours'], ...(g.editor ? [['editor', 'Editor'] as ['editor', string]] : [])]} sec={sec} setSec={setSec}
       status={<><span>Confidence <b>{conf}%</b></span><span>Balance <b>{fmtMoney(fin.balance)}</b></span><span>{g.mode === 'create' ? 'Owner-manager' : 'Sacked at 5%'}</span></>}>
       {sec === 'board' && <Card title="Confidence" tag={mood} tagColor={conf >= 60 ? 'var(--lime)' : conf >= 30 ? 'var(--yellow)' : 'var(--coral)'}>
         <div className="row" style={{ alignItems: 'flex-end' }}>
@@ -180,6 +181,7 @@ export function Board() {
           </div>
         ) : <div className="empty">Your story is just beginning.</div>}
       </Card>}
+      {sec === 'editor' && g.editor && <ClubEditor g={g} />}
     </SectionPage>
   );
 }
