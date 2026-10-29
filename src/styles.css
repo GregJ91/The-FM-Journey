@@ -5,6 +5,10 @@
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/600.css';
 
+/* PORTRAIT ONLY for now: every landscape layout below has "and (min-height: 9999px)" added so it never
+   applies (remove it to bring landscape back; see also LANDSCAPE_ENABLED in ui/useLandscape.ts).
+   A phone held sideways keeps the portrait screen, turned with the phone (see the end of this file). */
+
 /* Modern dark, mobile-first. The game lives in a phone-width column; on wider
    screens that column is centred. Club colours arrive at runtime as
    --team / --team-2 / --accent (see ui/theme.ts). */
@@ -533,7 +537,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 /* ================= Landscape (phone held sideways, tablet, desktop) =================
    Navigation moves to a rail on the left, Continue sits top-right, screens flow into columns,
    sheets slide in from the right and the match pitch turns horizontal. */
-@media (orientation: landscape) and (min-width: 640px) {
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) {
   :root { --app-w: 100%; --rail-w: 86px; }
 
   .phone {
@@ -746,7 +750,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .comm:not(.land) .ct-team b { font-size: 14px; }
 
 /* ---------- Landscape: fixed panels, the page itself never scrolls ---------- */
-@media (orientation: landscape) and (min-width: 640px) {
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) {
   .content { overflow: hidden; padding-bottom: 10px; }
   /* Dashboard pages: cards flow down then across into columns; a card too tall scrolls inside itself */
   .cols {
@@ -766,7 +770,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
     flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none;
   }
 }
-@media (orientation: landscape) and (min-width: 640px) {
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) {
   /* More panels than fit: extra columns sit to the right and snap into view with a sideways swipe */
   .cols { overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
   .cols::-webkit-scrollbar { display: none; }
@@ -783,14 +787,14 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 /* Split pages (Transfers): controls on one side, the long list fills the rest */
 .split-page > .sp-side, .split-page > .sp-main { display: flex; flex-direction: column; gap: 10px; }
 .split-page > .sp-main { margin-top: 10px; }
-@media (orientation: landscape) and (min-width: 640px) {
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) {
   .content > .split-page { display: grid !important; grid-template-columns: minmax(250px, 34%) minmax(0, 1fr); gap: 12px; height: 100%; }
   .split-page > .sp-side, .split-page > .sp-main { min-height: 0; overflow-y: auto; scrollbar-width: none; margin: 0; }
   .split-page > .sp-side > *, .split-page > .sp-main > * { flex: none; margin: 0; }
   .split-page .tabs { flex-wrap: wrap; overflow: visible; }
   .split-page .banner { padding: 6px 10px; font-size: 12.5px; }
 }
-@media (orientation: landscape) and (min-width: 640px) {
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) {
   /* Tables need room for all their columns: they take two panel widths */
   .cols > .card:has(table.t), .cols > div:has(> .card table.t) { width: max(420px, calc((100% - 24px) * 2 / 3 + 12px)); }
 }
@@ -892,7 +896,7 @@ table.t tr.me td:first-child, table.t tr.me td:last-child { border-radius: 0; }
 .attr { border-radius: 3px; }
 .page-title h1 { letter-spacing: -0.01em; }
 
-@media (orientation: landscape) and (min-width: 640px) {
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) {
   .tabbar { margin: 0; border-radius: 0; border-top: none; border-right: 1px solid var(--line); padding: calc(6px + var(--safe-t)) 0 calc(6px + var(--safe-b)) env(safe-area-inset-left, 0px); justify-content: flex-start; }
   .tabbar button { padding: 10px 2px 8px; }
   .tabbar button.on { box-shadow: inset 3px 0 0 var(--accent); }
@@ -958,7 +962,7 @@ table.t.fm th { position: static; }
 .inbox-list > div { display: flex; flex-direction: column; gap: 8px; height: 100%; }
 .inbox-list > div > .card { flex: 1 1 0; min-height: 0; }
 
-@media (orientation: landscape) and (min-width: 640px) {
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) {
   .cols > * { width: max(220px, calc((100% - 24px) / 3)); }
   .content > .split-page { display: grid !important; grid-template-columns: minmax(250px, 34%) minmax(0, 1fr); gap: 12px; }
   .split-page > .sp-side { overflow: hidden; }
@@ -1001,7 +1005,7 @@ table.t.fm .ovr { height: 20px; }
 .status-line .chip { cursor: pointer; padding: 2px 7px; }
 .objective { margin-top: 6px; font-size: 12px; font-weight: 650; color: var(--text); background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 5px 8px; border-radius: 0 4px 4px 0; }
 .mc-compare .form-strip .res { width: 14px; height: 14px; font-size: 8.5px; }
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 500px) and (min-height: 9999px) {
   .kpi { padding: 5px 7px; }
   .kpi .kv { font-size: 18px; }
   .kpi .ks { font-size: 10.5px; }
@@ -1075,14 +1079,14 @@ table.t.fm .ovr { height: 20px; }
 .pf-info span { color: var(--muted); font-weight: 650; }
 .pf-info b { display: inline-flex; align-items: center; gap: 6px; text-align: right; }
 
-@media (orientation: portrait), (max-width: 639px) {
+@media all {
   .pf-club span { display: none; }
   .pf-last { font-size: 19px; }
   .pf-no { font-size: 26px; min-width: 32px; }
 }
 .pf-head { background: linear-gradient(90deg, color-mix(in srgb, var(--pc1) 80%, #000), color-mix(in srgb, var(--pc1) 55%, #000) 70%, color-mix(in srgb, var(--pc2) 30%, #111)); }
 .pf-cols > .card.grow { width: 100% !important; }
-@media (orientation: landscape) and (min-width: 640px) {
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) {
   .pf-cols > :nth-child(1) { width: calc(43% - 8px); }
   .pf-cols > :nth-child(2) { width: calc(24% - 8px); }
   .pf-cols > :nth-child(3) { width: calc(33% - 8px); }
@@ -1097,7 +1101,7 @@ table.t.fm .ovr { height: 20px; }
 .journey-card { border-color: rgba(250, 204, 21, 0.4) !important; }
 .journey-setup { padding: calc(10px + var(--safe-t)) 14px calc(14px + var(--safe-b)); max-width: 980px; margin: 0 auto; }
 .js-grid { display: grid; gap: 10px; grid-template-columns: 1fr; }
-@media (orientation: landscape) and (min-width: 640px) { .js-grid { grid-template-columns: 1fr 1fr; } }
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) { .js-grid { grid-template-columns: 1fr 1fr; } }
 .js-bgs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .js-bg { text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 4px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); cursor: pointer; }
 .js-bg b { font-size: 13px; }
@@ -1164,7 +1168,7 @@ table.t.fm .ovr { height: 20px; }
 .mode-card p { font-size: 12.5px !important; line-height: 1.35; }
 .title-small { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .title-small .btn { min-height: 38px; }
-@media (orientation: landscape) and (min-width: 640px) {
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) {
   .title-menu { display: grid !important; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); align-items: center; gap: 24px; }
   .title-actions { display: grid; grid-template-columns: 1fr 1fr; align-content: center; }
   .title-actions > .title-small { grid-column: 1 / -1; }
@@ -1181,7 +1185,7 @@ table.t.fm .ovr { height: 20px; }
 .setup-cta { flex: none; display: flex; gap: 8px; margin-top: 8px; }
 .setup-cta .input { flex: 1; }
 .setup-cta .continue-btn { flex: 1.4; min-height: 46px; }
-@media (orientation: portrait), (max-width: 639px) { .setup-cta { flex-direction: column; } }
+@media all { .setup-cta { flex-direction: column; } }
 
 .journey-setup { height: 100%; display: flex; flex-direction: column; gap: 10px; padding: calc(12px + var(--safe-t)) max(14px, env(safe-area-inset-right)) calc(12px + var(--safe-b)) max(14px, env(safe-area-inset-left)) !important; }
 .js-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: none; }
@@ -1198,7 +1202,7 @@ table.t.fm .ovr { height: 20px; }
 .js-field { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
 .js-next { flex: none; width: 100%; min-height: 48px; }
 .js-slot { flex: 1 1 0; min-height: 110px; height: auto !important; }
-@media (orientation: portrait), (max-width: 639px) {
+@media all {
   .js-steps span { font-size: 0; gap: 0; padding: 3px; }
   .js-steps span.on { font-size: 11px; gap: 5px; padding-right: 8px; }
   .js-bgs { grid-template-columns: 1fr; }
@@ -1328,7 +1332,7 @@ table.t tr.me td, table.t tbody tr.me:nth-child(even) td { background: var(--hl-
 .feed .ev.ft, .feed .ev.ht, .feed .ev.pens { background: rgba(255, 255, 255, 0.06); color: #fff; }
 @media (max-height: 420px) { .ct-score { font-size: 32px; } }
 
-@media (orientation: landscape) and (min-width: 640px) {
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 9999px) {
   .phone { grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "rail header continue" "rail content content" "rail ticker ticker"; background: var(--bg); }
   .ticker { grid-area: ticker; }
   .header { border-bottom-width: 3px; }
@@ -1343,3 +1347,81 @@ table.t tr.me td, table.t tbody tr.me:nth-child(even) td { background: var(--hl-
 .pane-h .chip { background: rgba(0, 0, 0, 0.3); border-color: transparent; color: #fff; }
 .toast { border-radius: 0; background: #000; border: 2px solid var(--cm-2); border-left-width: 2px; font-family: var(--mono); font-weight: 600; font-size: 13px; color: var(--hl); backdrop-filter: none; }
 .toast.err, .toast.bad { color: #ff6b62; border-color: #b04040; }
+
+/* =====================================================================
+   Portrait lock: a phone held sideways shows the portrait screen turned
+   with the device (html[data-rot] is set from the screen angle in main.tsx).
+   ===================================================================== */
+@media (orientation: landscape) and (max-height: 520px) and (pointer: coarse) {
+  html, body { overflow: hidden; }
+  #root { position: fixed; top: 0; left: 0; width: 100vh; height: 100vw; overflow: hidden; transform-origin: 0 0; transform: translateY(100vh) rotate(-90deg); }
+  html[data-rot="270"] #root { transform: translateX(100vw) rotate(90deg); }
+  #root .phone, #root .comm { height: 100% !important; }
+}
+
+/* =====================================================================
+   CM 01/02 careers (html[data-era="cm0102"]): Championship Manager's
+   navy-blue screens, light-grey Windows buttons and a yellow highlight,
+   on the same tiles and layouts as the rest of the game.
+   ===================================================================== */
+html[data-era="cm0102"] {
+  --bg: #0b1d48;
+  --surface: #12285e;
+  --surface-2: #183372;
+  --surface-3: #1f3f86;
+  --line: #2b4a8f;
+  --line-2: #3a5ba3;
+  --text: #f2f6ff;
+  --muted: #a9bce4;
+  --faint: #7f95c4;
+  --btn: #d4d0c8;
+  --btn-tx: #000000;
+  --bev-hi: #ffffff;
+  --bev-lo: #404040;
+  --hl: #000000;
+  --hl-bg: #f3e36a;
+}
+html[data-era="cm0102"] body, html[data-era="cm0102"] .phone { background: var(--bg); }
+html[data-era="cm0102"] .content { background: linear-gradient(180deg, #0f2558 0%, var(--bg) 60%); }
+
+/* Grey Windows-style buttons */
+html[data-era="cm0102"] .btn,
+html[data-era="cm0102"] .seg button,
+html[data-era="cm0102"] .tab,
+html[data-era="cm0102"] .tabbar button,
+html[data-era="cm0102"] .icon-btn {
+  background: var(--btn); color: var(--btn-tx); border-color: var(--bev-hi) var(--bev-lo) var(--bev-lo) var(--bev-hi);
+}
+html[data-era="cm0102"] .tabbar button svg { color: #1b2f66; }
+html[data-era="cm0102"] .btn.primary,
+html[data-era="cm0102"] .seg button.on,
+html[data-era="cm0102"] .tab.active,
+html[data-era="cm0102"] .tabbar button.on,
+html[data-era="cm0102"] .icon-btn.on {
+  background: var(--cm-1); color: #fff; border-color: var(--bev-lo) var(--cm-2) var(--cm-2) var(--bev-lo);
+}
+html[data-era="cm0102"] .tabbar button.on svg { color: #fff; }
+html[data-era="cm0102"] .btn.coral { background: #a32020; color: #fff; }
+html[data-era="cm0102"] .tabbar { background: #8f949c; border-top: 1px solid #fff; }
+html[data-era="cm0102"] .seg { background: #8f949c; border-color: #404040; }
+html[data-era="cm0102"] .input, html[data-era="cm0102"] select.input { background: #ffffff; color: #000; border-color: var(--bev-lo) var(--bev-hi) var(--bev-hi) var(--bev-lo); }
+
+/* Windows: white-edged navy panels, club-coloured title bars (from the skin above) */
+html[data-era="cm0102"] .card { background: var(--surface); border: 1px solid var(--line-2); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.08); }
+html[data-era="cm0102"] .card-h, html[data-era="cm0102"] .pane-h { border-bottom: 1px solid rgba(255, 255, 255, 0.25); }
+
+/* Tables: CM's light rows on blue, your club in yellow */
+html[data-era="cm0102"] table.t th { background: var(--surface-3); color: #fff; }
+html[data-era="cm0102"] table.t tbody tr:nth-child(even) td, html[data-era="cm0102"] .list > .li:nth-child(even) { background: rgba(255, 255, 255, 0.06); }
+html[data-era="cm0102"] table.t tr.me td, html[data-era="cm0102"] .li.me { background: var(--hl-bg) !important; color: var(--hl) !important; }
+html[data-era="cm0102"] .li.me .t, html[data-era="cm0102"] .li.me .s, html[data-era="cm0102"] .li.me .muted { color: #000 !important; }
+
+/* Continue sits in a grey bar like CM's */
+html[data-era="cm0102"] .continue-bar { background: #8f949c; border-top: 1px solid #fff; }
+html[data-era="cm0102"] .continue-bar .when b { color: #000; font-family: var(--body); font-weight: 700; font-size: 16px; }
+html[data-era="cm0102"] .continue-bar .when span { color: #1b2f66; }
+
+/* Full CM attribute list: three tight columns */
+.cm-attrs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 10px; }
+.cm-attrs .pf-attr { padding: 1px 0; font-size: 11.5px; }
+.cm-attrs h4 { margin: 2px 0 3px; }

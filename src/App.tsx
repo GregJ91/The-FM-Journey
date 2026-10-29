@@ -14,6 +14,10 @@ import { ClubView, Competitions, Inbox } from './ui/screens/Competitions';
 import { PlayerModal } from './ui/screens/PlayerModal';
 import { MatchScreen } from './ui/screens/Match';
 import { Title } from './ui/screens/Title';
+import { setMoneyScale } from './game/ratings';
+
+/** 2002 prices against today's: roughly a fifth (wages, fees, budgets and income alike). */
+const CM_MONEY = 0.2;
 
 function Game() {
   const g = useGame();
@@ -24,6 +28,13 @@ function Game() {
     applyTheme(clubTheme(colors));
     return () => applyTheme(null);
   }, [colors[0], colors[1]]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // CM 01/02 careers: the CM look, and money shown at early-2000s prices
+  useEffect(() => {
+    if (g.era) document.documentElement.dataset.era = g.era;
+    setMoneyScale(g.era ? CM_MONEY : 1);
+    return () => { delete document.documentElement.dataset.era; setMoneyScale(1); };
+  }, [g.era]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') ui.openPlayer(null); };

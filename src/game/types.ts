@@ -94,6 +94,7 @@ export interface Player {
   ys?: YouthStats; // this season's youth-team matches
   meta?: boolean; // has a meta attribute profile (see meta.ts)
   shirt?: number; // squad number
+  cm?: { v: number[]; o: number }; // CM 01/02 careers: CM-only attributes (CM_EXTRA order) and the overall they were read at
 }
 
 export interface YouthStats { apps: number; mins: number; goals: number; assists: number; rs: number }

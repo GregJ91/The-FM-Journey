@@ -34,7 +34,17 @@ export interface CmPlayer {
   caps: number;
   intGoals: number;
   personality: string;
+  cm: number[]; // CM-only attributes, in CM_EXTRA order
 }
+
+/** CM attributes the game doesn't simulate itself, kept so the profile can show the full CM set. */
+export const CM_EXTRA = [
+  'corners', 'freeKicks', 'longShots', 'marking', 'penalties', 'throwIns',
+  'aggression', 'anticipation', 'bravery', 'determination', 'flair', 'leadership', 'movement', 'teamwork',
+  'acceleration', 'agility', 'balance', 'jumping', 'naturalFitness', 'oneOnOnes',
+] as const;
+/** The ones the database stores relative to ability (they move with the player's level). */
+export const CM_RELATIVE = new Set<string>(['corners', 'freeKicks', 'longShots', 'marking', 'penalties', 'throwIns', 'anticipation', 'movement', 'oneOnOnes']);
 
 export interface CmWorld {
   version: 1;
@@ -154,7 +164,7 @@ function positions(r: Reader, o: number): { pos: Pos; alt: Pos[] } {
   return { pos, alt };
 }
 
-function mapAttrs(a: Record<CmAttr, number>, pos: Pos, target: number): Attrs {
+function mapAttrs(a: Record<CmAttr, number>, pos: Pos, target: number): { attrs: Attrs; shift: number } {
   const gk = pos === 'GK';
   const group = gk ? 'GK' : ['DC', 'DL', 'DR'].includes(pos) ? 'DEF' : ['ST', 'AMC', 'AML', 'AMR'].includes(pos) ? 'ATT' : 'MID';
   const out: Attrs = {
@@ -170,13 +180,15 @@ function mapAttrs(a: Record<CmAttr, number>, pos: Pos, target: number): Attrs {
   // The database's technical values are relative to ability; shift the position's key attributes so the
   // overall matches the player's current ability, keeping his strengths and weaknesses.
   const w = POS_WEIGHTS[pos];
+  let shift = 0;
   for (let i = 0; i < 8; i++) {
     const diff = target - rawOverallAt(out, pos);
     if (Math.abs(diff) < 0.2) break;
+    shift += diff / 4.6;
     for (const k in w) out[k as AttrKey] = clamp(out[k as AttrKey] + diff / 4.6);
   }
   for (const k of ATTR_KEYS) out[k] = Math.round(out[k] * 10) / 10;
-  return out;
+  return { attrs: out, shift };
 }
 
 function personalityFrom(r: Reader, o: number) {
@@ -314,6 +326,9 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
     CM_ATTRS.forEach((k, j) => { a[k] = staff.u8(po + 27 + j); });
     const { pos, alt } = positions(staff, po);
     const target = ovrFromCa(ca);
+    const mapped = mapAttrs(a, pos, target);
+    const extra: Record<string, number> = { ...a, determination: staff.u8(o + 88) };
+    const cmVals = CM_EXTRA.map((k) => Math.round(clamp(extra[k] + (CM_RELATIVE.has(k) ? mapped.shift : 0))));
     const cn = common.get(staff.i32(o + 12));
     const fn = first.get(staff.i32(o + 4)) ?? '';
     const sn = second.get(staff.i32(o + 8)) ?? '';
@@ -324,7 +339,8 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
       club: ci ?? -1, youth: false,
       first: cn ? '' : fn, last: cn || sn || fn, nat: nationCode.get(staff.i32(o + 26)) ?? (ci !== undefined ? clubs[ci].country : 'ENG'), dob,
       pos, alt, foot: lf >= 15 && rf >= 15 ? 'B' : lf > rf ? 'L' : 'R',
-      attrs: mapAttrs(a, pos, target),
+      attrs: mapped.attrs,
+      cm: cmVals,
       pa: Math.round(ovrFromCa(potential(staff.i16(po + 7), ca, i * 7919))),
       contractEnd: Number((dateFrom(staff, o + 70) ?? '0').slice(0, 4)),
       shirt: shirt > 0 && shirt < 100 ? shirt : undefined,

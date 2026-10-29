@@ -282,6 +282,7 @@ function addCmPlayers(g: GameState, cm: CmWorld, idx: number, clubId: number | n
     const p = createPlayer(g, { ...sp, age, ovr: 0, real: true }, clubId, club?.reputation ?? 40);
     p.pa = Math.max(sp.pa, overall(p));
     p.personality = sp.personality;
+    if (sp.cm) p.cm = { v: sp.cm, o: overall(p) };
     p.contractEnd = clubId === null ? g.season : sp.contractEnd;
     p.caps = sp.caps || undefined;
     p.intGoals = sp.intGoals || undefined;

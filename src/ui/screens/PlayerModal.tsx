@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NATIONS } from '../../game/data/names';
 import { nationName } from '../../game/intl';
 import { squadOf } from '../../game/generate';
+import { cmAttributes } from '../../game/cm0102/attrs';
 import { ATTR_GROUPS, ATTR_LABEL, age, fmtMoney, fullName, marketValue, overall, ratingAt, scoutedPotential } from '../../game/ratings';
 import { seasonLabel } from '../../game/season';
 import { askingPrice, playerInterest, releasePlayer, renewContract, renewDemand, signFreeAgent, userBid, wageDemand, windowOpen } from '../../game/transfers';
@@ -94,6 +95,16 @@ export function PlayerModal() {
         {tab === 'attrs' && (
           <div className="cols pf-cols">
             <Card title="Attributes" tag={`${ovr} OVR`} tagColor="var(--accent)">
+              {cmAttributes(p) ? (
+                <div className="pf-attrs cm-attrs">
+                  {cmAttributes(p)!.map((gr) => (
+                    <div key={gr.name} className="pf-attr-col">
+                      <h4>{gr.name}</h4>
+                      {gr.rows.map(([label, v]) => <div key={label} className="pf-attr"><span>{label}</span><AttrVal v={v} /></div>)}
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <div className="pf-attrs">
                 {[groups.slice(0, 1), groups.slice(1, 2), groups.slice(2)].map((col, ci) => (
                   <div key={ci} className="pf-attr-col">
@@ -109,6 +120,7 @@ export function PlayerModal() {
                   </div>
                 ))}
               </div>
+              )}
             </Card>
             <Card title="Positions">
               <div className="pf-pitch">

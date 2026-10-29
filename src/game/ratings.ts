@@ -190,9 +190,15 @@ export function roundMoney(v: number) {
   return Math.max(0, Math.round(v / 10) * 10);
 }
 
+// The game's economy runs at today's prices; CM 01/02 careers show every amount at early-2000s prices instead.
+let moneyScale = 1;
+export function setMoneyScale(f: number) {
+  moneyScale = f;
+}
+
 export function fmtMoney(v: number) {
   const neg = v < 0;
-  const a = Math.abs(v);
+  const a = Math.abs(v) * moneyScale;
   let s: string;
   if (a >= 1_000_000_000) s = `£${(a / 1_000_000_000).toFixed(2)}bn`;
   else if (a >= 1_000_000) s = `£${(a / 1_000_000).toFixed(a >= 10_000_000 ? 0 : 1)}m`;
