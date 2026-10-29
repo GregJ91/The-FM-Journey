@@ -196,17 +196,30 @@ export function wageBill(g: GameState, clubId: number) {
   return s;
 }
 
-/** CM 01/02 careers: a squad short of numbers signs the best-fitting real free agents; a player is only invented when none are left. */
+/**
+ * CM 01/02 careers never invent players to fill a squad: a club short of numbers promotes its best youngsters,
+ * then signs real free agents (players released or out of contract, and regens). New players only enter the game
+ * through the yearly youth intakes, as in CM.
+ */
 function fillCmSquad(g: GameState, club: Club, level: number, min: number) {
-  const squad = Object.values(g.players).filter((p) => p.clubId === club.id && p.squad === 'first');
-  if (squad.length >= min) return;
-  const counts: Partial<Record<Pos, number>> = {};
-  for (const p of squad) counts[p.pos] = (counts[p.pos] ?? 0) + 1;
-  const free = Object.values(g.players).filter((p) => p.clubId === null && overall(p) <= level + 2);
-  for (let n = squad.length; n < min; n++) {
-    const pos = SQUAD_TEMPLATE.find((x, i) => (counts[x] ?? 0) <= SQUAD_TEMPLATE.slice(0, i).filter((y) => y === x).length) ?? pick(SQUAD_TEMPLATE);
-    const best = free.filter((p) => p.clubId === null).sort((a, b) => ratingAt(b, pos) - ratingAt(a, pos))[0];
-    if (best && ratingAt(best, pos) >= level - 12) {
+  const all = Object.values(g.players).filter((p) => p.clubId === club.id);
+  let n = all.filter((p) => p.squad === 'first').length;
+  if (n >= min) return;
+  for (const p of all.filter((x) => x.squad === 'youth' && ageOn(x.dob, g.date) >= 17).sort((x, y) => overall(y) - overall(x))) {
+    if (n >= min) break;
+    p.squad = 'first';
+    n++;
+  }
+  if (n < min) {
+    const counts: Partial<Record<Pos, number>> = {};
+    for (const p of all) if (p.squad === 'first') counts[p.pos] = (counts[p.pos] ?? 0) + 1;
+    // Free agents at the club's level first (best fit for the thinnest position), then the weakest of the rest
+    const free = Object.values(g.players).filter((p) => p.clubId === null);
+    for (; n < min && free.length; n++) {
+      const pos = SQUAD_TEMPLATE.find((x, i) => (counts[x] ?? 0) <= SQUAD_TEMPLATE.slice(0, i).filter((y) => y === x).length) ?? 'MC';
+      const fits = free.filter((p) => overall(p) <= level + 2).sort((a, b) => ratingAt(b, pos) - ratingAt(a, pos));
+      const best = fits[0] ?? free.sort((a, b) => overall(a) - overall(b))[0];
+      free.splice(free.indexOf(best), 1);
       best.clubId = club.id;
       best.squad = 'first';
       best.joined = g.date;
@@ -214,9 +227,6 @@ function fillCmSquad(g: GameState, club: Club, level: number, min: number) {
       best.wage = wageFor(overall(best), club.reputation);
       if (isMetaClub(club)) applyMetaProfile(best);
       counts[best.pos] = (counts[best.pos] ?? 0) + 1;
-    } else {
-      generatePlayer(g, { pos, ovr: Math.max(25, level - 6 + normal(0, 2.5)), age: int(19, 31), country: club.country, clubId: club.id, rep: club.reputation });
-      counts[pos] = (counts[pos] ?? 0) + 1;
     }
   }
   assignShirtNumbers(g, club.id);

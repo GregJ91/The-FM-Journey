@@ -246,6 +246,9 @@ function youthIntake(g: GameState) {
       const kids = generateYouth(g, club, n, true);
       const best = [...kids].sort((a, b) => b.pa - a.pa)[0];
       sendMessage(g, { from: 'Head of Youth Development', kind: 'youth', title: `Youth intake: ${n} new prospects`, body: `This year's youth intake has arrived!\n\n${kids.map((p) => `• ${fullName(p)} (${p.pos}, ${age(p, g.date)}) — OVR ${overall(p)}`).join('\n')}\n\nThe pick of the bunch looks to be ${fullName(best)}. Visit the Youth Team page to have a look.` });
+    } else if (g.era === 'cm0102') {
+      // CM 01/02: every club's regens arrive each year, so the world never runs out of players
+      generateYouth(g, club, int(2, 4), true);
     } else if (!isGuest(club) && chance(0.7)) {
       generateYouth(g, club, int(1, 3), true);
     }
