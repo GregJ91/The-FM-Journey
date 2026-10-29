@@ -1,5 +1,5 @@
 // Offline support: cache the app shell and assets as they're loaded, serve from cache when offline.
-const CACHE = 'fm-journey-v2'; // bump to clear old caches (v1 kept an old landscape manifest)
+const CACHE = 'fm-journey-v3'; // bump to clear old caches (v1 kept an old landscape manifest; v3: new app identity)
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => {

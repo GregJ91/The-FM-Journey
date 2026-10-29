@@ -2,6 +2,7 @@
   "name": "The FM Journey",
   "short_name": "FM Journey",
   "description": "Fast football management: real leagues and players, one-minute matches.",
+  "id": "./?app=2002",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
