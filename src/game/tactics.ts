@@ -1,5 +1,5 @@
 import { FORMATIONS } from './formations';
-import type { Pos, Run, Tactics } from './types';
+import type { PlayerInstr, Pos, Run, Tactics } from './types';
 
 /**
  * Player roles. Each role nudges how much a player contributes to the team's
@@ -131,6 +131,35 @@ export function autoRuns(t: Tactics, seed: number): Run[] {
     out.push({ f: t.formation, slot: i, x: Math.round(Math.max(0, Math.min(97, to.x))), y: Math.round(Math.max(2, Math.min(98, to.y))), ball: to.ball || undefined });
   });
   return out;
+}
+
+/**
+ * CM 01/02 player instructions. Each shifts what the player does: forward runs and free roles push him into the
+ * attack at the cost of defending and running; long shots mean more (and poorer) shots; through balls mean more
+ * chances made; closing down and tight marking help defend but tire; holding the ball up links play.
+ * (Tackling only changes how often he fouls.)
+ */
+export function withInstr(r: Role, i: PlayerInstr): Role {
+  const runs = i.runs ?? 0, shots = i.longShots ?? 0, through = i.throughBalls ?? 0, closing = i.closing ?? 0;
+  return {
+    ...r,
+    att: r.att * (1 + 0.08 * runs + (i.freeRole ? 0.05 : 0) + (i.holdUp ? 0.03 : 0)),
+    mid: r.mid * (1 + (i.holdUp ? 0.15 : 0) + (through < 0 ? 0.03 : 0) - (runs > 0 ? 0.04 : 0)),
+    def: r.def * (1 - (runs > 0 ? 0.15 : runs < 0 ? -0.1 : 0) + 0.1 * closing + (i.tight ? 0.06 : 0) + 0.04 * (i.tackling ?? 0) - (i.freeRole ? 0.1 : 0)),
+    shoot: r.shoot * (1 + 0.2 * runs + 0.3 * shots - (i.holdUp ? 0.1 : 0)),
+    create: r.create * (1 + (through > 0 ? 0.2 : through < 0 ? -0.15 : 0) + (i.freeRole ? 0.25 : 0)),
+    fatigue: r.fatigue * (1 + 0.08 * Math.max(0, runs) + 0.12 * closing + (i.tight ? 0.04 : 0) + (i.freeRole ? 0.04 : 0)),
+  };
+}
+
+/** A position's instructions in this formation, if any were set. */
+export function instrFor(t: Tactics, slot: number) {
+  return t.instr?.find((i) => i.slot === slot && i.f === t.formation);
+}
+
+/** Does this set of instructions change anything? */
+export function hasInstr(i: PlayerInstr | undefined) {
+  return !!i && !!(i.runs || i.longShots || i.throughBalls || i.closing || i.tackling || i.tight || i.holdUp || i.freeRole);
 }
 
 export function roleFor(pos: Pos, id: string | undefined): Role {

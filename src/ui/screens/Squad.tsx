@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FORMATIONS } from '../../game/formations';
-import { normaliseTactics } from '../../game/tactics';
+import { hasInstr, instrFor, normaliseTactics } from '../../game/tactics';
+import { InstructionsPanel, setInstrIn } from '../components/PlayerInstructions';
 import { TeamInstructions } from '../components/TacticsEditor';
 import { activateCheat } from '../../game/cheats';
 import { squadOf } from '../../game/generate';
@@ -197,6 +198,7 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
   const [instr, setInstr] = useState(false);
   const [subsOpen, setSubsOpen] = useState(false);
   const [spOpen, setSpOpen] = useState(false);
+  const [pickView, setPickView] = useState<'players' | 'instr'>('players');
   const slots = FORMATIONS[club.tactics.formation];
   const lineup = club.lineup.length === slots.length ? club.lineup : new Array(slots.length).fill(null);
   const inXI = new Set(lineup.filter((x): x is number => x !== null));
@@ -263,13 +265,19 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
           onTapSlot={setSel}
           onRun={(slot, to) => mutate(() => { club.tactics = { ...club.tactics, runs: setRunIn(club.tactics.runs, formation, slot, to, arrows === 'ball') }; })}
           warn={(i) => !!players[i] && familiarity(players[i]!, slots[i].pos) < 0.9}
-          hint="Tap a player to see who can play there. Red names are out of position."
+          badge={(i) => hasInstr(instrFor(club.tactics, i))}
+          hint="Tap a player to pick who plays there or give him instructions (i). Red names are out of position."
         />
       </section>
 
       {sel !== null && (
-        <Sheet title={`Who can play ${slots[sel].pos}?`} onClose={() => setSel(null)}>
+        <Sheet title={pickView === 'instr' ? `Instructions: ${slots[sel].pos}` : `Who can play ${slots[sel].pos}?`} onClose={() => { setSel(null); setPickView('players'); }}
+          right={<div className="seg"><button className={pickView === 'players' ? 'on' : ''} onClick={() => setPickView('players')}>Players</button><button className={pickView === 'instr' ? 'on' : ''} onClick={() => setPickView('instr')}>Instructions</button></div>}>
           <div className="sheet-b">
+            {pickView === 'instr' ? (
+              <InstructionsPanel instr={instrFor(club.tactics, sel)} pos={slots[sel].pos} name={players[sel] ? shortName(players[sel]!) : slots[sel].pos}
+                onChange={(patch) => mutate(() => { club.tactics = { ...club.tactics, instr: setInstrIn(club.tactics, sel, patch) }; })} />
+            ) : (
             <Fit className="pick-fit">
               <table className="t dense">
                 <thead><tr><th>Pos</th><th>Name</th><th>Fits</th><th className="r ab">Here</th><th className="r">Fit</th></tr></thead>
@@ -290,6 +298,7 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
                 </tbody>
               </table>
             </Fit>
+            )}
           </div>
         </Sheet>
       )}

@@ -152,6 +152,30 @@ export interface Tactics {
   timeWasting: boolean;
   roles: string[]; // role id per formation slot
   runs?: Run[]; // CM-style run arrows drawn on the tactics pitch
+  instr?: PlayerInstr[]; // CM-style individual instructions, per position
+}
+
+/** -1 rarely / easy, 0 mixed / normal, 1 often / hard. */
+export type Often = -1 | 0 | 1;
+
+/** CM 01/02 player instructions for the player in `slot` of formation `f`. */
+export interface PlayerInstr {
+  f: string;
+  slot: number;
+  runs?: Often; // forward runs
+  longShots?: Often;
+  throughBalls?: Often;
+  closing?: Often; // closing down
+  tackling?: Often; // easy / normal / hard
+  tight?: boolean; // tight marking
+  holdUp?: boolean; // hold the ball up (forwards)
+  freeRole?: boolean;
+}
+
+/** Man-marking for one match: `marker` (yours) follows `target` (theirs) everywhere. */
+export interface ManMark {
+  marker: number;
+  target: number;
 }
 
 /** Captain and set-piece takers (player ids; anyone not on the pitch is replaced by the best available). */
@@ -194,6 +218,7 @@ export interface Club {
   tactics: Tactics;
   lineup: (number | null)[]; // 11 player ids in formation slot order
   subs: number[];
+  marks?: { fixtureId: number; list: ManMark[] }; // man-marking set before a match (CM careers)
   setPieces?: SetPieces; // the manager's captain and set-piece takers (computer clubs: the best on the pitch)
   isUser: boolean;
   custom: boolean;

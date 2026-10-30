@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { compName } from '../../game/competitions';
 import { FORMATIONS, MENTALITY } from '../../game/formations';
 import { squadOf } from '../../game/generate';
-import { aggGoals, applyResult, changeTactics, createMatch, makeSub, simulateToEnd, stepMinute, type LiveMatch, type MatchEvent } from '../../game/match';
+import { aggGoals, applyResult, changeTactics, setMarks, createMatch, makeSub, simulateToEnd, stepMinute, type LiveMatch, type MatchEvent } from '../../game/match';
 import { overall, ratingAt, shortName } from '../../game/ratings';
 import { finishUserMatch, numberUserSquad, pendingUserFixture } from '../../game/season';
 import { validateLineup } from '../../game/selection';
@@ -16,6 +16,8 @@ import { Crest, isLight } from '../components/Crest';
 import { useLandscape } from '../useLandscape';
 import { Fit } from '../components/Fit';
 import { RunArrowsBox, RunPitch, setRunIn, type ArrowMode } from '../components/RunPitch';
+import { InstructionsPanel, ManMarking, setInstrIn } from '../components/PlayerInstructions';
+import { hasInstr, instrFor } from '../../game/tactics';
 
 const MS_PER_MIN = 667; // 90 minutes ≈ 60 seconds at 1x
 const SHOUTS = ['V.Defensive', 'Defensive', 'Balanced', 'Attacking', 'All-out attack'];
@@ -56,6 +58,7 @@ export function MatchScreen() {
   const [sideTab, setSideTab] = useState<'feed' | 'stats' | 'ratings' | 'pitch'>('feed');
   const [arrows, setArrows] = useState<ArrowMode>('off');
   const [pitchOf, setPitchOf] = useState<'us' | 'them'>('us');
+  const [instrSlot, setInstrSlot] = useState<number | null>(null);
   const [tacticsOpen, setTacticsOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const histRef = useRef<Snap[]>([]);
@@ -201,8 +204,22 @@ export function MatchScreen() {
         {/* Redraw run arrows mid-match, CM-style */}
         <RunArrowsBox mode={arrows} onMode={setArrows} onClear={myRuns.length ? () => { changeTactics(getGame()!, m, userSide, { runs: (userTeam.tactics.runs ?? []).filter((r) => r.f !== userTeam.tactics.formation) }); refresh(); } : undefined} />
         <div className="match-runs-edit">
-          <RunPitch slots={mySlots} players={myPlayers} runs={myRuns} mode={arrows} showRating={false}
+          <RunPitch slots={mySlots} players={myPlayers} runs={myRuns} mode={arrows} showRating={false} selected={instrSlot}
+            badge={(i) => hasInstr(instrFor(userTeam.tactics, i))}
+            onTapSlot={(i) => setInstrSlot(instrSlot === i ? null : i)}
+            hint="Tap a player for his instructions."
             onRun={(slot, to) => { changeTactics(getGame()!, m, userSide, { runs: setRunIn(userTeam.tactics.runs, userTeam.tactics.formation, slot, to, arrows === 'ball') }); refresh(); }} />
+        </div>
+        {instrSlot !== null && mySlots[instrSlot] && (
+          <div className="card" style={{ padding: 10, marginBottom: 12 }}>
+            <InstructionsPanel instr={instrFor(userTeam.tactics, instrSlot)} pos={mySlots[instrSlot].pos} name={myPlayers[instrSlot] ? shortName(myPlayers[instrSlot]!) : mySlots[instrSlot].pos}
+              onChange={(patch) => { changeTactics(getGame()!, m, userSide, { instr: setInstrIn(userTeam.tactics, instrSlot, patch) }); refresh(); }} />
+          </div>
+        )}
+        <div className="section-label">Man-marking</div>
+        <div style={{ marginBottom: 12 }}>
+          <ManMarking mine={myPlayers.filter((p): p is NonNullable<typeof p> => !!p)} theirs={oppPlayers.filter((p): p is NonNullable<typeof p> => !!p)} marks={userTeam.marks ?? []}
+            onChange={(list) => { setMarks(getGame()!, m, userSide, list); refresh(); }} />
         </div>
         <TeamInstructions g={g} live tactics={userTeam.tactics}
           lineup={FORMATIONS[userTeam.tactics.formation].map((_, i) => userTeam.onPitch.find((lp) => lp.slot === i)?.id ?? null)}
@@ -406,9 +423,15 @@ function PreMatch({ g, fixture, onKick, onInstant, onTactics }: { g: GameState; 
   const slots = FORMATIONS[user.tactics.formation];
   const xi = user.lineup.map((id, i) => (id !== null && g.players[id] ? { p: g.players[id], pos: slots[i]?.pos } : null)).filter(Boolean) as { p: GameState['players'][number]; pos: (typeof slots)[number]['pos'] }[];
   const oppId = fixture.home === user.id ? fixture.away : fixture.home;
-  const opp = squadOf(g, oppId).sort((a, b) => overall(b) - overall(a)).slice(0, 4);
+  const opp = squadOf(g, oppId).filter((p) => p.pos !== 'GK').sort((a, b) => overall(b) - overall(a)).slice(0, 4);
   const out = squad.filter((p) => p.injury || p.suspended > 0);
   const leg1 = fixture.leg === 2 ? g.fixtures.find((f) => f.id === fixture.firstLeg) : undefined;
+  // Man-marking for this match (their likely XI first, then the rest of the squad)
+  const [marking, setMarking] = useState(false);
+  const oppClub = g.clubs[oppId];
+  const oppXi = oppClub.lineup.filter((id): id is number => id !== null && g.players[id]?.clubId === oppId).map((id) => g.players[id]);
+  const theirs = [...oppXi, ...squadOf(g, oppId).filter((p) => !oppXi.includes(p))];
+  const marks = user.marks?.fixtureId === fixture.id ? user.marks.list : [];
   return (
     <div className="match-screen">
       <div className={`comm ${landscape ? 'land' : ''}`}>
@@ -437,10 +460,19 @@ function PreMatch({ g, fixture, onKick, onInstant, onTactics }: { g: GameState; 
         </div>
         <div className="comm-bottom">
           <button className="btn" onClick={onTactics}>✏️ Tactics</button>
+          {g.era && <button className="btn" onClick={() => setMarking(true)}>🎯 Marking{marks.length ? ` (${marks.length})` : ''}</button>}
           <button className="btn" onClick={onInstant}>⏭ Instant result</button>
           <button className="continue-btn match comm-go" onClick={onKick}>⚽ Kick off</button>
         </div>
       </div>
+      {marking && (
+        <Sheet title={`Man-marking v ${oppClub.short}`} onClose={() => setMarking(false)}>
+          <div className="sheet-b col" style={{ gap: 12 }}>
+            <ManMarking mine={xi.map((x) => x.p)} theirs={theirs} marks={marks} onChange={(list) => mutate(() => { user.marks = { fixtureId: fixture.id, list }; })} />
+            <button className="btn primary block" onClick={() => setMarking(false)}>Done</button>
+          </div>
+        </Sheet>
+      )}
     </div>
   );
 }

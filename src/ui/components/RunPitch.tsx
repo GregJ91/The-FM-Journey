@@ -26,7 +26,7 @@ export function RunArrowsBox({ mode, onMode, onClear }: { mode: ArrowMode; onMod
  * should run (or tap him, then the spot; tap him again to remove it). Read-only when `onRun` is left out.
  */
 export function RunPitch({
-  slots, players, runs, mode = 'off', selected, onTapSlot, onRun, warn, showRating = true, hint, className = '',
+  slots, players, runs, mode = 'off', selected, onTapSlot, onRun, warn, badge, showRating = true, hint, className = '',
 }: {
   slots: Slot[];
   players: (Player | null)[];
@@ -36,6 +36,7 @@ export function RunPitch({
   onTapSlot?: (i: number) => void;
   onRun?: (slot: number, to: { x: number; y: number } | null) => void;
   warn?: (i: number) => boolean;
+  badge?: (i: number) => boolean; // a small "i" when the position has instructions
   showRating?: boolean;
   hint?: string;
   className?: string;
@@ -123,6 +124,7 @@ export function RunPitch({
             >
               <i>{p?.shirt ?? i + 1}</i>{p ? p.last : s.pos}
               {p && showRating && <em className="cm-box-r">{Math.round(ratingAt(p, s.pos))}</em>}
+              {badge?.(i) && <b className="cm-ins">i</b>}
             </button>
           );
         })}

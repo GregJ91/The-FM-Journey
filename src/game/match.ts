@@ -7,8 +7,8 @@ import { POS_GROUP, ratingAt, rawOverallAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
 import { cmExtra } from './cm0102/attrs';
-import { autoRuns, normaliseTactics, roleFor, ROLES, withRun, type Role } from './tactics';
-import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, Pos, Run, SetPieces, StatLine, Tactics } from './types';
+import { autoRuns, instrFor, normaliseTactics, roleFor, ROLES, withInstr, withRun, type Role } from './tactics';
+import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, ManMark, Pos, SetPieces, StatLine, Tactics } from './types';
 import { playersByClub } from './shirts';
 
 export function emptyLine(): StatLine {
@@ -41,6 +41,10 @@ export interface Side {
   out: LivePlayer[];
   subsLeft: number;
   str: { att: number; mid: number; def: number; gk: number };
+  marks?: ManMark[]; // this side's man-marking
+  markedBy?: Map<number, number>; // this side's players being man-marked: how much of their game they keep
+  rv?: number; // bumped whenever the strength is worked out again (roles are cached until then)
+  rc?: Map<number, { v: number; slot: number; r: Role }>;
   cheat?: number; // "Champions": how much this side is lifted (set at kick-off against this opponent)
 }
 
@@ -83,22 +87,52 @@ function playerOf(g: GameState, id: number): Player {
   return g.players[id];
 }
 
-/** Roles adjusted by run arrows, cached per arrow (arrows are replaced, never changed, when redrawn). */
-const runRoles = new WeakMap<Run, Map<string, Role>>();
-
-function role(side: Side, lp: LivePlayer) {
-  const r = roleFor(lp.pos, side.tactics.roles[lp.slot]);
-  const runs = side.tactics.runs;
-  if (!runs?.length) return r;
-  for (const run of runs) {
-    if (run.slot !== lp.slot || run.f !== side.tactics.formation) continue;
-    let cache = runRoles.get(run);
-    if (!cache) runRoles.set(run, (cache = new Map()));
-    let out = cache.get(r.id);
-    if (!out) cache.set(r.id, (out = withRun(r, FORMATIONS[run.f][run.slot], run)));
-    return out;
-  }
+/**
+ * What a player does in this match: his role, adjusted by his instructions, his run arrow and man-marking (a marker
+ * gives up some of his own game; the man he marks is in it less, by how much depends on the two of them). Worked
+ * out again whenever the side's strength is (tactics, subs, every few minutes) and cached in between.
+ */
+function role(side: Side, lp: LivePlayer): Role {
+  const c = side.rc?.get(lp.id);
+  if (c && c.v === side.rv && c.slot === lp.slot) return c.r;
+  const t = side.tactics;
+  let r = roleFor(lp.pos, t.roles[lp.slot]);
+  const ins = instrFor(t, lp.slot);
+  if (ins) r = withInstr(r, ins);
+  const run = t.runs?.find((x) => x.slot === lp.slot && x.f === t.formation);
+  if (run) r = withRun(r, FORMATIONS[t.formation][lp.slot], run);
+  if (side.marks?.some((mk) => mk.marker === lp.id)) r = { ...r, att: r.att * 0.75, shoot: r.shoot * 0.7, create: r.create * 0.75, def: r.def * 1.05, fatigue: r.fatigue * 1.08 };
+  const marked = side.markedBy?.get(lp.id);
+  if (marked !== undefined) r = { ...r, att: r.att * (0.5 + 0.5 * marked), shoot: r.shoot * marked, create: r.create * marked };
+  (side.rc ??= new Map()).set(lp.id, { v: side.rv ?? 0, slot: lp.slot, r });
   return r;
+}
+
+/** How much of his game a marked player keeps (0.4-0.95): a quick, clever player shakes off a slow marker. */
+function markHold(g: GameState, marker: number, target: number) {
+  const m = g.players[marker], t = g.players[target];
+  const mk = (cmExtra(m, 'marking') + m.attrs.positioning + m.attrs.pace) / 3;
+  const tg = (t.attrs.dribbling + cmExtra(t, 'movement') + t.attrs.pace) / 3;
+  return Math.max(0.4, Math.min(0.95, 0.6 + (tg - mk) * 0.04));
+}
+
+/** Set a side's man-marking (markers must be on the pitch for it, targets on the pitch for the other side). */
+export function setMarks(g: GameState, m: LiveMatch, side: 0 | 1, marks: ManMark[]) {
+  const s = m.sides[side];
+  const o = m.sides[side === 0 ? 1 : 0];
+  s.marks = marks.filter((mk) => s.onPitch.some((lp) => lp.id === mk.marker) && o.onPitch.some((lp) => lp.id === mk.target));
+  refreshMarks(g, m);
+}
+
+/** Who is being man-marked, and how tightly (after marks, subs or red cards change). */
+function refreshMarks(g: GameState, m: LiveMatch) {
+  m.sides.forEach((s, k) => {
+    const o = m.sides[k === 0 ? 1 : 0];
+    const live = (o.marks ?? []).filter((mk) => o.onPitch.some((lp) => lp.id === mk.marker) && s.onPitch.some((lp) => lp.id === mk.target));
+    s.markedBy = live.length ? new Map(live.map((mk) => [mk.target, markHold(g, mk.marker, mk.target)])) : undefined;
+  });
+  computeStrength(g, m.sides[0]);
+  computeStrength(g, m.sides[1]);
 }
 
 /**
@@ -116,6 +150,7 @@ function metaFactor(p: Player, pos: Pos) {
 }
 
 function computeStrength(g: GameState, side: Side) {
+  side.rv = (side.rv ?? 0) + 1;
   let att = 0, mid = 0, def = 0, gk = 20;
   let hasGK = false;
   let backPass = 0, backN = 0;
@@ -267,6 +302,11 @@ export function createMatch(g: GameState, f: Fixture): LiveMatch {
     injuredOut: [],
   };
   m.events.push({ minute: 0, type: 'kickoff', team: -1, text: `Kick-off at ${f.neutral ? 'a neutral venue' : home.stadium}! ${home.name} v ${away.name}.` });
+  // Man-marking set on the pre-match screen
+  m.sides.forEach((sd, k) => {
+    const mk = g.clubs[sd.clubId].marks;
+    if (mk?.fixtureId === f.id && mk.list.length) setMarks(g, m, k as 0 | 1, mk.list);
+  });
   // "Champions": lift your side to a set margin above this opponent, so it wins most games at any club without
   // turning every match into a cricket score
   m.sides.forEach((sd, k) => {
@@ -308,6 +348,8 @@ export function setPieceTaker(g: GameState, side: Side, job: SetPieceJob): LiveP
   }
   return best;
 }
+/** How often a player fouls, by his tackling instruction (easy, normal, hard). */
+const TACKLE_FOULS = [0.5, 1, 1.6];
 /** Who gets on the end of corners. */
 const HEAD_W: Record<Pos, number> = { DC: 1.2, ST: 1.2, DM: 0.6, MC: 0.5, AMC: 0.45, DL: 0.35, DR: 0.35, ML: 0.3, MR: 0.3, AML: 0.3, AMR: 0.3, GK: 0 };
 
@@ -411,7 +453,7 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
   const foulRate = 0.2 * (dt.tackling === 2 ? 1.45 : dt.tackling === 0 ? 0.6 : 1);
   const cardRate = 0.14 * (dt.tackling === 2 ? 1.3 : dt.tackling === 0 ? 0.65 : 1) * (dt.timeWasting && leading(o) ? 1.2 : 1);
   if (rand() < foulRate) {
-    const fouler = weighted(def.onPitch, (lp) => (lp.pos === 'GK' ? 0.05 : POS_GROUP[lp.pos] === 'DEF' ? 1.4 : POS_GROUP[lp.pos] === 'MID' ? 1.2 : 0.7) * (24 - attr(g, lp.id, 'decisions')));
+    const fouler = weighted(def.onPitch, (lp) => (lp.pos === 'GK' ? 0.05 : POS_GROUP[lp.pos] === 'DEF' ? 1.4 : POS_GROUP[lp.pos] === 'MID' ? 1.2 : 0.7) * (24 - attr(g, lp.id, 'decisions')) * TACKLE_FOULS[(instrFor(def.tactics, lp.slot)?.tackling ?? 0) + 1]);
     if (fouler) {
       m.stats.fouls[o]++;
       fouler.s.fouls++;
@@ -545,6 +587,9 @@ function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number, beatTrap = fa
     : kind === 'corner' ? (0.03 + rand() * 0.07) * (0.75 + 0.5 * setPieceSkill(g.players[cornerTaker?.id ?? shooter.id], 'corners') / 20)
     : Math.min(0.65, Math.max(0.02, -Math.log(1 - rand() * 0.999) * 0.1 * Math.pow(ratio, 0.3)));
   if (beatTrap) xg = Math.max(xg, 0.32);
+  // Told to shoot from distance: some of his efforts are long shots (poorer chances; his Long Shots attribute matters)
+  const longShot = kind === 'play' && (instrFor(att.tactics, shooter.slot)?.longShots ?? 0) > 0 && rand() < 0.4;
+  if (longShot) xg = Math.min(xg, 0.03 + rand() * 0.05) * (0.7 + 0.6 * cmExtra(g.players[shooter.id], 'longShots') / 20);
   // The pass that made the chance
   const others = att.onPitch.filter((lp) => lp !== shooter);
   const creator = kind === 'corner' && cornerTaker && cornerTaker !== shooter ? cornerTaker
@@ -588,6 +633,8 @@ function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number, beatTrap = fa
       ? `PENALTY converted by ${sName}!`
       : kind === 'fk'
         ? pick([`GOAL! ${sName} curls the free kick into the top corner!`, `GOAL! A stunning free kick from ${sName}!`, `GOAL! ${sName} bends it over the wall and in!`])
+      : longShot
+        ? pick([`GOAL! ${sName} lets fly from 30 yards and it flies in!`, `GOAL! A thunderbolt from distance by ${sName}!`])
       : kind === 'corner' && assistId
         ? pick([`GOAL! ${sName} heads in ${name(g, assistId)}'s corner!`, `GOAL! ${name(g, assistId)} whips in the corner and ${sName} powers it home!`])
       : beatTrap
@@ -634,7 +681,8 @@ function sendOff(g: GameState, m: LiveMatch, side: 0 | 1, lp: LivePlayer) {
     const s = m.sides[side];
     if (s.onPitch.length) s.onPitch[0].pos = 'GK';
   }
-  computeStrength(g, m.sides[side]);
+  if (m.sides.some((x) => x.marks?.length)) refreshMarks(g, m);
+  else computeStrength(g, m.sides[side]);
 }
 
 /** Bring on the best bench replacement for `off` (same position preferred). */
@@ -650,7 +698,8 @@ export function makeSub(g: GameState, m: LiveMatch, side: 0 | 1, offId: number, 
   s.bench = s.bench.filter((id) => id !== onId);
   s.subsLeft--;
   if (manual && s.clubId === g.userClubId) noteTactics(g, undefined, false);
-  computeStrength(g, s);
+  if (m.sides.some((x) => x.marks?.length)) refreshMarks(g, m);
+  else computeStrength(g, s);
   return { minute: m.minute, type: 'sub', team: side, player: onId, text: `Substitution ${g.clubs[s.clubId].short}: ${name(g, onId)} replaces ${name(g, offId)}.` };
 }
 
