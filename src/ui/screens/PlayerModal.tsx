@@ -5,7 +5,7 @@ import { squadOf } from '../../game/generate';
 import { cmAttributes } from '../../game/cm0102/attrs';
 import { ATTR_GROUPS, ATTR_LABEL, age, fmtMoney, fullName, marketValue, overall, ratingAt, scoutedPotential } from '../../game/ratings';
 import { seasonLabel } from '../../game/season';
-import { acceptCounter, askingPrice, bidBlocker, openTalks, userLoanOffer, playerInterest, preContractOpen, releasePlayer, renewContract, renewDemand, signFreeAgent, userBid, wageDemand, windowOpen } from '../../game/transfers';
+import { acceptCounter, askingPrice, bidBlocker, bidSummary, type BidExtras, openTalks, userLoanOffer, playerInterest, preContractOpen, releasePlayer, renewContract, renewDemand, signFreeAgent, userBid, wageDemand, windowOpen } from '../../game/transfers';
 import type { Pos, TrainingFocus } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
@@ -27,6 +27,8 @@ export function PlayerModal() {
   const ui = useUI();
   const id = ui.playerId;
   const [bid, setBid] = useState<number | null>(null);
+  const [extras, setExtras] = useState<BidExtras>({});
+  const [addOns, setAddOns] = useState(false);
   const [bidErr, setBidErr] = useState('');
   const [tab, setTab] = useState<'attrs' | 'info' | 'stats' | 'career' | 'actions' | 'edit'>('attrs');
   // Opening a player whose fee is agreed goes straight to the contract offer
@@ -159,6 +161,10 @@ export function PlayerModal() {
                 <div><span>Form</span><b>{p.form.length ? <Spark values={p.form} /> : null}<span style={{ color: p.lastChange > 0 ? 'var(--good)' : p.lastChange < 0 ? 'var(--bad)' : undefined }}>{p.lastChange > 0 ? `▲ +${p.lastChange}` : p.lastChange < 0 ? `▼ ${p.lastChange}` : p.form.length ? '' : '—'}</span></b></div>
                 <div><span>Season</span><b>{p.stats.apps} apps · {p.stats.goals} gls · {p.stats.assists} ast</b></div>
                 <div><span>International</span><b>{p.caps ? `${p.caps} caps, ${p.intGoals ?? 0} goals` : 'Uncapped'}</b></div>
+                {p.clauses?.release && <div><span>Release clause</span><b>{fmtMoney(p.clauses.release)}</b></div>}
+                {p.clauses?.relegation && <div><span>Relegation release</span><b>Yes</b></div>}
+                {p.sellOn && g.clubs[p.sellOn.clubId] && <div><span>Sell-on</span><b>{p.sellOn.pct}% to {g.clubs[p.sellOn.clubId].short}</b></div>}
+                {p.appsFee && g.clubs[p.appsFee.clubId] && <div><span>Appearance fee</span><b>{fmtMoney(p.appsFee.fee)} after {p.appsFee.apps} ({p.appsFee.done} so far)</b></div>}
               </div>
             </Card>}
           </div>
@@ -266,11 +272,11 @@ export function PlayerModal() {
               ))}
               {offer && (
                 <div className={`bid-status ${offer.status}`}>
-                  {offer.status === 'pending' && <><b>Bid submitted</b><span>{fmtMoney(offer.fee)} to {seller.name}. Awaiting response: continue to the next day for their reply.</span></>}
-                  {offer.status === 'accepted' && <><b>Bid accepted</b><span>{seller.name} accept {fmtMoney(offer.fee)}.</span></>}
-                  {offer.status === 'countered' && <><b>Counter offer</b><span>{seller.name} rejected {fmtMoney(offer.fee)} but would accept {fmtMoney(offer.counter ?? 0)}.</span>
+                  {offer.status === 'pending' && <><b>Bid submitted</b><span>{bidSummary(g, offer)} to {seller.name}. Awaiting response: continue to the next day for their reply.</span></>}
+                  {offer.status === 'accepted' && <><b>Bid accepted</b><span>{seller.name} accept {bidSummary(g, offer)}.</span></>}
+                  {offer.status === 'countered' && <><b>Counter offer</b><span>{seller.name} rejected {bidSummary(g, offer)} but would accept {bidSummary(g, { ...offer, fee: offer.counter ?? 0 })}.</span>
                     <button className="btn primary block" onClick={() => { const r = mutate(() => acceptCounter(g, offer.id)); setBidErr(r.ok ? '' : r.msg); }}>Accept {fmtMoney(offer.counter ?? 0)}</button></>}
-                  {offer.status === 'rejected' && <><b>Bid rejected</b><span>{seller.name} turned down {fmtMoney(offer.fee)}.</span></>}
+                  {offer.status === 'rejected' && <><b>Bid rejected</b><span>{seller.name} turned down {bidSummary(g, offer)}.</span></>}
                   {offer.status === 'collapsed' && <><b>Deal collapsed</b><span>The bid of {fmtMoney(offer.fee)} fell through.</span></>}
                 </div>
               )}
@@ -289,7 +295,32 @@ export function PlayerModal() {
                   <input type="range" min={Math.round(ask * 0.4)} max={Math.max(ask * 1.6, 10000)} step={Math.max(1000, Math.round(ask / 100))} value={bidVal} onChange={(e) => { setBid(Number(e.target.value)); setBidErr(''); }} style={{ flex: 1, height: 30 }} />
                   <b style={{ minWidth: 64, textAlign: 'right', fontFamily: 'var(--display)', fontSize: 18 }}>{fmtMoney(bidVal)}</b>
                 </div>
-                <button className="btn primary block" onClick={() => { const r = mutate(() => userBid(g, p.id, bidVal)); setBidErr(r.ok ? '' : r.msg); }}>{offer ? 'Bid again' : 'Submit bid'}</button>
+                {/* CM-style add-ons: a player in part-exchange, a sell-on share, an appearance fee */}
+                {g.era && (addOns ? (
+                  <div className="col addons">
+                    <label className="ti-field"><span>Part-exchange</span>
+                      <select className="input" value={extras.swap ?? ''} onChange={(e) => setExtras({ ...extras, swap: e.target.value === '' ? undefined : Number(e.target.value) })}>
+                        <option value="">None</option>
+                        {squadOf(g, user.id).filter((x) => !x.loan && !x.preContract).sort((a, b) => marketValue(b, g.date) - marketValue(a, g.date)).map((x) => <option key={x.id} value={x.id}>{x.pos} {fullName(x)} · {fmtMoney(marketValue(x, g.date))}</option>)}
+                      </select>
+                    </label>
+                    <div className="ti-grid">
+                      <label className="ti-field"><span>Sell-on</span>
+                        <select className="input" value={extras.sellOn ?? 0} onChange={(e) => setExtras({ ...extras, sellOn: Number(e.target.value) || undefined })}>
+                          {[0, 10, 15, 20, 25, 30, 40, 50].map((v) => <option key={v} value={v}>{v ? `${v}% of next fee` : 'None'}</option>)}
+                        </select>
+                      </label>
+                      <label className="ti-field"><span>Appearance fee</span>
+                        <select className="input" value={extras.appsFee ? `${extras.appsFee.fee}|${extras.appsFee.apps}` : ''} onChange={(e) => { const [fee, apps] = e.target.value.split('|').map(Number); setExtras({ ...extras, appsFee: e.target.value ? { fee, apps } : undefined }); }}>
+                          <option value="">None</option>
+                          {[0.1, 0.25, 0.5].flatMap((f) => [25, 50].map((apps) => { const fee = Math.max(10_000, Math.round((ask * f) / 10_000) * 10_000); return <option key={`${f}${apps}`} value={`${fee}|${apps}`}>{fmtMoney(fee)} after {apps} games</option>; }))}
+                        </select>
+                      </label>
+                    </div>
+                    <div className="small muted">Clubs value a player in part-exchange only if he'd get in their side. A sell-on share is worth more on a young player; an appearance fee is only paid if he plays the games.</div>
+                  </div>
+                ) : <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setAddOns(true)}>+ Add-ons (part-exchange, sell-on, appearances)</button>)}
+                <button className="btn primary block" onClick={() => { const r = mutate(() => userBid(g, p.id, bidVal, g.era ? extras : {})); setBidErr(r.ok ? '' : r.msg); if (r.ok) { setExtras({}); setAddOns(false); } }}>{offer ? 'Bid again' : 'Submit bid'}{g.era && (extras.swap !== undefined || extras.sellOn || extras.appsFee) ? ` (${fmtMoney(bidVal)} + add-ons)` : ''}</button>
               </>}
               {g.era && windowOpen(g) && !p.preContract && !permitCheck(g, p, user).msg && loanOffer?.status !== 'pending' && <button className="btn block" onClick={() => { const r = mutate(() => userLoanOffer(g, p.id)); setBidErr(r.ok ? '' : r.msg); }}>Offer loan (until end of season)</button>}
               <button className="btn block" onClick={toggleShortlist}>{shortlisted ? '★ Shortlisted' : '☆ Add to shortlist'}</button>

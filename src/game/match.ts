@@ -7,6 +7,7 @@ import { POS_GROUP, ratingAt, rawOverallAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
 import { cmExtra } from './cm0102/attrs';
+import { appearanceMade } from './transfers';
 import { autoRuns, instrFor, normaliseTactics, roleFor, ROLES, withInstr, withRun, type Role } from './tactics';
 import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, ManMark, Pos, SetPieces, StatLine, Tactics } from './types';
 import { playersByClub } from './shirts';
@@ -848,6 +849,7 @@ export function applyResult(g: GameState, m: LiveMatch) {
     }
     // Player updates
     p.stats.apps++;
+    if (p.appsFee) appearanceMade(g, p);
     p.stats.mins += mins;
     p.stats.goals += lp.goals;
     p.stats.assists += lp.assists;

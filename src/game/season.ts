@@ -21,7 +21,7 @@ import { journeyDaily, journeyMonthly } from './journey';
 import { addRep, jobsDaily, jobsMonthly } from './jobs';
 import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
 import { chance, int, normal, pick } from './rng';
-import { aiBidsForUser, aiLoanOffersForUser, aiLoans, aiPreContracts, aiTransfers, completeTransfer, endLoan, expireOffers, respondToContracts, respondToLoanOffers, respondToUserBids } from './transfers';
+import { aiBidsForUser, aiLoanOffersForUser, aiLoans, aiPreContracts, aiTransfers, completeTransfer, endLoan, expireOffers, respondToContracts, respondToLoanOffers, respondToUserBids, relegationReleases, releaseClauseBids } from './transfers';
 import { matchdayIncome } from './club';
 import { bestFormation } from './selection';
 import { normaliseTactics } from './tactics';
@@ -233,6 +233,7 @@ function daily(g: GameState) {
   aiLoans(g);
   aiLoanOffersForUser(g);
   aiBidsForUser(g);
+  releaseClauseBids(g);
   expireOffers(g);
 }
 
@@ -382,6 +383,9 @@ export function endSeason(g: GameState) {
         user.trophies.push({ season: g.season, name: `Promotion to ${to.name}` });
       }
       sendMessage(g, { from: 'The Board', kind: 'season', title: promoted ? `⬆️ Promoted to the ${to.name}!` : `⬇️ Relegated to the ${to.name}`, body: promoted ? `What a season! ${c.name} will play in the ${to.name} next season. The board is thrilled.` : `${c.name} have been relegated to the ${to.name}. The board expects an immediate response.` });
+      // Relegation release clauses: those players can walk away
+      const gone = promoted ? [] : relegationReleases(g, c.id);
+      if (gone.length) sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: 'Relegation release clauses', body: `With relegation, ${gone.join(', ')} ${gone.length > 1 ? 'have' : 'has'} used the release clause in ${gone.length > 1 ? 'their contracts' : 'his contract'} and left on a free.` });
     }
   }
 
@@ -412,6 +416,7 @@ export function endSeason(g: GameState) {
       const leavingUser = p.clubId === g.userClubId;
       p.preContract = undefined;
       completeTransfer(g, p.id, pc.clubId, 0, pc.wage, pc.years);
+      if (pc.clauses) p.clauses = pc.clauses;
       const to = g.clubs[pc.clubId];
       to.balance -= pc.bonus;
       to.seasonExpense += pc.bonus;

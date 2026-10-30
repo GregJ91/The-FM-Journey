@@ -97,6 +97,9 @@ export interface Player {
   past?: [number, number, number, number, number][]; // CM careers: real career before the save began ([season, index into g.pastClubs, apps, goals, loan])
   cm?: { v: number[]; o: number };
   preContract?: PreContract; // agreed to join another club on a free in the summer
+  clauses?: ContractClauses; // clauses in his contract with his current club (CM careers)
+  sellOn?: { clubId: number; pct: number }; // a club he was sold by gets this share of his next transfer fee
+  appsFee?: { clubId: number; payer: number; fee: number; apps: number; done: number }; // owed to clubId once he plays `apps` games for payer
   dbi?: number; // CM 01/02 careers: index in the database, so saves can leave out what never changes (history, CM attributes)
   cmEdited?: boolean; // the editor changed his CM attributes or personality: save them
   loan?: { from: number; until: string }; // on loan here from club `from` until the date
@@ -410,6 +413,16 @@ export interface Offer {
   /** transfer (default): fee agreed with his club first; free: a free agent; pre: a pre-contract with a player whose
    *  contract ends this summer (joins on a free then); renew: a new contract for one of your own players; loan: a season-long loan */
   kind?: 'transfer' | 'free' | 'pre' | 'renew' | 'loan';
+  // Add-ons to a bid (CM careers)
+  swap?: number; // one of the buyer's players offered in part-exchange
+  sellOn?: number; // % of his next transfer fee going to the selling club
+  appsFee?: { fee: number; apps: number }; // paid to the selling club once he has played this many games
+}
+
+/** Clauses in a player's contract (CM 01/02). */
+export interface ContractClauses {
+  release?: number; // he can talk to any club that bids this much
+  relegation?: boolean; // he may leave on a free if the club is relegated
 }
 
 /** A pre-contract: he joins this club on a free when his contract runs out in the summer. */
@@ -418,6 +431,7 @@ export interface PreContract {
   wage: number;
   years: number;
   bonus: number;
+  clauses?: ContractClauses;
 }
 
 export type SquadRole = 'key' | 'first' | 'rotation' | 'backup';
@@ -432,6 +446,8 @@ export interface ContractOffer {
   state: 'pending' | 'rejected' | 'agreed'; // agreed: he accepted, the transfer waits for your confirmation
   tries: number; // offers he has turned down
   note?: string; // why he turned the last one down
+  release?: number; // minimum release fee clause
+  relegation?: boolean; // relegation release clause
 }
 
 export interface TransferRecord {

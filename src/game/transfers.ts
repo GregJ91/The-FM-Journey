@@ -10,7 +10,7 @@ import { age, fmtMoney, fullName, marketValue, overall, ratingAt, roundMoney, wa
 import { chance, normal, pick, rand, weighted } from './rng';
 import { pickLineup } from './selection';
 import { FORMATIONS } from './formations';
-import type { Club, ContractOffer, GameState, Offer, Player, SquadRole } from './types';
+import type { Club, ContractOffer, GameState, Offer, Player, SquadRole, ContractClauses } from './types';
 import { POS_GROUP } from './ratings';
 import { sendMessage } from './inbox';
 import { mgr, note, noteSigning } from './manager';
@@ -67,7 +67,10 @@ export function bidBlocker(g: GameState, p: Player): string {
   return '';
 }
 
-export function userBid(g: GameState, playerId: number, fee: number): { ok: boolean; msg: string } {
+/** Add-ons to a bid (CM careers): a player in part-exchange, a sell-on share, an appearance fee. */
+export type BidExtras = Pick<Offer, 'swap' | 'sellOn' | 'appsFee'>;
+
+export function userBid(g: GameState, playerId: number, fee: number, extras: BidExtras = {}): { ok: boolean; msg: string } {
   const user = g.clubs[g.userClubId];
   const p = g.players[playerId];
   if (!p || p.clubId === null) return { ok: false, msg: 'Player not available.' };
@@ -77,12 +80,46 @@ export function userBid(g: GameState, playerId: number, fee: number): { ok: bool
   if (g.offers.some((o) => o.playerId === playerId && o.from === user.id && (o.status === 'pending' || o.status === 'accepted'))) {
     return { ok: false, msg: 'You already have an active bid for this player.' };
   }
+  const swap = extras.swap !== undefined ? g.players[extras.swap] : undefined;
+  if (swap && (swap.clubId !== user.id || swap.loan)) return { ok: false, msg: 'You can only offer your own players in part-exchange.' };
+  if (swap?.preContract) return { ok: false, msg: `${fullName(swap)} has agreed to join another club.` };
   const offer: Offer = {
     id: nextId(g), playerId, from: user.id, to: p.clubId, fee, wage: wageDemand(g, p, user),
     status: 'pending', date: g.date, respondBy: addDays(g.date, 1),
+    ...(swap ? { swap: swap.id } : {}),
+    ...(extras.sellOn ? { sellOn: Math.max(0, Math.min(50, Math.round(extras.sellOn))) } : {}),
+    ...(extras.appsFee?.fee ? { appsFee: extras.appsFee } : {}),
   };
   g.offers.push(offer);
-  return { ok: true, msg: `Bid of ${fmtMoney(fee)} submitted to ${g.clubs[p.clubId].name}. Expect a reply tomorrow.` };
+  return { ok: true, msg: `Bid of ${bidSummary(g, offer)} submitted to ${g.clubs[p.clubId].name}. Expect a reply tomorrow.` };
+}
+
+/** "£2m + Kinsella + 20% sell-on + £500k after 25 games" */
+export function bidSummary(g: GameState, o: Offer) {
+  const parts = [fmtMoney(o.fee)];
+  if (o.swap !== undefined && g.players[o.swap]) parts.push(fullName(g.players[o.swap]));
+  if (o.sellOn) parts.push(`${o.sellOn}% sell-on`);
+  if (o.appsFee) parts.push(`${fmtMoney(o.appsFee.fee)} after ${o.appsFee.apps} games`);
+  return parts.join(' + ');
+}
+
+/**
+ * What the add-ons are worth to the selling club, on top of the cash: a player they'd use is worth most of his value
+ * (one they wouldn't, much less); a sell-on share is worth more on a young player; an appearance fee may never be paid.
+ */
+export function addOnValue(g: GameState, o: Offer, p: Player) {
+  const seller = g.clubs[o.to];
+  let v = 0;
+  const swap = o.swap !== undefined ? g.players[o.swap] : undefined;
+  if (swap && swap.clubId === o.from) {
+    const level = squadOf(g, seller.id).map(overall).sort((a, b) => b - a).slice(0, 14);
+    const avg = level.length ? level.reduce((a, b) => a + b, 0) / level.length : 50;
+    const wanted = overall(swap) >= avg - 3 && age(swap, g.date) < 33;
+    v += marketValue(swap, g.date) * (wanted ? 0.85 : 0.3);
+  }
+  if (o.sellOn) v += (o.sellOn / 100) * marketValue(p, g.date) * (age(p, g.date) <= 24 ? 0.6 : 0.3);
+  if (o.appsFee) v += o.appsFee.fee * (o.appsFee.apps <= 25 ? 0.8 : o.appsFee.apps <= 50 ? 0.6 : 0.4);
+  return v;
 }
 
 /** Process user bids awaiting a response. */
@@ -94,16 +131,23 @@ export function respondToUserBids(g: GameState) {
     // A good negotiator gets deals done for a little less (up to 8%)
     const ask = roundMoney(askingPrice(g, p) * (1 - 0.08 * mgr(g, 'negotiating')));
     const seller = g.clubs[o.to];
-    if (o.fee >= ask) {
+    const extra = addOnValue(g, o, p);
+    const worth = o.fee + extra;
+    const what = bidSummary(g, o);
+    const swapName = o.swap !== undefined && g.players[o.swap] ? fullName(g.players[o.swap]) : '';
+    if (worth >= ask) {
       o.status = 'accepted';
-      sendMessage(g, { from: seller.name, kind: 'transfer', title: `Bid accepted for ${fullName(p)}`, body: `${seller.name} have accepted your ${fmtMoney(o.fee)} offer for ${fullName(p)}. You may now offer ${fullName(p)} a contract. His agent is asking for around ${fmtMoney(o.wage)}/week.`, offerId: o.id });
-    } else if (o.fee >= ask * 0.75) {
+      sendMessage(g, { from: seller.name, kind: 'transfer', title: `Bid accepted for ${fullName(p)}`, body: `${seller.name} have accepted your offer of ${what} for ${fullName(p)}. You may now offer ${fullName(p)} a contract. His agent is asking for around ${fmtMoney(o.wage)}/week.`, offerId: o.id });
+    } else if (worth >= ask * 0.75) {
+      // They want more cash; the add-ons stay in the deal
       o.status = 'countered';
-      o.counter = ask;
-      sendMessage(g, { from: seller.name, kind: 'transfer', title: `Counter offer for ${fullName(p)}`, body: `${seller.name} have rejected ${fmtMoney(o.fee)} but would accept ${fmtMoney(ask)} for ${fullName(p)}.`, offerId: o.id });
+      o.counter = roundMoney(Math.max(o.fee, ask - extra));
+      const keep = extra > 0 ? ` with the rest of your offer${swapName ? ` (including ${swapName})` : ''}` : '';
+      sendMessage(g, { from: seller.name, kind: 'transfer', title: `Counter offer for ${fullName(p)}`, body: `${seller.name} have rejected ${what} but would accept ${fmtMoney(o.counter)}${keep} for ${fullName(p)}.`, offerId: o.id });
     } else {
       o.status = 'rejected';
-      sendMessage(g, { from: seller.name, kind: 'transfer', title: `Bid rejected for ${fullName(p)}`, body: `${seller.name} have flatly rejected your ${fmtMoney(o.fee)} bid for ${fullName(p)}. They value the player far higher.` });
+      const why = swapName && extra < marketValue(g.players[o.swap!], g.date) * 0.5 ? ` They don't rate ${swapName} as part of the deal.` : '';
+      sendMessage(g, { from: seller.name, kind: 'transfer', title: `Bid rejected for ${fullName(p)}`, body: `${seller.name} have flatly rejected your offer of ${what} for ${fullName(p)}. They value the player far higher.${why}` });
     }
   }
 }
@@ -188,7 +232,7 @@ export function preContractOpen(g: GameState, p: Player) {
 }
 
 /** Offer personal terms (after the fee is agreed, or straight away for free agents, pre-contracts and renewals); he answers the next day. */
-export function offerContract(g: GameState, offerId: number, terms: Pick<ContractOffer, 'wage' | 'years' | 'bonus' | 'role'>): { ok: boolean; msg: string } {
+export function offerContract(g: GameState, offerId: number, terms: Pick<ContractOffer, 'wage' | 'years' | 'bonus' | 'role'> & Partial<Pick<ContractOffer, 'release' | 'relegation'>>): { ok: boolean; msg: string } {
   const o = g.offers.find((x) => x.id === offerId);
   const p = o && g.players[o.playerId];
   if (!o || !p || o.status !== 'accepted' || p.clubId !== dealClub(o)) return { ok: false, msg: 'Offer no longer valid.' };
@@ -219,9 +263,9 @@ export function respondToContracts(g: GameState) {
     const yearsF = 1 - 0.04 * Math.abs(c.years - pref);
     // Happy players stay for a little less; unhappy ones want more
     const moraleF = o.kind === 'renew' ? 1 + (p.morale - 60) / 400 : 1;
-    const score = (c.wage / demand) * roleF * yearsF * moraleF + (c.bonus / (demand * 52)) * 0.3 + mgr(g, 'negotiating') * 0.04;
+    const score = (c.wage / demand) * roleF * yearsF * moraleF + (c.bonus / (demand * 52)) * 0.3 + mgr(g, 'negotiating') * 0.04 + clauseAppeal(g, p, c);
     const agent = `${fullName(p)}'s agent`;
-    const terms = `${fmtMoney(c.wage)}/week for ${c.years} year${c.years > 1 ? 's' : ''} as ${ROLE_AS[c.role]}${c.bonus ? `, with a ${fmtMoney(c.bonus)} signing-on fee` : ''}`;
+    const terms = `${fmtMoney(c.wage)}/week for ${c.years} year${c.years > 1 ? 's' : ''} as ${ROLE_AS[c.role]}${c.bonus ? `, with a ${fmtMoney(c.bonus)} signing-on fee` : ''}${clauseText(c)}`;
     if (score >= 0.97 + normal(0, 0.025)) {
       c.state = 'agreed';
       c.note = undefined;
@@ -258,6 +302,7 @@ export function respondToContracts(g: GameState) {
 function renewOn(g: GameState, p: Player, c: ContractOffer) {
   const club = g.clubs[p.clubId!];
   p.wage = c.wage;
+  p.clauses = clausesOf(c);
   p.contractEnd = g.season + c.years + (month(g.date) >= 7 ? 1 : 0);
   p.morale = Math.min(100, p.morale + 8);
   club.balance -= c.bonus;
@@ -281,19 +326,26 @@ export function confirmTransfer(g: GameState, offerId: number): { ok: boolean; m
   }
   if (o.fee + c.bonus > user.transferBudget) return { ok: false, msg: `Not enough transfer budget (${fmtMoney(o.fee + c.bonus)} needed).` };
   if (o.kind === 'pre') {
-    p.preContract = { clubId: user.id, wage: c.wage, years: c.years, bonus: c.bonus };
+    p.preContract = { clubId: user.id, wage: c.wage, years: c.years, bonus: c.bonus, clauses: clausesOf(c) };
     o.status = 'done';
     sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `${fullName(p)} agrees a pre-contract`, body: `${fullName(p)} will join on a free transfer when his contract at ${g.clubs[o.to].name} runs out in the summer.\n\nTerms: ${fmtMoney(c.wage)}/week for ${c.years} year${c.years > 1 ? 's' : ''} as ${ROLE_AS[c.role]}${c.bonus ? `, with a ${fmtMoney(c.bonus)} signing-on fee` : ''}.` });
     return { ok: true, msg: `${fullName(p)} will join in the summer.` };
   }
   if (!canAffordWage(g, user.id, c.wage)) return { ok: false, msg: `His wage would break your wage budget (${fmtMoney(user.wageBudget)}/wk).` };
   const from = o.kind === 'free' ? null : g.clubs[o.to].name;
+  const swap = o.swap !== undefined ? g.players[o.swap] : undefined;
+  if (swap && swap.clubId !== user.id) { o.status = 'collapsed'; return { ok: false, msg: `${fullName(swap)} is no longer yours to offer: the deal has collapsed.` }; }
+  // The player in part-exchange goes the other way on his current terms
+  if (swap) completeTransfer(g, swap.id, o.to, 0, swap.wage, Math.max(1, swap.contractEnd - g.season));
   completeTransfer(g, p.id, user.id, o.fee, c.wage, c.years);
+  if (o.sellOn && o.kind !== 'free') p.sellOn = { clubId: o.to, pct: o.sellOn };
+  if (o.appsFee && o.kind !== 'free') p.appsFee = { clubId: o.to, payer: user.id, fee: o.appsFee.fee, apps: o.appsFee.apps, done: 0 };
+  p.clauses = clausesOf(c);
   user.balance -= c.bonus;
   user.seasonExpense += c.bonus;
   user.transferBudget = Math.max(0, user.transferBudget - c.bonus);
   o.status = 'done';
-  sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `${fullName(p)} signs!`, body: `${fullName(p)} has ${from ? `completed his ${fmtMoney(o.fee)} move from ${from}` : 'signed on a free transfer'}.\n\nTerms: ${fmtMoney(c.wage)}/week for ${c.years} year${c.years > 1 ? 's' : ''} as ${ROLE_AS[c.role]}${c.bonus ? `, with a ${fmtMoney(c.bonus)} signing-on fee` : ''}.` });
+  sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `${fullName(p)} signs!`, body: `${fullName(p)} has ${from ? `completed his move from ${from} (${bidSummary(g, { ...o, swap: swap?.id })})` : 'signed on a free transfer'}.\n\nTerms: ${fmtMoney(c.wage)}/week for ${c.years} year${c.years > 1 ? 's' : ''} as ${ROLE_AS[c.role]}${c.bonus ? `, with a ${fmtMoney(c.bonus)} signing-on fee` : ''}${clauseText(c)}.` });
   return { ok: true, msg: `${fullName(p)} has signed!` };
 }
 
@@ -350,6 +402,19 @@ export function completeTransfer(g: GameState, playerId: number, toId: number, f
   const to = g.clubs[toId];
   if (to.isUser) noteSigning(g, fee, marketValue(p, g.date));
   else if (fromId === g.userClubId) note(g, 'negotiating', fee >= marketValue(p, g.date) ? 1.5 : 0.8);
+  // A sell-on clause from an earlier move: that club gets its share of this fee
+  if (fromId !== null && p.sellOn && fee > 0 && g.clubs[p.sellOn.clubId] && p.sellOn.clubId !== toId) {
+    const cut = roundMoney((fee * p.sellOn.pct) / 100);
+    const owed = g.clubs[p.sellOn.clubId];
+    const from = g.clubs[fromId];
+    from.balance -= cut; from.seasonIncome -= cut;
+    owed.balance += cut; owed.seasonIncome += cut;
+    if (owed.isUser) { owed.transferBudget += Math.round(cut * 0.75); sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `Sell-on money: ${fmtMoney(cut)}`, body: `${fullName(p)} has moved from ${from.name} to ${to.name} for ${fmtMoney(fee)}. Our ${p.sellOn.pct}% sell-on clause brings in ${fmtMoney(cut)}.` }); }
+    if (from.isUser) sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `Sell-on paid to ${owed.name}`, body: `${owed.name} receive ${fmtMoney(cut)} (${p.sellOn.pct}%) of the fee for ${fullName(p)} under the sell-on clause.` });
+  }
+  if (fromId !== null) p.sellOn = undefined;
+  p.appsFee = undefined;
+  p.clauses = undefined;
   if (fromId !== null) {
     const from = g.clubs[fromId];
     from.balance += fee;
@@ -683,4 +748,93 @@ export function aiLoans(g: GameState) {
       startLoan(g, p, pick(to).id);
     }
   }
+}
+
+// ---------- Contract clauses and add-ons ----------
+
+function clausesOf(c: ContractOffer): ContractClauses | undefined {
+  return c.release || c.relegation ? { ...(c.release ? { release: c.release } : {}), ...(c.relegation ? { relegation: true } : {}) } : undefined;
+}
+
+function clauseText(c: ContractOffer) {
+  const bits = [c.release ? `a ${fmtMoney(c.release)} minimum release fee` : '', c.relegation ? 'a relegation release clause' : ''].filter(Boolean);
+  return bits.length ? `, with ${bits.join(' and ')}` : '';
+}
+
+/**
+ * How much the clauses sweeten a contract for him: a release fee he could realistically trigger (the lower against
+ * his value, the more he likes it), and the freedom to leave if the club goes down.
+ */
+export function clauseAppeal(g: GameState, p: Player, c: Pick<ContractOffer, 'release' | 'relegation'>) {
+  const value = Math.max(1, marketValue(p, g.date));
+  const release = c.release ? Math.max(0, Math.min(0.1, 0.1 * (2.5 - c.release / value) / 1.5)) : 0;
+  return release + (c.relegation ? 0.03 : 0);
+}
+
+/** Release fees offered on the contract screen: multiples of his value. */
+export function releaseOptions(g: GameState, p: Player) {
+  const v = marketValue(p, g.date);
+  return [1.5, 2, 3, 5].map((m) => roundMoney(Math.max(100_000, v * m)));
+}
+
+/** He has played a game: an appearance fee falls due once he reaches the agreed number. */
+export function appearanceMade(g: GameState, p: Player) {
+  const a = p.appsFee;
+  if (!a || p.clubId !== a.payer) return;
+  a.done++;
+  if (a.done < a.apps) return;
+  const payer = g.clubs[a.payer];
+  const to = g.clubs[a.clubId];
+  p.appsFee = undefined;
+  if (!payer || !to) return;
+  payer.balance -= a.fee; payer.seasonExpense += a.fee;
+  if (payer.isUser) payer.transferBudget = Math.max(0, payer.transferBudget - a.fee);
+  to.balance += a.fee; to.seasonIncome += a.fee;
+  if (payer.isUser) sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `Appearance fee paid: ${fullName(p)}`, body: `${fullName(p)} has played ${a.apps} games for us, so the ${fmtMoney(a.fee)} appearance fee is now paid to ${to.name}.` });
+  if (to.isUser) { to.transferBudget += Math.round(a.fee * 0.75); sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `Appearance fee received: ${fullName(p)}`, body: `${fullName(p)} has played ${a.apps} games for ${payer.name}: they pay us the ${fmtMoney(a.fee)} appearance fee.` }); }
+}
+
+/**
+ * Release clauses: a club that can afford the fee and that he'd join may simply pay it. You can't stop it; he's gone.
+ * (Checked on the days the computer clubs look at your players.)
+ */
+export function releaseClauseBids(g: GameState) {
+  if (!windowOpen(g)) return;
+  const user = g.clubs[g.userClubId];
+  for (const p of squadOf(g, user.id)) {
+    const fee = p.clauses?.release;
+    if (!fee || p.loan || p.preContract || !chance(0.12)) continue;
+    // Only worth it when the clause is a bargain for them
+    if (fee > marketValue(p, g.date) * 1.6) continue;
+    const buyers = Object.values(g.clubs).filter((c) => !c.isUser && !isTransferOnly(c) && c.transferBudget >= fee && c.reputation >= user.reputation - 5 && playerInterest(g, p, c).ok && permitCheck(g, p, c).ok);
+    if (!buyers.length) continue;
+    const buyer = buyers.sort((a, b) => b.reputation - a.reputation)[0];
+    completeTransfer(g, p.id, buyer.id, fee, wageDemand(g, p, buyer));
+    sendMessage(g, { from: 'Director of Football', kind: 'transfer', title: `${buyer.name} trigger ${fullName(p)}'s release clause`, body: `${buyer.name} have met the ${fmtMoney(fee)} minimum release fee in ${fullName(p)}'s contract. He has agreed terms and joined them; there was nothing we could do.` });
+    return; // one at a time
+  }
+}
+
+/** Relegated: players with a relegation release clause leave on a free. Returns their names. */
+export function relegationReleases(g: GameState, clubId: number) {
+  const out: string[] = [];
+  for (const p of Object.values(g.players)) {
+    if (p.clubId !== clubId || !p.clauses?.relegation || p.loan) continue;
+    releaseFree(g, p);
+    out.push(fullName(p));
+  }
+  return out;
+}
+
+/** He leaves for nothing (a clause, not a sacking): no pay-off. */
+function releaseFree(g: GameState, p: Player) {
+  const club = g.clubs[p.clubId!];
+  club.lineup = club.lineup.map((id) => (id === p.id ? null : id));
+  club.subs = club.subs.filter((id) => id !== p.id);
+  g.transfers.push({ date: g.date, playerId: p.id, name: fullName(p), from: club.id, to: null, fee: 0 });
+  p.clubId = null;
+  p.listed = false;
+  p.clauses = undefined;
+  p.appsFee = undefined;
+  p.contractEnd = g.season;
 }
