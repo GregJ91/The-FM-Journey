@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { FORMATIONS } from '../../game/formations';
 import { normaliseTactics } from '../../game/tactics';
 import { TeamInstructions } from '../components/TacticsEditor';
@@ -9,7 +9,8 @@ import { Youth } from './Youth';
 import { reserveLeagueFor, youthTable } from '../../game/youth';
 import { age, avgRating, familiarity, fmtMoney, marketValue, overall, ratingAt, scoutedPotential, shortName } from '../../game/ratings';
 import { pickLineup, validateLineup } from '../../game/selection';
-import type { Club, GameState, Player, Run, Tactics as TacticsT } from '../../game/types';
+import type { Club, GameState, Player, Tactics as TacticsT } from '../../game/types';
+import { RunArrowsBox, RunPitch, setRunIn, type ArrowMode } from '../components/RunPitch';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
 import { CondBar, Ovr, OvrChange, PosTag, Sheet, Spark, Stars, StatusIcons } from '../components/common';
@@ -228,63 +229,11 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
   };
   const famLabel = (f: number) => (f >= 1 ? 'Natural' : f >= 0.95 ? 'Accomplished' : f >= 0.85 ? 'Unconvincing' : 'Awkward');
 
-  // CM-style run arrows: drag from a player to where he should run (or tap him, then the spot)
-  const pitchRef = useRef<HTMLDivElement>(null);
-  const [arrows, setArrows] = useState<'off' | 'run' | 'ball'>('off');
-  const [armed, setArmed] = useState<number | null>(null);
-  const [drag, setDrag] = useState<{ slot: number; x: number; y: number; moved: boolean } | null>(null);
-  const [size, setSize] = useState({ w: 0, h: 0 });
-  useEffect(() => {
-    const el = pitchRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  // CM-style run arrows, drawn on the pitch below
+  const [arrows, setArrows] = useState<ArrowMode>('off');
   const formation = club.tactics.formation;
-  const runs = (club.tactics.runs ?? []).filter((r) => r.f === formation && lineup[r.slot] !== null && lineup[r.slot] !== undefined);
-  /** Formation coordinates (x forward, y across) → % from the top / left of the pitch box. */
-  const spot = (x: number, y: number) => ({ top: 93 - (x - 5) * (86 / 79), left: 9 + y * 0.82 });
-  const toPitch = (cx: number, cy: number) => {
-    const r = pitchRef.current!.getBoundingClientRect();
-    const top = ((cy - r.top) / r.height) * 100;
-    const left = ((cx - r.left) / r.width) * 100;
-    return { x: Math.max(0, Math.min(100, 5 + (93 - top) * (79 / 86))), y: Math.max(0, Math.min(100, (left - 9) / 0.82)) };
-  };
-  const setRun = (slot: number, to: { x: number; y: number } | null) => mutate(() => {
-    const rest = (club.tactics.runs ?? []).filter((r) => !(r.slot === slot && r.f === formation));
-    const run: Run = { f: formation, slot, x: Math.round(to?.x ?? 0), y: Math.round(to?.y ?? 0), ball: arrows === 'ball' || undefined };
-    club.tactics = { ...club.tactics, runs: to ? [...rest, run] : rest };
-  });
-  const far = (slot: number, to: { x: number; y: number }) => Math.hypot(to.x - slots[slot].x, to.y - slots[slot].y) >= 7;
-  const pitchUp = (e: React.PointerEvent) => {
-    if (arrows === 'off') return;
-    const to = toPitch(e.clientX, e.clientY);
-    if (drag) {
-      if (drag.moved) { if (far(drag.slot, to)) setRun(drag.slot, to); setArmed(null); }
-      else if (armed === drag.slot) { setRun(drag.slot, null); setArmed(null); } // tap him again: no run
-      else setArmed(drag.slot);
-      setDrag(null);
-    } else if (armed !== null) {
-      if (far(armed, to)) setRun(armed, to);
-      setArmed(null);
-    }
-  };
-  const arrowLine = (from: { x: number; y: number }, to: { x: number; y: number }, ball: boolean | undefined, key: string | number, ghost?: boolean) => {
-    const a = spot(from.x, from.y);
-    const b = spot(to.x, to.y);
-    const [x1, y1, x2, y2] = [(a.left / 100) * size.w, (a.top / 100) * size.h, (b.left / 100) * size.w, (b.top / 100) * size.h];
-    const ang = Math.atan2(y2 - y1, x2 - x1);
-    const head = (d: number) => `${x2 - 11 * Math.cos(ang + d)},${y2 - 11 * Math.sin(ang + d)}`;
-    const col = ball ? '#ffffff' : '#ffe866';
-    return (
-      <g key={key} opacity={ghost ? 0.6 : 1}>
-        <line x1={x1} y1={y1} x2={x2 - 6 * Math.cos(ang)} y2={y2 - 6 * Math.sin(ang)} stroke="rgba(0,0,0,.45)" strokeWidth={5} strokeLinecap="round" />
-        <line x1={x1} y1={y1} x2={x2 - 6 * Math.cos(ang)} y2={y2 - 6 * Math.sin(ang)} stroke={col} strokeWidth={3} strokeDasharray={ball ? undefined : '7 5'} strokeLinecap="round" />
-        <polygon points={`${x2},${y2} ${head(0.45)} ${head(-0.45)}`} fill={col} stroke="rgba(0,0,0,.45)" strokeWidth={1} />
-      </g>
-    );
-  };
+  const runs = (club.tactics.runs ?? []).filter((r) => r.f === formation);
+  const players = slots.map((_, i) => (lineup[i] !== null && lineup[i] !== undefined ? g.players[lineup[i]!] ?? null : null));
 
   return (
     <div className="cm-tactics">
@@ -294,60 +243,24 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
           {Object.keys(FORMATIONS).map((f) => <option key={f} value={f}>{f}</option>)}
         </select>
       </div>
-      <div className="runs-box">
-        <span className="runs-t">Run arrows</span>
-        <div className="seg">
-          {([['off', 'Off'], ['run', 'Run'], ['ball', 'With ball']] as const).map(([k, l]) => <button key={k} className={arrows === k ? 'on' : ''} onClick={() => { setArrows(k); setArmed(null); setSel(null); }}>{l}</button>)}
-        </div>
-        {runs.length > 0 && <button className="btn sm" onClick={() => mutate(() => { club.tactics = { ...club.tactics, runs: (club.tactics.runs ?? []).filter((r) => r.f !== formation) }; })}>Clear</button>}
-      </div>
+      <RunArrowsBox mode={arrows} onMode={(k) => { setArrows(k); setSel(null); }} onClear={runs.length ? () => mutate(() => { club.tactics = { ...club.tactics, runs: (club.tactics.runs ?? []).filter((r) => r.f !== formation) }; }) : undefined} />
       <section className="card cm-pitch-win">
         <div className="card-h"><h3>{club.tactics.name?.trim() || 'Tactics'}</h3><div className="right" style={{ display: 'flex', gap: 4 }}>
           <button className="btn sm" onClick={() => setInstr(true)}>Instructions</button>
           <button className="btn sm" onClick={() => setSubsOpen(true)}>Subs {subs.length}</button>
           <button className="btn sm" onClick={autoPick}>Auto</button>
         </div></div>
-        <div
-          ref={pitchRef}
-          className={`cm-pitch ${arrows !== 'off' ? 'drawing' : ''}`}
-          onPointerMove={(e) => { if (!drag) return; const to = toPitch(e.clientX, e.clientY); setDrag({ ...drag, ...to, moved: drag.moved || far(drag.slot, to) }); }}
-          onPointerUp={pitchUp}
-          onPointerCancel={() => setDrag(null)}
-        >
-          <svg className="cm-runs" width={size.w} height={size.h}>
-            {runs.map((r) => arrowLine(slots[r.slot], r, r.ball, `${r.slot}`))}
-            {drag?.moved && arrowLine(slots[drag.slot], drag, arrows === 'ball', 'drag', true)}
-          </svg>
-          {slots.map((s, i) => {
-            const id = lineup[i];
-            const p = id !== null && id !== undefined ? g.players[id] : null;
-            const warn = !!p && familiarity(p, s.pos) < 0.9;
-            const top = 93 - (s.x - 5) * (86 / 79);
-            const left = 9 + s.y * 0.82;
-            return (
-              <button
-                key={i}
-                className={`cm-box ${sel === i || armed === i ? 'sel' : ''} ${warn ? 'warn' : ''}`}
-                style={{ top: `${top}%`, left: `${left}%` }}
-                onClick={() => { if (arrows === 'off') setSel(i); }}
-                onPointerDown={(e) => {
-                  if (arrows === 'off' || !p) return;
-                  e.preventDefault();
-                  pitchRef.current?.setPointerCapture(e.pointerId);
-                  setDrag({ slot: i, ...toPitch(e.clientX, e.clientY), moved: false });
-                }}
-              >
-                <i>{p?.shirt ?? i + 1}</i>{p ? p.last : s.pos}
-                {p && <em className="cm-box-r">{Math.round(ratingAt(p, s.pos))}</em>}
-              </button>
-            );
-          })}
-        </div>
-        <div className="small muted" style={{ textAlign: 'center', padding: '0 0 6px' }}>
-          {arrows === 'off' ? 'Tap a player to see who can play there. Red names are out of position.'
-            : armed !== null ? 'Now tap where he should run to. Tap him again to remove his run.'
-            : `Drag from a player to where he should run${arrows === 'ball' ? ' with the ball' : ''}, or tap him and then the spot.`}
-        </div>
+        <RunPitch
+          slots={slots}
+          players={players}
+          runs={runs}
+          mode={arrows}
+          selected={sel}
+          onTapSlot={setSel}
+          onRun={(slot, to) => mutate(() => { club.tactics = { ...club.tactics, runs: setRunIn(club.tactics.runs, formation, slot, to, arrows === 'ball') }; })}
+          warn={(i) => !!players[i] && familiarity(players[i]!, slots[i].pos) < 0.9}
+          hint="Tap a player to see who can play there. Red names are out of position."
+        />
       </section>
 
       {sel !== null && (

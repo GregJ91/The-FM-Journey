@@ -15,6 +15,7 @@ import { statSummary } from '../components/PlayerStats';
 import { Crest, isLight } from '../components/Crest';
 import { useLandscape } from '../useLandscape';
 import { Fit } from '../components/Fit';
+import { RunArrowsBox, RunPitch, setRunIn, type ArrowMode } from '../components/RunPitch';
 
 const MS_PER_MIN = 667; // 90 minutes ≈ 60 seconds at 1x
 const SHOUTS = ['V.Defensive', 'Defensive', 'Balanced', 'Attacking', 'All-out attack'];
@@ -52,7 +53,8 @@ export function MatchScreen() {
   const [halfTime, setHalfTime] = useState(false);
   const [subOff, setSubOff] = useState<number | null>(null);
   const [subOn, setSubOn] = useState<number | null>(null);
-  const [sideTab, setSideTab] = useState<'feed' | 'stats' | 'ratings'>('feed');
+  const [sideTab, setSideTab] = useState<'feed' | 'stats' | 'ratings' | 'pitch'>('feed');
+  const [arrows, setArrows] = useState<ArrowMode>('off');
   const [tacticsOpen, setTacticsOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const histRef = useRef<Snap[]>([]);
@@ -141,6 +143,9 @@ export function MatchScreen() {
   if (phase === 'post') return <PostMatch g={g} fixture={fixture} m={m} onClose={() => ui.setMatchOpen(false)} />;
 
   const userTeam = m.sides[userSide];
+  const mySlots = FORMATIONS[userTeam.tactics.formation];
+  const myPlayers = mySlots.map((_, i) => { const lp = userTeam.onPitch.find((x) => x.slot === i); return lp ? g.players[lp.id] ?? null : null; });
+  const myRuns = (userTeam.tactics.runs ?? []).filter((r) => r.f === userTeam.tactics.formation);
   const total = m.stats.poss[0] + m.stats.poss[1] || 1;
   const colors: [string, string] = [hk[0], ak[0]];
   const refresh = () => setTick((t) => t + 1);
@@ -187,6 +192,12 @@ export function MatchScreen() {
   const tacticsSheet = tacticsOpen && (
     <Sheet title={`Tactics · ${m.minute}'`} onClose={() => { setTacticsOpen(false); setPaused(halfTime); }} right={<span className="chip">{userTeam.tactics.formation}</span>}>
       <div className="sheet-b">
+        {/* Redraw run arrows mid-match, CM-style */}
+        <RunArrowsBox mode={arrows} onMode={setArrows} onClear={myRuns.length ? () => { changeTactics(getGame()!, m, userSide, { runs: (userTeam.tactics.runs ?? []).filter((r) => r.f !== userTeam.tactics.formation) }); refresh(); } : undefined} />
+        <div className="match-runs-edit">
+          <RunPitch slots={mySlots} players={myPlayers} runs={myRuns} mode={arrows} showRating={false}
+            onRun={(slot, to) => { changeTactics(getGame()!, m, userSide, { runs: setRunIn(userTeam.tactics.runs, userTeam.tactics.formation, slot, to, arrows === 'ball') }); refresh(); }} />
+        </div>
         <TeamInstructions g={g} live tactics={userTeam.tactics}
           lineup={FORMATIONS[userTeam.tactics.formation].map((_, i) => userTeam.onPitch.find((lp) => lp.slot === i)?.id ?? null)}
           onChange={(t) => { changeTactics(getGame()!, m, userSide, t); refresh(); }}
@@ -233,10 +244,14 @@ export function MatchScreen() {
           </div>
           <div className="comm-side">
             <div className="seg comm-tabs">
-              <button className={sideTab !== 'ratings' ? 'on' : ''} onClick={() => setSideTab('stats')}>Stats</button>
+              <button className={sideTab !== 'ratings' && sideTab !== 'pitch' ? 'on' : ''} onClick={() => setSideTab('stats')}>Stats</button>
               <button className={sideTab === 'ratings' ? 'on' : ''} onClick={() => setSideTab('ratings')}>My players</button>
+              <button className={sideTab === 'pitch' ? 'on' : ''} onClick={() => setSideTab('pitch')}>Pitch</button>
             </div>
-            {sideTab !== 'ratings' ? (
+            {sideTab === 'pitch' ? (
+              // Your shape and run arrows, as on the tactics screen
+              <RunPitch slots={mySlots} players={myPlayers} runs={myRuns} showRating={false} className="match-runs" />
+            ) : sideTab !== 'ratings' ? (
               <div className="comm-stats">
                 <div className={`mom-strip ${mom.tone}`}><b>{mom.label}</b><div className="mom-bars"><MomBars bars={mom.bars} /></div></div>
                 <StatBar label="Possession" a={pct(m.stats.poss[0])} b={pct(m.stats.poss[1])} c={colors} pct />

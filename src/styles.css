@@ -1672,3 +1672,8 @@ table.t.dense .pos { font-size: 10.5px; }
 .cm-runs { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
 .cm-pitch.drawing { touch-action: none; outline: 2px dashed #ffe866; outline-offset: -2px; }
 .cm-pitch.drawing .cm-box { touch-action: none; }
+/* Run arrows on the match screen: your shape in the side panel, and editable in the in-match tactics */
+.comm-side .cm-pitch.match-runs { flex: 1; height: auto; min-height: 150px; margin: 0; }
+.comm-side .cm-pitch.match-runs .cm-box, .match-runs-edit .cm-box { font-size: 11px; padding: 1px 4px 1px 1px; }
+.match-runs-edit { display: flex; flex-direction: column; margin-bottom: 12px; }
+.match-runs-edit .cm-pitch { height: 300px; margin: 0; }
