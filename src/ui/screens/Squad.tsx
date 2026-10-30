@@ -217,14 +217,14 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
   };
   const autoPick = () => mutate(() => { const r = pickLineup(club, squad); club.lineup = r.lineup; club.subs = r.subs; });
   const updateTactics = (t: Partial<TacticsT>) => {
-    const msg = mutate((gg) => {
+    mutate((gg) => {
       const formationChanged = !!t.formation && t.formation !== club.tactics.formation;
       // a new formation brings default roles unless the change supplied its own (presets)
       club.tactics = normaliseTactics({ ...club.tactics, ...t, roles: t.roles ?? (formationChanged ? [] : club.tactics.roles) });
       if (formationChanged) { const r = pickLineup(club, squad); club.lineup = r.lineup; club.subs = r.subs; }
-      return t.name !== undefined ? activateCheat(gg) : null;
+      // Cheats switch on quietly (no pop-up)
+      if (t.name !== undefined) activateCheat(gg);
     });
-    if (msg) ui.toast(msg);
   };
   const famLabel = (f: number) => (f >= 1 ? 'Natural' : f >= 0.95 ? 'Accomplished' : f >= 0.85 ? 'Unconvincing' : 'Awkward');
 

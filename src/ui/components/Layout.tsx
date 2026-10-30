@@ -78,9 +78,12 @@ export function ContinueBar() {
     if (actions.length) { ui.go('inbox', actions[actions.length - 1].id); ui.toast('Respond to this before continuing'); return; }
     if (matchToday) { ui.setMatchOpen(true); return; }
     setBusy(true);
-    // let the button state paint before the (synchronous) simulation runs
-    await new Promise((r) => setTimeout(r, 16));
+    const started = Date.now();
+    // let the processing box paint before the (synchronous) simulation runs
+    await new Promise((r) => setTimeout(r, 40));
     const r = mutate((gg) => continueGame(gg));
+    // keep it up long enough to read, as CM's "Processing..." box was
+    await new Promise((res) => setTimeout(res, Math.max(0, 550 - (Date.now() - started))));
     setBusy(false);
     if (!r.ok && r.reason === 'match') ui.setMatchOpen(true);
     if (!r.ok && r.reason === 'action') { const a = openActions(getGame()!); if (a.length) ui.go('inbox', a[a.length - 1].id); }
@@ -88,6 +91,15 @@ export function ContinueBar() {
   };
   return (
     <div className="continue-bar">
+      {busy && (
+        <div className="processing" role="status" aria-live="polite">
+          <div className="processing-box">
+            <div className="processing-h">Please wait</div>
+            <div className="processing-b"><LoaderCircle className="spin" /><span>Processing…</span></div>
+            <div className="processing-bar"><i /></div>
+          </div>
+        </div>
+      )}
       <button className={`continue-btn ${matchToday && !actions.length ? 'match' : ''} ${actions.length ? 'respond' : ''}`} onClick={onContinue} disabled={busy}>
         {busy ? <><LoaderCircle className="spin" /> Simulating…</> : actions.length ? <>Respond ({actions.length}) <Mail /></> : matchToday ? <>Play match <Play fill="currentColor" /></> : <>Continue <Play fill="currentColor" /></>}
       </button>
