@@ -1,5 +1,5 @@
 import { FORMATIONS } from './formations';
-import type { Pos, Tactics } from './types';
+import type { Pos, Run, Tactics } from './types';
 
 /**
  * Player roles. Each role nudges how much a player contributes to the team's
@@ -84,6 +84,27 @@ export const ROLES: Record<Pos, Role[]> = {
     R('pf', 'Pressing Forward', 'Harries defenders from the front.', 0.95, 1, 1.35, 1, 1, 1.25),
   ],
 };
+
+/**
+ * A run arrow changes how the player plays: forward runs get him into the box (more shots, more of the attack) at the
+ * cost of tracking back and extra running; runs with the ball mean more dribbling and creating; wide runs more
+ * crosses; runs back more defending.
+ */
+export function withRun(r: Role, from: { x: number; y: number }, run: Run): Role {
+  const fwd = Math.max(-1, Math.min(1, (run.x - from.x) / 30));
+  const go = Math.max(0, fwd);
+  const back = Math.max(0, -fwd);
+  const wide = Math.min(1, Math.abs(run.y - from.y) / 40);
+  return {
+    ...r,
+    att: r.att * (1 + 0.12 * go - 0.2 * back),
+    mid: r.mid * (1 - 0.1 * go + 0.05 * back),
+    def: r.def * (1 - 0.3 * go + 0.2 * back),
+    shoot: r.shoot * (1 + (run.ball ? 0.25 : 0.5) * go - 0.3 * back),
+    create: r.create * (1 + (run.ball ? 0.35 : 0.1) * go + 0.2 * wide),
+    fatigue: r.fatigue * (1 + 0.12 * go + 0.06 * wide),
+  };
+}
 
 export function roleFor(pos: Pos, id: string | undefined): Role {
   const list = ROLES[pos];

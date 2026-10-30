@@ -6,8 +6,8 @@ import { mgr, noteMatch, noteTactics } from './manager';
 import { POS_GROUP, ratingAt, rawOverallAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
-import { normaliseTactics, roleFor, ROLES } from './tactics';
-import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, Pos, StatLine, Tactics } from './types';
+import { normaliseTactics, roleFor, ROLES, withRun, type Role } from './tactics';
+import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, Pos, Run, StatLine, Tactics } from './types';
 import { playersByClub } from './shirts';
 
 export function emptyLine(): StatLine {
@@ -81,8 +81,22 @@ function playerOf(g: GameState, id: number): Player {
   return g.players[id];
 }
 
+/** Roles adjusted by run arrows, cached per arrow (arrows are replaced, never changed, when redrawn). */
+const runRoles = new WeakMap<Run, Map<string, Role>>();
+
 function role(side: Side, lp: LivePlayer) {
-  return roleFor(lp.pos, side.tactics.roles[lp.slot]);
+  const r = roleFor(lp.pos, side.tactics.roles[lp.slot]);
+  const runs = side.tactics.runs;
+  if (!runs?.length) return r;
+  for (const run of runs) {
+    if (run.slot !== lp.slot || run.f !== side.tactics.formation) continue;
+    let cache = runRoles.get(run);
+    if (!cache) runRoles.set(run, (cache = new Map()));
+    let out = cache.get(r.id);
+    if (!out) cache.set(r.id, (out = withRun(r, FORMATIONS[run.f][run.slot], run)));
+    return out;
+  }
+  return r;
 }
 
 /**

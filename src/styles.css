@@ -1664,3 +1664,11 @@ table.t.dense .pos { font-size: 10.5px; }
 .action-pill { font-size: 10.5px; }
 .pitch.sm .slot .nm { font-size: 10.5px; }
 .comm-stats .mstat .lbl { font-size: 10.5px; }
+
+/* Run arrows (tactics) */
+.runs-box { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin: 0 0 6px; background: var(--surface-2); border: 1px solid var(--line); flex: none; }
+.runs-box .runs-t { font-weight: 800; font-size: 13px; white-space: nowrap; }
+.runs-box .seg { flex: 1; }
+.cm-runs { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.cm-pitch.drawing { touch-action: none; outline: 2px dashed #ffe866; outline-offset: -2px; }
+.cm-pitch.drawing .cm-box { touch-action: none; }

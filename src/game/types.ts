@@ -151,6 +151,16 @@ export interface Tactics {
   playOutBack: boolean;
   timeWasting: boolean;
   roles: string[]; // role id per formation slot
+  runs?: Run[]; // CM-style run arrows drawn on the tactics pitch
+}
+
+/** A run arrow: the player in `slot` makes a run to (x, y) in formation coordinates (x forward, y across), with or without the ball. */
+export interface Run {
+  f: string; // the formation it was drawn for (arrows only apply to that formation)
+  slot: number;
+  x: number;
+  y: number;
+  ball?: boolean;
 }
 
 export interface Facilities {
