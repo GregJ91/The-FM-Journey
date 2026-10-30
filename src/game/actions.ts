@@ -7,7 +7,7 @@ import { sendMessage } from './inbox';
 import { age, fmtMoney, fullName, marketValue, overall, roundMoney } from './ratings';
 import { chance } from './rng';
 import { mgr, note } from './manager';
-import { respondJob } from './journey';
+import { takeJob } from './jobs';
 import { completeTransfer, openTalks, renewContract, renewDemand, respondIncoming, wageDemand, windowOpen } from './transfers';
 import type { ActionType, Fixture, GameState, Message, MessageAction, Player } from './types';
 
@@ -265,7 +265,7 @@ export function respondAction(g: GameState, messageId: number, option: string): 
       break;
     }
     case 'job': {
-      result = respondJob(g, option);
+      result = option === 'stay' ? `You turned them down and stay at ${g.clubs[g.userClubId].name}.` : (takeJob(g, Number(option)), `You're the new manager of ${g.clubs[Number(option)].name}.`);
       break;
     }
     case 'press': {

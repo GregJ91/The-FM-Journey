@@ -9,6 +9,7 @@ import { Youth } from './Youth';
 import { reserveLeagueFor, youthTable } from '../../game/youth';
 import { age, avgRating, familiarity, fmtMoney, marketValue, overall, ratingAt, scoutedPotential, shortName } from '../../game/ratings';
 import { pickLineup, validateLineup } from '../../game/selection';
+import { setPieceSkill, type SetPieceJob } from '../../game/match';
 import type { Club, GameState, Player, Tactics as TacticsT } from '../../game/types';
 import { RunArrowsBox, RunPitch, setRunIn, type ArrowMode } from '../components/RunPitch';
 import { mutate, useGame } from '../../store';
@@ -21,6 +22,7 @@ type SortKey = 'pos' | 'ovr' | 'age' | 'value' | 'pot' | 'goals' | 'rating' | 'x
 const SORTS: [SortKey, string][] = [['pos', 'Position'], ['ovr', 'Overall'], ['pot', 'Potential'], ['age', 'Age'], ['value', 'Value'], ['rating', 'Avg rating'], ['goals', 'Goals'], ['xg', 'xG'], ['kp', 'Key passes'], ['pass', 'Pass %'], ['def', 'Tackles + Int']];
 const STAT_SORTS: SortKey[] = ['goals', 'rating', 'xg', 'kp', 'pass', 'def'];
 const passPct = (p: Player) => (p.stats.passes ? (p.stats.passC / p.stats.passes) * 100 : 0);
+const SP_JOBS: [SetPieceJob, string, string][] = [['captain', 'Captain', 'Influence'], ['pens', 'Penalties', 'Penalties'], ['fk', 'Free kicks', 'Free Kicks'], ['corners', 'Corners', 'Corners']];
 const POS_ORDER = ['GK', 'DR', 'DC', 'DL', 'DM', 'MR', 'MC', 'ML', 'AMR', 'AMC', 'AML', 'ST'];
 
 /** Mobile squad list with sort chips; grouped by position when sorted by position. */
@@ -194,6 +196,7 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
   const [sel, setSel] = useState<number | null>(null);
   const [instr, setInstr] = useState(false);
   const [subsOpen, setSubsOpen] = useState(false);
+  const [spOpen, setSpOpen] = useState(false);
   const slots = FORMATIONS[club.tactics.formation];
   const lineup = club.lineup.length === slots.length ? club.lineup : new Array(slots.length).fill(null);
   const inXI = new Set(lineup.filter((x): x is number => x !== null));
@@ -248,6 +251,7 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
         <div className="card-h"><h3>{club.tactics.name?.trim() || 'Tactics'}</h3><div className="right" style={{ display: 'flex', gap: 4 }}>
           <button className="btn sm" onClick={() => setInstr(true)}>Instructions</button>
           <button className="btn sm" onClick={() => setSubsOpen(true)}>Subs {subs.length}</button>
+          <button className="btn sm" onClick={() => setSpOpen(true)}>Set pieces</button>
           <button className="btn sm" onClick={autoPick}>Auto</button>
         </div></div>
         <RunPitch
@@ -312,6 +316,28 @@ function Tactics({ g, club, squad, toolbar }: { g: GameState; club: Club; squad:
                 </tbody>
               </table>
             </Fit>
+          </div>
+        </Sheet>
+      )}
+
+      {spOpen && (
+        <Sheet title="Captain and set pieces" onClose={() => setSpOpen(false)}>
+          <div className="sheet-b col" style={{ gap: 12 }}>
+            {SP_JOBS.map(([job, label, attrName]) => {
+              const xi = players.filter((p): p is Player => !!p && (job === 'captain' || p.pos !== 'GK'));
+              const ranked = [...xi].sort((a, b) => setPieceSkill(b, job) - setPieceSkill(a, job));
+              const cur = club.setPieces?.[job];
+              return (
+                <label key={job} className="ti-field"><span>{label}</span>
+                  <select className="input" value={cur !== undefined && xi.some((p) => p.id === cur) ? cur : ''} onChange={(e) => mutate(() => { club.setPieces = { ...club.setPieces, [job]: e.target.value === '' ? undefined : Number(e.target.value) }; })}>
+                    <option value="">Auto: best on the pitch{ranked[0] ? ` (${ranked[0].last})` : ''}</option>
+                    {ranked.map((p) => <option key={p.id} value={p.id}>{shortName(p)} · {attrName} {Math.round(setPieceSkill(p, job))}</option>)}
+                  </select>
+                </label>
+              );
+            })}
+            <div className="small muted">If your choice is subbed off or not playing, the best player on the pitch takes over. A captain with high Influence lifts the whole side.</div>
+            <button className="btn primary block" onClick={() => setSpOpen(false)}>Done</button>
           </div>
         </Sheet>
       )}

@@ -6,8 +6,9 @@ import { mgr, noteMatch, noteTactics } from './manager';
 import { POS_GROUP, ratingAt, rawOverallAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
+import { cmExtra } from './cm0102/attrs';
 import { autoRuns, normaliseTactics, roleFor, ROLES, withRun, type Role } from './tactics';
-import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, Pos, Run, StatLine, Tactics } from './types';
+import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, Pos, Run, SetPieces, StatLine, Tactics } from './types';
 import { playersByClub } from './shirts';
 
 export function emptyLine(): StatLine {
@@ -126,7 +127,11 @@ function computeStrength(g: GameState, side: Side) {
     def += r * DEF_W[lp.pos] * rl.def;
     if (lp.pos === 'GK') { gk = r; hasGK = true; }
     if (lp.pos === 'GK' || lp.pos === 'DC') { backPass += p.attrs.passing; backN++; }
-  }
+  }  // A good captain lifts the side a little (and a poor one doesn't): up to about ±1.5% with his influence
+  const cap = side.onPitch.length ? setPieceTaker(g, side, 'captain') : null;
+  const lift = cap ? 1 + (setPieceSkill(g.players[cap.id], 'captain') - 10) * 0.0015 : 1;
+  att *= lift; mid *= lift; def *= lift;
+
   if (!hasGK) gk = 20;
   const t = side.tactics;
   const m = t.mentality;
@@ -270,6 +275,31 @@ function name(g: GameState, id: number) {
 function attr(g: GameState, id: number, k: keyof Player['attrs']) {
   return g.players[id].attrs[k];
 }
+
+// ---------- Captain and set pieces ----------
+
+export type SetPieceJob = keyof SetPieces;
+const SP_ATTR = { captain: 'leadership', pens: 'penalties', fk: 'freeKicks', corners: 'corners' } as const;
+/** Who's best at a set piece (or as captain), on his CM attribute. */
+export function setPieceSkill(p: Player, job: SetPieceJob) {
+  return cmExtra(p, SP_ATTR[job]);
+}
+/** Who does the job: the manager's choice while he's on the pitch, otherwise the best one on the pitch. */
+export function setPieceTaker(g: GameState, side: Side, job: SetPieceJob): LivePlayer | null {
+  const want = g.clubs[side.clubId]?.setPieces?.[job];
+  const chosen = want !== undefined ? side.onPitch.find((lp) => lp.id === want) : undefined;
+  if (chosen) return chosen;
+  let best: LivePlayer | null = null;
+  let bv = -1;
+  for (const lp of side.onPitch) {
+    if (lp.pos === 'GK' && job !== 'captain') continue;
+    const v = setPieceSkill(g.players[lp.id], job);
+    if (v > bv) { bv = v; best = lp; }
+  }
+  return best;
+}
+/** Who gets on the end of corners. */
+const HEAD_W: Record<Pos, number> = { DC: 1.2, ST: 1.2, DM: 0.6, MC: 0.5, AMC: 0.45, DL: 0.35, DR: 0.35, ML: 0.3, MR: 0.3, AML: 0.3, AMR: 0.3, GK: 0 };
 
 /** Advance the match by one minute. Returns events produced this minute. */
 export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
@@ -492,21 +522,33 @@ function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number, beatTrap = fa
   const att = m.sides[t];
   const def = m.sides[t === 0 ? 1 : 0];
   const evs: MatchEvent[] = [];
-  const shooter = weighted(att.onPitch, (lp) => SHOOT_W[lp.pos] * role(att, lp).shoot * focusMult(att, lp) * (attr(g, lp.id, 'finishing') + attr(g, lp.id, 'composure')) / 2);
   const isPen = !beatTrap && rand() < 0.025;
-  let xg = isPen ? 0.78 : Math.min(0.65, Math.max(0.02, -Math.log(1 - rand() * 0.999) * 0.1 * Math.pow(ratio, 0.3)));
+  // Some chances come from set pieces: a direct free kick, or a header from a corner (the taker's delivery matters)
+  const kind = isPen ? 'pen' : beatTrap ? 'play' : rand() < 0.05 ? 'fk' : rand() < 0.085 ? 'corner' : 'play';
+  const cornerTaker = kind === 'corner' ? setPieceTaker(g, att, 'corners') : null;
+  const headers = kind === 'corner' ? att.onPitch.filter((lp) => lp !== cornerTaker && HEAD_W[lp.pos] > 0) : [];
+  const shooter = (kind === 'pen' || kind === 'fk' ? setPieceTaker(g, att, kind === 'pen' ? 'pens' : 'fk') : null)
+    ?? (headers.length ? weighted(headers, (lp) => HEAD_W[lp.pos] * attr(g, lp.id, 'heading') * attr(g, lp.id, 'strength')) : null)
+    ?? weighted(att.onPitch, (lp) => SHOOT_W[lp.pos] * role(att, lp).shoot * focusMult(att, lp) * (attr(g, lp.id, 'finishing') + attr(g, lp.id, 'composure')) / 2);
+  let xg = kind === 'pen' ? 0.78
+    : kind === 'fk' ? 0.03 + rand() * 0.04
+    : kind === 'corner' ? (0.03 + rand() * 0.07) * (0.75 + 0.5 * setPieceSkill(g.players[cornerTaker?.id ?? shooter.id], 'corners') / 20)
+    : Math.min(0.65, Math.max(0.02, -Math.log(1 - rand() * 0.999) * 0.1 * Math.pow(ratio, 0.3)));
   if (beatTrap) xg = Math.max(xg, 0.32);
   // The pass that made the chance
   const others = att.onPitch.filter((lp) => lp !== shooter);
-  const creator = !isPen && others.length && rand() < 0.78
-    ? weighted(others, (lp) => ASSIST_W[lp.pos] * role(att, lp).create * focusMult(att, lp) * (attr(g, lp.id, 'passing') + attr(g, lp.id, 'vision') + attr(g, lp.id, 'crossing')) / 3)
-    : null;
+  const creator = kind === 'corner' && cornerTaker && cornerTaker !== shooter ? cornerTaker
+    : kind === 'play' && others.length && rand() < 0.78
+      ? weighted(others, (lp) => ASSIST_W[lp.pos] * role(att, lp).create * focusMult(att, lp) * (attr(g, lp.id, 'passing') + attr(g, lp.id, 'vision') + attr(g, lp.id, 'crossing')) / 3)
+      : null;
   if (creator) { creator.s.kp++; creator.s.xa += xg; creator.rating += 0.08; }
   const fin = attr(g, shooter.id, 'finishing');
   const comp = attr(g, shooter.id, 'composure');
   const keeper = def.onPitch.find((lp) => lp.pos === 'GK');
   const gkSkill = keeper ? (attr(g, keeper.id, 'reflexes') + attr(g, keeper.id, 'handling') + attr(g, keeper.id, 'positioning')) / 3 : 4;
-  const shooterF = 0.65 + 0.7 * (fin + comp) / 40;
+  const sp = g.players[shooter.id];
+  const skill = kind === 'pen' ? setPieceSkill(sp, 'pens') + comp : kind === 'fk' ? setPieceSkill(sp, 'fk') * 2 : kind === 'corner' ? attr(g, shooter.id, 'heading') + fin : fin + comp;
+  const shooterF = 0.65 + 0.7 * skill / 40;
   const keeperF = 0.65 + 0.7 * gkSkill / 20;
   const goalP = Math.min(0.92, xg * shooterF / keeperF);
   m.stats.shots[t]++;
@@ -534,6 +576,10 @@ function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number, beatTrap = fa
     m.ball = { x: t === 0 ? 99 : 1, y: 50 };
     const how = isPen
       ? `PENALTY converted by ${sName}!`
+      : kind === 'fk'
+        ? pick([`GOAL! ${sName} curls the free kick into the top corner!`, `GOAL! A stunning free kick from ${sName}!`, `GOAL! ${sName} bends it over the wall and in!`])
+      : kind === 'corner' && assistId
+        ? pick([`GOAL! ${sName} heads in ${name(g, assistId)}'s corner!`, `GOAL! ${name(g, assistId)} whips in the corner and ${sName} powers it home!`])
       : beatTrap
         ? `GOAL! ${sName} beats the offside trap and slots it home!`
         : assistId
@@ -547,7 +593,7 @@ function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number, beatTrap = fa
     if (keeper) { keeper.rating += 0.14; keeper.s.saves++; }
     if (chance(0.35)) m.stats.corners[t]++;
     if (xg > 0.22 || chance(0.35)) {
-      evs.push({ minute, type: 'save', team: t, player: shooter.id, text: isPen ? `Penalty SAVED! ${keeper ? name(g, keeper.id) : 'The keeper'} denies ${sName}!` : pick([`${sName} forces a fine save from ${keeper ? name(g, keeper.id) : 'the keeper'}.`, `Big chance! ${sName} is denied at the near post.`, `${sName} tests the keeper from range.`]) });
+      evs.push({ minute, type: 'save', team: t, player: shooter.id, text: isPen ? `Penalty SAVED! ${keeper ? name(g, keeper.id) : 'The keeper'} denies ${sName}!` : kind === 'fk' ? `${sName}'s free kick is tipped over by ${keeper ? name(g, keeper.id) : 'the keeper'}.` : kind === 'corner' ? `${sName} gets his head to the corner but it's saved.` : pick([`${sName} forces a fine save from ${keeper ? name(g, keeper.id) : 'the keeper'}.`, `Big chance! ${sName} is denied at the near post.`, `${sName} tests the keeper from range.`]) });
     }
   } else {
     shooter.rating -= 0.05;
@@ -557,7 +603,7 @@ function shot(g: GameState, m: LiveMatch, t: 0 | 1, ratio: number, beatTrap = fa
       if (blockers.length) pick(blockers).s.clr++;
     }
     if (xg > 0.25 || chance(0.25)) {
-      evs.push({ minute, type: 'miss', team: t, player: shooter.id, text: pick([`${sName} blazes over the bar!`, `${sName} drags it wide.`, `So close! ${sName} hits the post!`, `${sName}'s header goes just over.`]) });
+      evs.push({ minute, type: 'miss', team: t, player: shooter.id, text: kind === 'fk' ? `${sName}'s free kick ${pick(['hits the wall', 'sails over the bar', 'drifts just wide'])}.` : kind === 'corner' ? `${sName} heads the corner over.` : pick([`${sName} blazes over the bar!`, `${sName} drags it wide.`, `So close! ${sName} hits the post!`, `${sName}'s header goes just over.`]) });
     }
   }
   return evs;
@@ -649,13 +695,19 @@ function finishLive(g: GameState, m: LiveMatch, evs: MatchEvent[]) {
 }
 
 function shootout(g: GameState, m: LiveMatch): [number, number] {
-  const takers = m.sides.map((s) => [...s.onPitch].sort((a, b) => attr(g, b.id, 'composure') + attr(g, b.id, 'finishing') - attr(g, a.id, 'composure') - attr(g, a.id, 'finishing')));
+  // Best penalty takers first, the manager's penalty taker leading off
+  const pen = (id: number) => setPieceSkill(g.players[id], 'pens') + attr(g, id, 'composure');
+  const takers = m.sides.map((s) => {
+    const list = [...s.onPitch].sort((a, b) => pen(b.id) - pen(a.id));
+    const first = setPieceTaker(g, s, 'pens');
+    return first ? [first, ...list.filter((lp) => lp !== first)] : list;
+  });
   const score: [number, number] = [0, 0];
   const kick = (side: 0 | 1, i: number) => {
     const list = takers[side];
     if (!list.length) return;
     const t = list[i % list.length];
-    const p = 0.62 + 0.012 * attr(g, t.id, 'composure') + 0.006 * attr(g, t.id, 'finishing');
+    const p = 0.62 + 0.012 * attr(g, t.id, 'composure') + 0.006 * setPieceSkill(g.players[t.id], 'pens');
     if (rand() < p) score[side]++;
   };
   for (let i = 0; i < 5; i++) {

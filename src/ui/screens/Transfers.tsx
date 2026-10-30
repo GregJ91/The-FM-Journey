@@ -3,6 +3,7 @@ import { fmtShort } from '../../game/dates';
 import { wageBill } from '../../game/generate';
 import { POS_GROUP, age, fmtMoney, fullName, marketValue, overall, scoutedPotential, shortName } from '../../game/ratings';
 import { nationName } from '../../game/intl';
+import { SEARCH_ATTRS, attrByLabel } from '../../game/cm0102/attrs';
 import { acceptCounter, askingPrice, respondIncoming, windowOpen } from '../../game/transfers';
 import type { GameState, Offer, Player, Pos } from '../../game/types';
 
@@ -14,7 +15,7 @@ import { Ovr, PosTag, Sheet } from '../components/common';
 import { Crest } from '../components/Crest';
 
 type Tab = 'search' | 'free' | 'shortlist' | 'bids' | 'incoming' | 'loans' | 'news';
-type SortKey = 'ability' | 'potential' | 'value' | 'age' | 'youngest' | 'name';
+type SortKey = 'ability' | 'potential' | 'value' | 'age' | 'youngest' | 'name' | 'attrs';
 
 /** CM 01/02-style player search: every filter the scout screen offered. */
 interface Filters {
@@ -31,14 +32,16 @@ interface Filters {
   status: 'any' | 'listed' | 'expiring';
   squad: 'any' | 'senior' | 'youth';
   foot: 'any' | 'L' | 'R' | 'B';
+  att: [string, number][]; // up to three attributes with a minimum ("Pace 15+"), as CM's search allowed
   sort: SortKey;
 }
-const NO_FILTERS: Filters = { pos: 'ALL', ageMin: 15, ageMax: 45, minOvr: 0, minPot: 0, maxVal: 0, maxWage: 0, nat: 'ALL', country: 'ALL', league: 'ALL', status: 'any', squad: 'any', foot: 'any', sort: 'ability' };
+const NO_FILTERS: Filters = { pos: 'ALL', ageMin: 15, ageMax: 45, minOvr: 0, minPot: 0, maxVal: 0, maxWage: 0, nat: 'ALL', country: 'ALL', league: 'ALL', status: 'any', squad: 'any', foot: 'any', att: [['', 0], ['', 0], ['', 0]], sort: 'ability' };
 const EXACT_POS: Pos[] = ['GK', 'DL', 'DC', 'DR', 'DM', 'ML', 'MC', 'MR', 'AML', 'AMC', 'AMR', 'ST'];
-const SORTS: [SortKey, string][] = [['ability', 'Ability'], ['potential', 'Potential (scouted)'], ['value', 'Value'], ['youngest', 'Youngest'], ['age', 'Oldest'], ['name', 'Name']];
+const SORTS: [SortKey, string][] = [['attrs', 'Chosen attributes'], ['ability', 'Ability'], ['potential', 'Potential (scouted)'], ['value', 'Value'], ['youngest', 'Youngest'], ['age', 'Oldest'], ['name', 'Name']];
 
-function sortPlayers(g: GameState, players: Player[], sort: SortKey) {
+function sortPlayers(g: GameState, players: Player[], sort: SortKey, attrs: string[] = []) {
   const key: Record<SortKey, (p: Player) => number | string> = {
+    attrs: (p) => -attrs.reduce((s, l) => s + attrByLabel(p, l), 0) || -marketValue(p, g.date),
     ability: (p) => -overall(p),
     potential: (p) => -scoutedPotential(p, p.clubId === g.userClubId),
     value: (p) => -marketValue(p, g.date),
@@ -51,21 +54,27 @@ function sortPlayers(g: GameState, players: Player[], sort: SortKey) {
 }
 
 function activeFilters(f: Filters) {
-  return (Object.keys(NO_FILTERS) as (keyof Filters)[]).filter((k) => k !== 'sort' && k !== 'pos' && f[k] !== NO_FILTERS[k]).length;
+  return (Object.keys(NO_FILTERS) as (keyof Filters)[]).filter((k) => k !== 'sort' && k !== 'pos' && k !== 'att' && f[k] !== NO_FILTERS[k]).length + chosenAttrs(f).length;
+}
+
+/** The attribute filters in use. */
+function chosenAttrs(f: Filters) {
+  return f.att.filter(([l, min]) => l && min > 0);
 }
 
 const SHOW = 200;
 
-function Results({ g, players, free, title, sort = 'ability', hideAbility }: { g: GameState; players: Player[]; free?: boolean; title: string; sort?: SortKey; hideAbility?: boolean }) {
+function Results({ g, players, free, title, sort = 'ability', hideAbility, attrs = [] }: { g: GameState; players: Player[]; free?: boolean; title: string; sort?: SortKey; hideAbility?: boolean; attrs?: string[] }) {
   const ui = useUI();
-  const shown = sortPlayers(g, players, sort).slice(0, SHOW);
+  const shown = sortPlayers(g, players, sort === 'attrs' && !attrs.length ? 'value' : sort, attrs).slice(0, SHOW);
+  const short = (l: string) => l.split(' ').map((w) => w.slice(0, w.length > 5 && attrs.length > 1 ? 3 : 5)).join(' ');
   return (
     <div className="card fill squad-ns">
       <div className="card-h"><h3>{title}</h3><div className="right tile-sub">{players.length > SHOW ? `top ${SHOW} of ${players.length}` : `${players.length} players`}</div></div>
       {!shown.length ? <div className="empty">No players match.</div> : (
         <Fit>
         <table className="t dense">
-          <thead><tr><th>Pos</th><th>Name</th><th>Club</th><th className="r">Age</th>{!hideAbility && <th className="r">Ab</th>}<th className="r">{free ? 'Wage' : 'Price'}</th></tr></thead>
+          <thead><tr><th>Pos</th><th>Name</th><th>Club</th><th className="r">Age</th>{attrs.map((l) => <th key={l} className="r">{short(l)}</th>)}{!hideAbility && <th className="r">Ab</th>}<th className="r">{free ? 'Wage' : 'Price'}</th></tr></thead>
           <tbody>
             {shown.map((p) => (
               <tr key={p.id} className="click" onClick={() => ui.openPlayer(p.id)}>
@@ -73,6 +82,7 @@ function Results({ g, players, free, title, sort = 'ability', hideAbility }: { g
                 <td className="nm"><b>{shortName(p)}</b></td>
                 <td className="muted">{p.clubId !== null ? g.clubs[p.clubId].short : 'Free'}</td>
                 <td className="r num">{age(p, g.date)}</td>
+                {attrs.map((l) => <td key={l} className="r num"><b>{attrByLabel(p, l)}</b></td>)}
                 {!hideAbility && <td className="r"><Ovr value={overall(p)} /></td>}
                 <td className="r num">{free || p.clubId === null ? `${fmtMoney(p.wage)}` : fmtMoney(askingPrice(g, p))}</td>
               </tr>
@@ -140,6 +150,7 @@ export function Transfers() {
     const leagueClubs = f.league === 'ALL' || f.league === 'OTHER' ? null : new Set(g.leagues.find((l) => l.id === f.league)?.clubIds ?? []);
     const inLeague = new Set(g.leagues.flatMap((l) => l.clubIds));
     const groups = ['GK', 'DEF', 'MID', 'ATT'];
+    const att = chosenAttrs(f);
     return Object.values(g.players).filter((p) => {
       // CM 01/02: anyone can be bought, academy players included (Cherno Samba at Millwall…)
       if (p.clubId === club.id || (p.squad === 'youth' && g.era !== 'cm0102')) return false;
@@ -160,6 +171,7 @@ export function Transfers() {
       if (f.status === 'expiring' && p.contractEnd > g.season + 1) return false;
       if (f.squad !== 'any' && (p.squad === 'youth') !== (f.squad === 'youth')) return false;
       if (f.foot !== 'any' && p.foot !== f.foot) return false;
+      for (const [l, min] of att) if (attrByLabel(p, l) < min) return false;
       return true;
     });
   }, [g, q, f, tab, club.id]);
@@ -202,7 +214,7 @@ export function Transfers() {
         <span className={open ? 'ok' : 'bad'}>{open ? 'Window open' : 'Window shut'}</span>
       </div>
 
-      {(tab === 'search' || tab === 'free') && <Results g={g} players={results} free={tab === 'free'} title={SECTION_TITLE[tab]} sort={f.sort} hideAbility={hideAbility} />}
+      {(tab === 'search' || tab === 'free') && <Results g={g} players={results} free={tab === 'free'} title={SECTION_TITLE[tab]} sort={f.sort} hideAbility={hideAbility} attrs={chosenAttrs(f).map(([l]) => l)} />}
       {tab === 'shortlist' && <Results g={g} players={g.shortlist.map((id) => g.players[id]).filter(Boolean)} title="Shortlist" sort={hideAbility ? 'value' : 'ability'} hideAbility={hideAbility} />}
 
       {(tab === 'bids' || tab === 'incoming') && (
@@ -291,6 +303,20 @@ export function Transfers() {
               <select className="input" value={f.squad} onChange={(e) => set({ squad: e.target.value as Filters['squad'] })}><option value="any">Any</option><option value="senior">First team</option><option value="youth">Youth</option></select></label>
             <label className="ti-field"><span>Foot</span>
               <select className="input" value={f.foot} onChange={(e) => set({ foot: e.target.value as Filters['foot'] })}><option value="any">Any</option><option value="L">Left</option><option value="R">Right</option><option value="B">Both</option></select></label>
+            {/* CM-style: search on attributes ("Pace 15+, Finishing 14+") */}
+            {f.att.map(([l, min], i) => (
+              <label key={i} className="ti-field wide att-row"><span>Attribute {i + 1}</span>
+                <div className="row" style={{ gap: 6 }}>
+                  <select className="input" style={{ flex: 1 }} value={l} onChange={(e) => set({ att: f.att.map((x, j) => (j === i ? [e.target.value, e.target.value ? x[1] || 12 : 0] : x)) as Filters['att'], sort: e.target.value && f.sort !== 'attrs' && !chosenAttrs(f).length ? 'attrs' : f.sort })}>
+                    <option value="">Any</option>
+                    {SEARCH_ATTRS.map(([grp, ls]) => <optgroup key={grp} label={grp}>{ls.map((x) => <option key={x} value={x}>{x}</option>)}</optgroup>)}
+                  </select>
+                  <select className="input" style={{ width: 84 }} disabled={!l} value={min} onChange={(e) => set({ att: f.att.map((x, j) => (j === i ? [x[0], Number(e.target.value)] : x)) as Filters['att'] })}>
+                    {range(5, 20).map((v) => <option key={v} value={v}>{v}+</option>)}
+                  </select>
+                </div>
+              </label>
+            ))}
             <label className="ti-field"><span>Sort by</span>
               <select className="input" value={f.sort} onChange={(e) => set({ sort: e.target.value as SortKey })}>{SORTS.filter(([k]) => !hideAbility || (k !== 'ability' && k !== 'potential')).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
             <button className="btn primary block wide-btn" onClick={() => setShowFilters(false)}>Show {results.length} players</button>

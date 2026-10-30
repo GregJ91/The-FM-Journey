@@ -11,6 +11,7 @@ import { NATIONS } from '../../game/data/names';
 import { MANAGER_ATTRS, defaultProfile, managerStyle } from '../../game/manager';
 import { BACKGROUNDS, repLabel } from '../../game/journey';
 import { Crest } from '../components/Crest';
+import { applyForJob, hasJobs, jobsOf, managerRepLabel } from '../../game/jobs';
 import type { ManagerAttr } from '../../game/types';
 
 /** The Journey: reputation and the clubs managed so far. */
@@ -33,6 +34,41 @@ function CareerCard() {
       </div>
       <div className="small muted" style={{ marginTop: 6 }}>Clubs approach you when your reputation reaches their level. Win, and bigger clubs will call.</div>
     </Card>
+  );
+}
+
+/** CM 01/02 careers: your reputation, the managers' jobs going, and the clubs you've managed. */
+function JobsCard() {
+  const g = useGame();
+  const ui = useUI();
+  const j = jobsOf(g);
+  const vac = [...j.vacancies].filter((v) => v.clubId !== g.userClubId).sort((a, b) => g.clubs[b.clubId].reputation - g.clubs[a.clubId].reputation);
+  return (
+    <>
+      <Card title="Your career" tag={managerRepLabel(j.rep)} tagColor="var(--yellow)">
+        <div className="row" style={{ gap: 10, marginBottom: 6 }}><span className="small muted bold">Reputation</span><div style={{ flex: 1 }}><Meter value={j.rep} /></div></div>
+        <div className="small">{j.career.map((c, i) => <span key={i}>{i ? ' → ' : ''}<b>{g.clubs[c.clubId].name}</b> ({c.from.slice(0, 4)}{c.to ? `–${c.to.slice(0, 4)}` : '–'})</span>)}</div>
+        <div className="small muted" style={{ marginTop: 6 }}>Win things and beat expectations and your name grows: bigger clubs will come for you.</div>
+      </Card>
+      <Card title="Jobs available" tag={`${vac.length}`} tagColor="var(--orange)">
+        {!vac.length ? <div className="empty">No vacancies at the moment. Managers lose their jobs as the season goes on.</div> : (
+          <div className="list">
+            {vac.map((v) => {
+              const c = g.clubs[v.clubId];
+              return (
+                <div key={v.clubId} className="li">
+                  <Crest club={c} size={22} />
+                  <div className="main"><div className="t">{c.name}</div><div className="s">{g.leagues.find((l) => l.clubIds.includes(c.id))?.name ?? ''} · since {v.since}</div></div>
+                  {v.answered ? <span className="small muted">Answered</span> : v.applied ? <span className="small muted">Applied</span>
+                    : <button className="btn sm" onClick={() => { const r = mutate((gg) => applyForJob(gg, v.clubId)); ui.toast(r.msg, !r.ok); }}>Apply</button>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="small muted" style={{ marginTop: 6 }}>Clubs answer in a few days. Boards want a manager whose reputation fits the club.</div>
+      </Card>
+    </>
   );
 }
 
@@ -95,6 +131,7 @@ export function Board() {
         <div className="small muted">Moves monthly with your league position against the target, and jumps at season end for trophies and promotions.</div>
       </Card>}
 
+      {sec === 'you' && hasJobs(g) && <JobsCard />}
       {sec === 'you' && <ManagerCard />}
       {sec === 'you' && g.journey && g.mode === 'journey' && <CareerCard />}
 

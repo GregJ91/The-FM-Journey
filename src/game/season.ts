@@ -18,6 +18,7 @@ import { applyResult, createMatch, randomInjury, simulateFixture, simulateToEnd,
 import { monthlyDevelopment } from './progression';
 import { monthlyManager } from './manager';
 import { journeyDaily, journeyMonthly } from './journey';
+import { addRep, jobsDaily, jobsMonthly } from './jobs';
 import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
 import { chance, int, normal, pick } from './rng';
 import { aiBidsForUser, aiLoanOffersForUser, aiLoans, aiPreContracts, aiTransfers, completeTransfer, endLoan, expireOffers, respondToContracts, respondToLoanOffers, respondToUserBids } from './transfers';
@@ -158,6 +159,7 @@ function cupWon(g: GameState, cup: Cup, userWasIn: boolean) {
   if (cup.type === 'world') g.history[g.history.length - 1]?.winners.push({ comp: `${cup.name} ${g.date.slice(0, 4)}`, name: w.name, clubId: w.id });
   w.reputation = Math.min(100, w.reputation + (cup.type === 'continental' ? 3 : 2));
   if (cup.winner === club.id) {
+    addRep(g, cup.type === 'continental' ? 6 : 3);
     g.board.confidence = clampConf(g.board.confidence + (cup.id === 'UCL' ? 25 : 15));
     sendMessage(g, { from: 'The Board', kind: 'season', title: `🏆 ${cup.name} winners!`, body: `Incredible! ${club.name} have won the ${cup.name}. The board is delighted.` });
   } else if (userWasIn) {
@@ -198,6 +200,7 @@ export function quickPlayUserMatch(g: GameState) {
 
 function daily(g: GameState) {
   journeyDaily(g);
+  jobsDaily(g);
   const intensity = g.training.intensity;
   const userTrainMult = intensity === 'low' ? 0.6 : intensity === 'high' ? 1.8 : 1;
   const ironMen = cheatOn(g, 'ironmen');
@@ -241,6 +244,7 @@ function newDay(g: GameState) {
     monthlyAwards(g);
     monthlyManager(g);
     journeyMonthly(g);
+    jobsMonthly(g);
     recordLedger(g);
     monthlyFinances(g);
     const dev = monthlyDevelopment(g);
@@ -332,6 +336,7 @@ export function endSeason(g: GameState) {
     if (league.clubIds.includes(user.id)) {
       const pos = table.findIndex((r) => r.clubId === user.id) + 1;
       hist.userFinish = { comp: league.name, pos };
+      if (pos === 1) addRep(g, 6);
       const target = g.board.objectiveRank;
       const delta = pos <= target ? 12 + (target - pos) * 3 : -(pos - target) * 6;
       g.board.confidence = clampConf(g.board.confidence + delta);
@@ -371,6 +376,7 @@ export function endSeason(g: GameState) {
     c.reputation = Math.max(1, Math.min(100, c.reputation + (promoted ? 5 : -5)));
     if (promoted) c.capacity = Math.max(c.capacity, Math.round(c.capacity * (c.custom ? 1.6 : 1.05)));
     if (c.id === user.id) {
+      addRep(g, promoted ? 4 : -8);
       if (promoted) {
         g.board.confidence = clampConf(g.board.confidence + 20);
         user.trophies.push({ season: g.season, name: `Promotion to ${to.name}` });

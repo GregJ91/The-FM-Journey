@@ -154,6 +154,14 @@ export interface Tactics {
   runs?: Run[]; // CM-style run arrows drawn on the tactics pitch
 }
 
+/** Captain and set-piece takers (player ids; anyone not on the pitch is replaced by the best available). */
+export interface SetPieces {
+  captain?: number;
+  pens?: number;
+  fk?: number;
+  corners?: number;
+}
+
 /** A run arrow: the player in `slot` makes a run to (x, y) in formation coordinates (x forward, y across), with or without the ball. */
 export interface Run {
   f: string; // the formation it was drawn for (arrows only apply to that formation)
@@ -186,6 +194,7 @@ export interface Club {
   tactics: Tactics;
   lineup: (number | null)[]; // 11 player ids in formation slot order
   subs: number[];
+  setPieces?: SetPieces; // the manager's captain and set-piece takers (computer clubs: the best on the pitch)
   isUser: boolean;
   custom: boolean;
   seasonIncome: number;
@@ -465,6 +474,13 @@ export interface RecruitRequest {
   candidates: Candidate[];
 }
 
+/** CM 01/02 careers: the manager's reputation and the job market. */
+export interface Jobs {
+  rep: number; // manager reputation 1-100
+  vacancies: { clubId: number; since: string; offered?: boolean; applied?: string; answered?: boolean }[];
+  career: { clubId: number; from: string; to?: string }[];
+}
+
 export interface Journey {
   background: string;
   nat?: string; // manager nationality
@@ -515,6 +531,7 @@ export interface GameState {
   europe?: Record<string, number[]>;
   managerProfile?: ManagerProfile;
   journey?: Journey;
+  jobs?: Jobs; // CM 01/02 careers: reputation, vacancies and the clubs managed
   intl?: IntlTournament[]; // international tournaments (current and recent)
   youth?: YouthComp[]; // this season's youth competitions
   deductions?: Deduction[]; // points deductions (this and past seasons)
