@@ -75,6 +75,24 @@ export function startSeason(g: GameState) {
       body: `I've arranged these friendlies to get the players fit for the new season:\n\n${friendlies.map((f) => `${fmtDate(f.date)}: ${f.home === club.id ? `${g.clubs[f.away].name} (home)` : `${g.clubs[f.home].name} (away)`}`).join('\n')}\n\nThey don't count for anything: no stats, cards or suspensions, just match fitness. A good chance to give the fringe players and youngsters a run-out.`,
     });
   }
+  // A brand-new CM 01/02 career: a short guide to how things work
+  if (g.era && fresh) {
+    sendMessage(g, {
+      from: 'Assistant Manager',
+      kind: 'info',
+      title: 'Getting started',
+      body: [
+        `Welcome to ${club.name}, boss. A few pointers to get you going:`,
+        '• Continue moves on a day at a time. It stops when there\'s a match or something needs your answer.',
+        '• Mails marked TO DO need a decision from you: bids, contract talks and questions from the board. The "To do" filter in the inbox lists them all.',
+        '• Squad: pick your team and tactics. The dropdown at the top switches to the reserves and the youth team.',
+        '• Transfers: search for players, then open one and use the Bid tab. It tells you straight away if he can\'t join you and why.',
+        '• Abilities are hidden, as in CM. The scout report on each player tells you how good he is, how he\'d fit in and how good he could become.',
+        '• Non-EU players need a work permit to play in Britain, which only established internationals get.',
+        '• From January you can agree pre-contracts with players whose deals end in the summer, and sign them on a free.',
+      ].join('\n\n'),
+    });
+  }
 }
 
 export function userFixtureOn(g: GameState, date: string): Fixture | undefined {

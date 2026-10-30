@@ -5,7 +5,7 @@ import { squadOf } from '../../game/generate';
 import { cmAttributes } from '../../game/cm0102/attrs';
 import { ATTR_GROUPS, ATTR_LABEL, age, fmtMoney, fullName, marketValue, overall, ratingAt, scoutedPotential } from '../../game/ratings';
 import { seasonLabel } from '../../game/season';
-import { acceptCounter, askingPrice, openTalks, userLoanOffer, playerInterest, preContractOpen, releasePlayer, renewContract, renewDemand, signFreeAgent, userBid, wageDemand, windowOpen } from '../../game/transfers';
+import { acceptCounter, askingPrice, bidBlocker, openTalks, userLoanOffer, playerInterest, preContractOpen, releasePlayer, renewContract, renewDemand, signFreeAgent, userBid, wageDemand, windowOpen } from '../../game/transfers';
 import type { Pos, TrainingFocus } from '../../game/types';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
@@ -17,6 +17,8 @@ import { Crest } from '../components/Crest';
 import { personalityOf } from '../../game/personality';
 import { journey, scoutRange } from '../../game/journey';
 import { PlayerEditor } from './Editor';
+import { scoutReport } from '../../game/reports';
+import { permitCheck } from '../../game/permits';
 
 const FOCUS_LABEL: Record<TrainingFocus, string> = { balanced: 'Balanced', attacking: 'Attack', defending: 'Defend', technical: 'Technical', physical: 'Physical', mental: 'Mental' };
 
@@ -108,6 +110,7 @@ export function PlayerModal() {
       <div className="pf-body">
         {(tab === 'attrs' || tab === 'info') && (
           <div className="win-list pf-one">
+            {tab === 'attrs' && g.era === 'cm0102' && <ReportCard g={g} p={p} />}
             {tab === 'attrs' && <Card title="Attributes" tag={g.era === 'cm0102' ? undefined : `${ovr} OVR`} tagColor="var(--accent)">
               {cmAttributes(p) ? (
                 <div className="pf-attrs cm-attrs">
@@ -253,9 +256,14 @@ export function PlayerModal() {
           }
           const live = offer && (offer.status === 'pending' || offer.status === 'accepted' || offer.status === 'countered');
           const seller = g.clubs[p.clubId!];
+          const why = bidBlocker(g, p);
           return (
             <div className="col pf-actions">
-              <div className="small">Asking price <b>{fmtMoney(ask)}</b> · wants <b>{fmtMoney(wageDemand(g, p, user))}/wk</b></div>
+              {!live && (why ? (
+                <div className="bid-status rejected"><b>You can't bid for him</b><span>{why}</span></div>
+              ) : (
+                <div className="bid-status accepted"><b>Available</b><span>Asking price {fmtMoney(ask)} · wants {fmtMoney(wageDemand(g, p, user))}/wk.{ask > user.transferBudget ? ` His price is more than your ${fmtMoney(user.transferBudget)} budget.` : ''}{g.era && permitNote(g, p, user) ? ` ${permitNote(g, p, user)}` : ''}</span></div>
+              ))}
               {offer && (
                 <div className={`bid-status ${offer.status}`}>
                   {offer.status === 'pending' && <><b>Bid submitted</b><span>{fmtMoney(offer.fee)} to {seller.name}. Awaiting response: continue to the next day for their reply.</span></>}
@@ -267,27 +275,23 @@ export function PlayerModal() {
                 </div>
               )}
               {bidErr && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {bidErr}</div>}
-              {interest && !interest.ok && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {interest.reason}</div>}
-              {g.era && permitNote(g, p, user) && <div className="small muted">{permitNote(g, p, user)}</div>}
-              {p.preContract && <div className="small muted">Has agreed to join {g.clubs[p.preContract.clubId]?.name} on a free in the summer.</div>}
               {g.era && (liveDeal('pre') || preContractOpen(g, p)) && (
                 <div className="col pre-contract">
                   <div className="small"><b>Contract ends this summer:</b> you can agree a pre-contract and sign him on a free when it runs out.</div>
                   {liveDeal('pre') ? <DealStep g={g} o={liveDeal('pre')!} /> : <button className="btn block" onClick={() => talk('pre')}>Offer pre-contract</button>}
                 </div>
               )}
-              {!windowOpen(g) && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>Window closed — bids open in January and July.</div>}
               {loanOffer?.status === 'pending' && <div className="bid-status pending"><b>Loan offer submitted</b><span>Asked {seller.name} to loan him until the end of the season. Continue for their answer.</span></div>}
               {loanOffer?.status === 'rejected' && <div className="bid-status rejected"><b>Loan turned down</b><span>{seller.name} won't loan him out.</span></div>}
               {offer?.status === 'accepted' && <DealStep g={g} o={offer} />}
-              {!live && <>
+              {!live && !why && <>
                 <div className="row">
                   <input type="range" min={Math.round(ask * 0.4)} max={Math.max(ask * 1.6, 10000)} step={Math.max(1000, Math.round(ask / 100))} value={bidVal} onChange={(e) => { setBid(Number(e.target.value)); setBidErr(''); }} style={{ flex: 1, height: 30 }} />
                   <b style={{ minWidth: 64, textAlign: 'right', fontFamily: 'var(--display)', fontSize: 18 }}>{fmtMoney(bidVal)}</b>
                 </div>
-                <button className="btn primary block" disabled={!windowOpen(g)} onClick={() => { const r = mutate(() => userBid(g, p.id, bidVal)); setBidErr(r.ok ? '' : r.msg); }}>{offer ? 'Bid again' : 'Submit bid'}</button>
+                <button className="btn primary block" onClick={() => { const r = mutate(() => userBid(g, p.id, bidVal)); setBidErr(r.ok ? '' : r.msg); }}>{offer ? 'Bid again' : 'Submit bid'}</button>
               </>}
-              {g.era && windowOpen(g) && loanOffer?.status !== 'pending' && <button className="btn block" onClick={() => { const r = mutate(() => userLoanOffer(g, p.id)); setBidErr(r.ok ? '' : r.msg); }}>Offer loan (until end of season)</button>}
+              {g.era && windowOpen(g) && !p.preContract && !permitCheck(g, p, user).msg && loanOffer?.status !== 'pending' && <button className="btn block" onClick={() => { const r = mutate(() => userLoanOffer(g, p.id)); setBidErr(r.ok ? '' : r.msg); }}>Offer loan (until end of season)</button>}
               <button className="btn block" onClick={toggleShortlist}>{shortlisted ? '★ Shortlisted' : '☆ Add to shortlist'}</button>
               <div className="small muted">Your budget: {fmtMoney(user.transferBudget)}</div>
             </div>
@@ -296,9 +300,9 @@ export function PlayerModal() {
 
         {tab === 'actions' && p.clubId === null && !scouted && (
           <div className="col pf-actions">
-            <div className="small">Free agent · wants <b>{fmtMoney(wageDemand(g, p, user))}/wk</b></div>
-            {interest && !interest.ok && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {interest.reason}</div>}
-            {g.era && permitNote(g, p, user) && <div className="small muted">{permitNote(g, p, user)}</div>}
+            {interest && !interest.ok ? <div className="bid-status rejected"><b>He won't sign for you</b><span>{interest.reason}</span></div>
+              : g.era && !permitCheck(g, p, user).ok ? <div className="bid-status rejected"><b>You can't sign him</b><span>{permitCheck(g, p, user).msg}</span></div>
+              : <div className="bid-status accepted"><b>Free agent</b><span>Wants {fmtMoney(wageDemand(g, p, user))}/wk. No fee: offer him a contract.{g.era && permitNote(g, p, user) ? ` ${permitNote(g, p, user)}` : ''}</span></div>}
             {g.era ? (liveDeal('free') ? <DealStep g={g} o={liveDeal('free')!} /> : <button className="btn primary block" onClick={() => talk('free')}>Offer contract</button>)
               : <button className="btn primary block" onClick={() => act(() => signFreeAgent(g, p.id))}>Sign on a free</button>}
             {bidErr && <div className="small" style={{ color: 'var(--bad)', fontWeight: 700 }}>⚠️ {bidErr}</div>}
@@ -307,6 +311,22 @@ export function PlayerModal() {
         )}
       </div>
     </div>
+  );
+}
+
+/** CM-style staff report: ability in words, since CM 01/02 careers hide the numbers. */
+function ReportCard({ g, p }: { g: ReturnType<typeof useGame>; p: ReturnType<typeof useGame>['players'][number] }) {
+  const r = scoutReport(g, p);
+  return (
+    <Card title={p.clubId === g.userClubId ? 'Coach report' : 'Scout report'} tag={r.from}>
+      <div className="report">
+        <div><span>Ability</span><b>{r.level}</b></div>
+        <div><span>For you</span><b>{r.fit}</b></div>
+        <div><span>Potential</span><b>{r.potential}</b></div>
+        {r.strengths.length > 0 && <div><span>Strengths</span><b className="good">{r.strengths.join(', ')}</b></div>}
+        {r.weaknesses.length > 0 && <div><span>Weaknesses</span><b className="bad">{r.weaknesses.join(', ')}</b></div>}
+      </div>
+    </Card>
   );
 }
 

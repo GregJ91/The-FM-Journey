@@ -55,6 +55,11 @@ const PLACES: Record<string, { d: number; q: number; uel: number; uic: number }>
   FRA: { d: 2, q: 1, uel: 3, uic: 2 },
   SCO: { d: 0, q: 2, uel: 2, uic: 1 },
 };
+/** Table zones for a 2002 top division: Champions League, UEFA Cup (one place usually goes to a cup winner), Intertoto. */
+export function leagueZones2002(country: string): { UCL: number; UEL: number; UECL: number } | undefined {
+  const p = PLACES[country];
+  return p && { UCL: p.d + p.q, UEL: Math.max(1, p.uel - 1), UECL: p.uic };
+}
 const SIZES = { d: 16, q: 32, uic: 24 };
 
 /** Who actually qualified from 2001/02 (club names as in the CM 01/02 database). */

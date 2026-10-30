@@ -292,3 +292,13 @@ export function autoResolveActions(g: GameState) {
     else respondAction(g, m.id, a.type === 'offer' ? 'reject' : a.type === 'contract' ? 'offer' : a.type === 'unhappy' ? 'promise' : a.type === 'job' ? (a.options.some((o) => o.id === 'stay') ? 'stay' : a.options[0].id) : 'cautious');
   }
 }
+
+/** Does this mail need you to do something? A question to answer, or the next step of one of your deals. */
+export function needsMove(g: GameState, m: Message) {
+  if (m.action) return m.action.status === 'open';
+  if (!m.offerId) return false;
+  const o = g.offers.find((x) => x.id === m.offerId);
+  if (!o || o.from !== g.userClubId || o.status !== 'accepted' || o.contract?.state === 'pending') return false;
+  // Only the newest mail about a deal carries its next step
+  return !g.inbox.some((x) => x.offerId === o.id && x.id > m.id);
+}

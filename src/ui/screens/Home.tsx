@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { needsMove } from '../../game/actions';
 import { journey } from '../../game/journey';
 import { clubFixtures, compName, leagueTable } from '../../game/competitions';
 import { diffDays, fmtShort } from '../../game/dates';
@@ -42,7 +43,8 @@ export function Home() {
   const injured = squad.filter((p) => p.injury).length;
   const morale = Math.round(squad.reduce((s, p) => s + p.morale, 0) / Math.max(1, squad.length));
 
-  const news = g.inbox.slice(0, 6);
+  // Mails waiting on you first
+  const news = [...g.inbox.filter((m) => needsMove(g, m)), ...g.inbox.filter((m) => !needsMove(g, m))].slice(0, 6);
   const j = journey(g);
   const ready = j ? j.requests.filter((r) => r.status === 'ready') : [];
   const opts = ready.reduce((n, r) => n + r.candidates.filter((c) => c.status === 'open').length, 0);
@@ -98,7 +100,7 @@ export function Home() {
       ) : (
         <Card className="tile wide" title="Inbox" right={<span className="tile-sub">{unread} new</span>}>
           <div className="tile-b click ns-lines" onClick={() => ui.go('inbox')}>
-            {news.map((m) => <div key={m.id} className="ellipsis">» {m.title}</div>)}
+            {news.map((m) => <div key={m.id} className="ellipsis">{needsMove(g, m) ? <span className="action-pill">TO DO</span> : '» '}{m.title}</div>)}
             {!news.length && <div className="muted">No messages yet.</div>}
           </div>
         </Card>

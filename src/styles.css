@@ -1642,3 +1642,25 @@ html[data-era="cm0102"] .ab-alt { display: inline; }
 .processing-bar { height: 6px; margin: 0 12px 14px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
 .processing-bar i { display: block; height: 100%; width: 40%; background: var(--cm-2, var(--accent)); animation: proc-slide 0.9s ease-in-out infinite; }
 @keyframes proc-slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+/* CM 01/02 scout / coach report (ability in words) */
+.report { display: flex; flex-direction: column; }
+.report > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 5px 2px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.report > div:last-child { border-bottom: 0; }
+.report span { color: var(--muted); font-weight: 650; flex: none; }
+.report b { text-align: right; }
+.report b.good { color: var(--good); }
+.report b.bad { color: var(--bad); }
+.tab.todo { color: var(--yellow); }
+
+/* Readability on phones: nothing that matters below about 10.5px */
+.fx { grid-template-columns: 58px minmax(0, 1fr) auto minmax(0, 1fr) 24px; }
+.fx .when { font-size: 12px; }
+.fx .score .agg { font-size: 11px; }
+table.t.dense th { font-size: 11px; }
+table.t.dense .pos { font-size: 10.5px; }
+.pf-key { font-size: 11px; }
+.pf-spot { font-size: 10px; }
+.action-pill { font-size: 10.5px; }
+.pitch.sm .slot .nm { font-size: 10.5px; }
+.comm-stats .mstat .lbl { font-size: 10.5px; }

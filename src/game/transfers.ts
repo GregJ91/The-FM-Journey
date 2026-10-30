@@ -48,23 +48,35 @@ export function windowOpen(g: GameState) {
   return inTransferWindow(g.date);
 }
 
+/**
+ * Why the user can't bid for `p` right now, or '' if they can. The Bid tab shows the same reason up front, so the
+ * player's profile and the bid itself never disagree.
+ */
+export function bidBlocker(g: GameState, p: Player): string {
+  const user = g.clubs[g.userClubId];
+  if (g.mode === 'journey') return 'In The Journey your director of football handles signings: use Recruitment.';
+  if (p.clubId === null) return 'Player not available.';
+  if (p.clubId === user.id) return 'That player is already at your club.';
+  if (p.loan) return `${fullName(p)} is on loan at ${g.clubs[p.clubId].name} until the end of the season.`;
+  if (p.preContract) return `${fullName(p)} has agreed to join ${g.clubs[p.preContract.clubId]?.name ?? 'another club'} in the summer.`;
+  const interest = playerInterest(g, p, user);
+  if (!interest.ok) return interest.reason;
+  const permit = permitCheck(g, p, user);
+  if (!permit.ok) return permit.msg;
+  if (!windowOpen(g)) return 'The transfer window is closed. It reopens in January / July.';
+  return '';
+}
+
 export function userBid(g: GameState, playerId: number, fee: number): { ok: boolean; msg: string } {
   const user = g.clubs[g.userClubId];
   const p = g.players[playerId];
-  if (g.mode === 'journey') return { ok: false, msg: 'In The Journey your director of football handles signings: use Recruitment.' };
   if (!p || p.clubId === null) return { ok: false, msg: 'Player not available.' };
-  if (p.clubId === user.id) return { ok: false, msg: 'That player is already at your club.' };
-  if (!windowOpen(g)) return { ok: false, msg: 'The transfer window is closed. It reopens in January / July.' };
+  const why = bidBlocker(g, p);
+  if (why) return { ok: false, msg: why };
   if (fee > user.transferBudget) return { ok: false, msg: `That exceeds your transfer budget of ${fmtMoney(user.transferBudget)}.` };
   if (g.offers.some((o) => o.playerId === playerId && o.from === user.id && (o.status === 'pending' || o.status === 'accepted'))) {
     return { ok: false, msg: 'You already have an active bid for this player.' };
   }
-  const interest = playerInterest(g, p, user);
-  if (!interest.ok) return { ok: false, msg: interest.reason };
-  const permit = permitCheck(g, p, user);
-  if (!permit.ok) return { ok: false, msg: permit.msg };
-  if (p.loan) return { ok: false, msg: `${fullName(p)} is on loan at ${g.clubs[p.clubId].name} until the end of the season.` };
-  if (p.preContract) return { ok: false, msg: `${fullName(p)} has agreed to join ${g.clubs[p.preContract.clubId]?.name ?? 'another club'} in the summer.` };
   const offer: Offer = {
     id: nextId(g), playerId, from: user.id, to: p.clubId, fee, wage: wageDemand(g, p, user),
     status: 'pending', date: g.date, respondBy: addDays(g.date, 1),

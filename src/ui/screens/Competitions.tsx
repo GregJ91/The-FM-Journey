@@ -10,9 +10,10 @@ import { Crest } from '../components/Crest';
 import { luminance } from '../theme';
 import { SquadList } from './Squad';
 import type { Cup, Message, Player } from '../../game/types';
+import { needsMove } from '../../game/actions';
 import { EURO_PLACES } from '../../game/data/europe';
 import { europeFor, europeTable } from '../../game/europe';
-import { groupLetter, groupTable } from '../../game/europe2002';
+import { groupLetter, groupTable, leagueZones2002 } from '../../game/europe2002';
 import { Fit } from '../components/Fit';
 import { guestLeagueName } from '../../game/guests';
 import { CwcView, IntlView, NationsCard, UpcomingCard } from './WorldViews';
@@ -142,7 +143,7 @@ export function LeagueTableCard({ leagueId }: { leagueId: string }) {
   const table = leagueTable(g, league);
   const n = table.length;
   const higher = g.leagues.find((l) => l.country === league.country && l.tier === league.tier - 1);
-  const places = league.tier === 1 ? EURO_PLACES[league.country] : undefined;
+  const places = league.tier !== 1 ? undefined : g.era ? leagueZones2002(league.country) : EURO_PLACES[league.country];
   const euroZone = (i: number) => !places ? '' : i < places.UCL ? 'zone-ucl' : i < places.UCL + places.UEL ? 'zone-uel' : i < places.UCL + places.UEL + places.UECL ? 'zone-uecl' : '';
   return (
     <Card title={league.name} tag={league.short} tagColor={league.color}>
@@ -169,8 +170,8 @@ export function LeagueTableCard({ leagueId }: { leagueId: string }) {
         {places ? (
           <>
             <span><span className="comp-dot" style={{ background: 'var(--sky)' }} /> Champions League</span>
-            <span><span className="comp-dot" style={{ background: 'var(--orange)' }} /> Europa League</span>
-            <span><span className="comp-dot" style={{ background: 'var(--grass)' }} /> Conference League</span>
+            <span><span className="comp-dot" style={{ background: 'var(--orange)' }} /> {g.era ? 'UEFA Cup' : 'Europa League'}</span>
+            <span><span className="comp-dot" style={{ background: 'var(--grass)' }} /> {g.era ? 'Intertoto Cup' : 'Conference League'}</span>
           </>
         ) : higher && <span><span className="comp-dot" style={{ background: 'var(--grass)' }} /> Promotion</span>}
         {league.down > 0 && <span><span className="comp-dot" style={{ background: 'var(--coral)' }} /> Relegation</span>}
@@ -465,15 +466,18 @@ export function ClubView() {
 
 const ICON: Record<string, string> = { info: 'ℹ️', offer: '💰', board: '💼', transfer: '🔁', injury: '🩹', development: '📈', youth: '🌱', match: '⚽', season: '🏆', news: '📰', training: '🏋️', preview: '🔭', report: '📋', award: '🏅' };
 
-type InboxFilter = 'all' | 'news' | 'matches' | 'squad' | 'club';
+type InboxFilter = 'all' | 'todo' | 'transfers' | 'matches' | 'squad' | 'club' | 'news';
 const FILTERS: [InboxFilter, string, Message['kind'][] | null][] = [
   ['all', 'All', null],
-  ['news', 'News', ['news', 'award', 'season']],
+  ['todo', 'To do', null],
+  ['transfers', 'Transfers', ['transfer', 'offer']],
   ['matches', 'Matches', ['preview', 'report', 'match']],
   ['squad', 'Squad', ['training', 'injury', 'development', 'youth']],
-  ['club', 'Club', ['board', 'transfer', 'offer', 'info']],
+  ['club', 'Club', ['board', 'info']],
+  ['news', 'News', ['news', 'award', 'season']],
 ];
 const isBreaking = (m: Message) => m.kind === 'news' && m.title.startsWith('🚨');
+
 
 export function Inbox() {
   const g = useGame();
@@ -482,8 +486,8 @@ export function Inbox() {
   const [filter, setFilter] = useState<InboxFilter>('all');
   const msg = g.inbox.find((m) => m.id === sel);
   const kinds = FILTERS.find((f) => f[0] === filter)![2];
-  const open = g.inbox.filter((m) => m.action?.status === 'open');
-  const shown = [...open, ...(kinds ? g.inbox.filter((m) => kinds.includes(m.kind)) : g.inbox).filter((m) => m.action?.status !== 'open')];
+  const todo = g.inbox.filter((m) => needsMove(g, m));
+  const shown = filter === 'todo' ? todo : [...todo, ...(kinds ? g.inbox.filter((m) => kinds.includes(m.kind)) : g.inbox).filter((m) => !needsMove(g, m))];
   const [regScope, setRegScope] = useState<'league' | 'europe' | null>(null);
   useEffect(() => { if (typeof ui.param === 'number') setSel(ui.param); }, [ui.param]);
   useEffect(() => {
@@ -545,10 +549,10 @@ export function Inbox() {
         <h1>Inbox</h1>
         <div className="chips"><button className="chip" onClick={() => mutate((gg) => gg.inbox.forEach((m) => { m.read = true; }))}>Mark all read</button></div>
       </div>
-      <div className="tabs" style={{ marginBottom: 10 }}>
+      <div className="tabs inbox-filters" style={{ marginBottom: 10 }}>
         {FILTERS.map(([id, label, ks]) => {
-          const n = (ks ? g.inbox.filter((m) => ks.includes(m.kind)) : g.inbox).filter((m) => !m.read).length;
-          return <button key={id} className={`tab ${filter === id ? 'active' : ''}`} onClick={() => setFilter(id)}>{label}{n > 0 ? ` (${n})` : ''}</button>;
+          const n = id === 'todo' ? todo.length : (ks ? g.inbox.filter((m) => ks.includes(m.kind)) : g.inbox).filter((m) => !m.read).length;
+          return <button key={id} className={`tab ${filter === id ? 'active' : ''} ${id === 'todo' && n ? 'todo' : ''}`} onClick={() => setFilter(id)}>{label}{n > 0 ? ` (${n})` : ''}</button>;
         })}
       </div>
       <Card style={{ paddingTop: 4, paddingBottom: 4 }}>
@@ -557,13 +561,13 @@ export function Inbox() {
             <div key={m.id} className={`li ${isBreaking(m) ? 'breaking-row' : ''} ${m.id === sel ? 'sel' : ''}`} onClick={() => setSel(m.id)}>
               <span style={{ fontSize: 20, width: 26, textAlign: 'center' }}>{isBreaking(m) ? '🚨' : ICON[m.kind] ?? '✉️'}</span>
               <div className="main">
-                <div className="t" style={{ fontWeight: m.read ? 600 : 800 }}>{m.action?.status === 'open' ? <span className="action-pill">RESPOND</span> : !m.read && '🔵 '}{isBreaking(m) ? m.title.replace('🚨 ', '') : m.title}</div>
+                <div className="t" style={{ fontWeight: m.read ? 600 : 800 }}>{m.action?.status === 'open' ? <span className="action-pill">RESPOND</span> : needsMove(g, m) ? <span className="action-pill">YOUR MOVE</span> : !m.read && '🔵 '}{isBreaking(m) ? m.title.replace('🚨 ', '') : m.title}</div>
                 <div className="s">{fmtShort(m.date)} · {m.from}</div>
               </div>
               <span className="muted">›</span>
             </div>
           ))}
-          {!shown.length && <div className="empty">No messages.</div>}
+          {!shown.length && <div className="empty">{filter === 'todo' ? 'Nothing needs your answer right now.' : 'No messages.'}</div>}
         </div>
       </Card>
     </div>

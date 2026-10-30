@@ -64,11 +64,11 @@ export interface CmWorld {
 }
 
 /** The database that ships with the game (in public/, built by tests/cm0102.test.ts with CM_EXPORT=1; see pack.ts). */
-export const CM_BUILTIN = 'cm0102-v4.txt';
+export const CM_BUILTIN = 'cm0102-v5.txt';
 /** The file for a database revision. Keep every revision's file in public/: saves are rebuilt from their own one. */
 export const cmFile = (rev: number) => `cm0102-v${rev}.txt`;
-/** Bumped whenever the built-in database gains data (2: career histories, real squads only; 3: every decent player; 4: half the database and random potentials). */
-export const CM_REV = 4;
+/** Bumped whenever the built-in database gains data (2: career histories, real squads only; 3: every decent player; 4: half the database and random potentials; 5: blank attributes and personalities filled in, as CM did). */
+export const CM_REV = 5;
 /** CM current ability from which a player counts as "decent": included wherever he plays (about a 49 rating here: half of the database). */
 const GOOD_CA = 70;
 /** …or a prospect with CM potential from here, or a random potential (the wonderkids CM is remembered for). */
@@ -172,6 +172,57 @@ type CmAttr = (typeof CM_ATTRS)[number];
 
 const clamp = (v: number) => Math.max(1, Math.min(20, v));
 
+/** A steady pseudo-random number in [-0.5, 0.5) for a player and attribute (the same every time the database is built). */
+function jitter(seed: number, j: number) {
+  let h = Math.imul(seed ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(j + 1, 0xc2b2ae35);
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  h ^= h >>> 13;
+  return ((h >>> 0) % 10000) / 10000 - 0.5;
+}
+
+const GK_ONLY = new Set<CmAttr>(['handling', 'reflexes', 'oneOnOnes']);
+const OUTFIELD_SKILLS = new Set<CmAttr>(['corners', 'crossing', 'dribbling', 'finishing', 'freeKicks', 'heading', 'longShots', 'marking', 'movement', 'penalties', 'tackling', 'technique', 'throwIns']);
+const SET_PIECES = new Set<CmAttr>(['corners', 'freeKicks', 'penalties', 'longShots', 'throwIns']);
+/** Not tied to ability: around the middle for everyone. */
+const NEUTRAL = new Set<CmAttr>(['dirtiness', 'injuryProneness', 'versatility', 'consistency', 'importantMatches']);
+/** What each kind of player is good and bad at (added to his general level). */
+const STYLE: Record<'GK' | 'DEF' | 'MID' | 'ATT' | 'WIDE', Partial<Record<CmAttr, number>>> = {
+  GK: { agility: 2, jumping: 1, positioning: 3, anticipation: 1, decisions: 1, bravery: 1, pace: -3, acceleration: -2, flair: -4, workRate: -2, vision: -3, passing: -3 },
+  DEF: { tackling: 3, marking: 3, positioning: 3, heading: 3, jumping: 2, strength: 2, bravery: 2, finishing: -5, dribbling: -3, flair: -4, vision: -3, movement: -3, technique: -2 },
+  MID: { passing: 3, vision: 3, decisions: 2, teamwork: 2, workRate: 2, stamina: 2, technique: 1, finishing: -2, marking: -2, heading: -1 },
+  ATT: { finishing: 3, movement: 3, dribbling: 2, technique: 2, pace: 2, acceleration: 2, flair: 1, tackling: -5, marking: -5, positioning: -3 },
+  WIDE: { crossing: 3, pace: 2, acceleration: 2, dribbling: 1, heading: -2, strength: -1 },
+};
+
+/**
+ * Most of the database leaves attributes blank (0): CM 01/02 made them up when a new game started, from the player's
+ * ability and position. Do the same, steadily, so nobody is left with 1 for pace or work rate.
+ */
+function fillBlanks(a: Record<CmAttr, number>, ca: number, pos: Pos, seed: number) {
+  const gk = pos === 'GK';
+  const group = gk ? 'GK' : ['DC', 'DL', 'DR'].includes(pos) ? 'DEF' : ['ST', 'AMC', 'AML', 'AMR'].includes(pos) ? 'ATT' : 'MID';
+  const wide = /[LR]$/.test(pos);
+  const level = 3 + (ca / 200) * 13; // CM ability 70 → about 8, 120 → 11, 190 → 15
+  CM_ATTRS.forEach((k, j) => {
+    if (a[k] !== 0 || k === 'leftFoot' || k === 'rightFoot') return;
+    const n = jitter(seed, j) * 5;
+    let v: number;
+    if (GK_ONLY.has(k)) v = gk ? level + 2 + n : 1.5 + n / 4;
+    else if (gk && OUTFIELD_SKILLS.has(k)) v = 3 + n / 2;
+    else if (NEUTRAL.has(k)) v = (k === 'consistency' || k === 'importantMatches' ? 8 + ca / 50 : 10) + n;
+    else v = level + (SET_PIECES.has(k) ? -3 : 0) + (STYLE[group][k] ?? 0) + (wide ? STYLE.WIDE[k] ?? 0 : 0) + n;
+    a[k] = clamp(Math.round(v));
+  });
+  // Feet: most players are right-footed; left-sided ones usually left-footed
+  if (!a.leftFoot && !a.rightFoot) {
+    const left = /L$/.test(pos) ? jitter(seed, 99) < 0.3 : jitter(seed, 99) < -0.32;
+    const weak = clamp(Math.round(7 + jitter(seed, 98) * 8));
+    a.leftFoot = left ? 18 : weak;
+    a.rightFoot = left ? weak : 18;
+  } else if (!a.leftFoot) a.leftFoot = a.rightFoot >= 15 ? 7 : 15;
+  else if (!a.rightFoot) a.rightFoot = a.leftFoot >= 15 ? 7 : 15;
+}
+
 function positions(r: Reader, o: number): { pos: Pos; alt: Pos[] } {
   const [gk, sw, d, dm, m, am, st, wb] = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => r.u8(o + 15 + i));
   const [R, L, C] = [0, 1, 2].map((i) => r.u8(o + 23 + i));
@@ -219,6 +270,7 @@ function mapAttrs(a: Record<CmAttr, number>, pos: Pos, target: number): { attrs:
 
 function personalityFrom(r: Reader, o: number) {
   const [, amb, det, loy, , pro, , tem] = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => r.u8(o + 86 + i));
+  if (!amb && !det && !loy && !pro && !tem) return 'Balanced'; // left blank in the database
   if (pro >= 18 && det >= 15) return 'Model Professional';
   if (pro >= 15) return 'Professional';
   if (det >= 17) return 'Determined';
@@ -384,9 +436,10 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
     const a = {} as Record<CmAttr, number>;
     CM_ATTRS.forEach((k, j) => { a[k] = staff.u8(po + 27 + j); });
     const { pos, alt } = positions(staff, po);
+    fillBlanks(a, ca, pos, i);
     const target = ovrFromCa(ca);
     const mapped = mapAttrs(a, pos, target);
-    const extra: Record<string, number> = { ...a, determination: staff.u8(o + 88) };
+    const extra: Record<string, number> = { ...a, determination: staff.u8(o + 88) || Math.round(clamp(10 + jitter(i, 77) * 8)) };
     const cmVals = CM_EXTRA.map((k) => Math.round(clamp(extra[k] + (CM_RELATIVE.has(k) ? mapped.shift : 0))));
     const cn = common.get(staff.i32(o + 12));
     const fn = first.get(staff.i32(o + 4)) ?? '';

@@ -127,7 +127,7 @@ export function FixtureRow({ g, f, showComp = true, compact }: { g: GameState; f
         {showComp && (
           <div className="row" style={{ gap: 4, marginTop: 2 }}>
             <span className="comp-dot" style={{ background: compColor(g, f.comp) }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 48 }} title={`${compName(g, f.comp)}${f.roundName ? ' · ' + f.roundName : ''}`}>{f.roundName ?? compName(g, f.comp)}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 54 }} title={`${compName(g, f.comp)}${f.roundName ? ' · ' + f.roundName : ''}`}>{f.roundName ?? compName(g, f.comp)}</span>
           </div>
         )}
       </div>
