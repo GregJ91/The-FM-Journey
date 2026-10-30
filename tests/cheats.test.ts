@@ -47,6 +47,7 @@ describe('cheats', () => {
       w += wins; n += games.length;
       for (const f of games) {
         const [a, b] = f.home === g.userClubId ? [f.result!.hg, f.result!.ag] : [f.result!.ag, f.result!.hg];
+        if (f.comp === 'FRN') continue; // pre-season friendlies against lower-league sides don't count
         gf += a; biggest = Math.max(biggest, a - b);
       }
     }

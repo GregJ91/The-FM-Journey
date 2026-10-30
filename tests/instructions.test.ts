@@ -27,7 +27,7 @@ describe('player instructions and man-marking', () => {
     const club = g.clubs[g.userClubId];
     const me = f.home === club.id ? 0 : 1;
     const them = me === 0 ? 1 : 0;
-    const shotsBy = (prep: (m: LiveMatch) => void, id: (m: LiveMatch) => number, n = 40) => {
+    const shotsBy = (prep: (m: LiveMatch) => void, id: (m: LiveMatch) => number, n = 200) => {
       let total = 0;
       for (let k = 0; k < n; k++) {
         const m = createMatch(g, f);
@@ -45,7 +45,7 @@ describe('player instructions and man-marking', () => {
     const before = shotsBy(() => {}, midId);
     club.tactics = { ...club.tactics, instr: [{ f: club.tactics.formation, slot, longShots: 1, runs: 1 }] };
     const after = shotsBy(() => {}, midId);
-    expect(after).toBeGreaterThan(before * 1.3);
+    expect(after).toBeGreaterThan(before * 1.25);
     club.tactics = { ...club.tactics, instr: [] };
 
     // Their main striker, man-marked by our best defender

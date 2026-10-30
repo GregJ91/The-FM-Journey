@@ -1,6 +1,6 @@
 import { FORMATIONS } from './formations';
-import { age, overall, ratingAt } from './ratings';
-import type { Club, Player } from './types';
+import { POS_GROUP, age, overall, ratingAt } from './ratings';
+import type { Club, GameState, Player } from './types';
 
 export function available(p: Player) {
   return !p.injury && p.suspended <= 0 && !p.away;
@@ -107,4 +107,69 @@ export function bestFormation(club: Club, squad: Player[]) {
   }
   club.tactics.formation = original;
   return best;
+}
+
+/** A first-team squad CM-style: this many players, with at least this cover in each part of the pitch. */
+const FIRST_TEAM_SIZE = 25;
+const FIRST_TEAM_COVER: Record<'GK' | 'DEF' | 'MID' | 'ATT', number> = { GK: 3, DEF: 7, MID: 7, ATT: 4 };
+
+/**
+ * Send the weaker senior players to the reserves, keeping the best first-team squad with cover in every position
+ * (loanees stay: they came to play). Returns the players moved.
+ */
+export function sendFringeToReserves(g: GameState, clubId: number, size = FIRST_TEAM_SIZE): Player[] {
+  const club = g.clubs[clubId];
+  const first = Object.values(g.players).filter((p) => p.clubId === clubId && p.squad === 'first');
+  if (first.length <= size) return [];
+  const best = [...first].sort((a, b) => overall(b) - overall(a));
+  const keep = new Set<number>(first.filter((p) => p.loan).map((p) => p.id));
+  for (const [grp, n] of Object.entries(FIRST_TEAM_COVER)) {
+    best.filter((p) => POS_GROUP[p.pos] === grp).slice(0, n).forEach((p) => keep.add(p.id));
+  }
+  for (const p of best) { if (keep.size >= size) break; keep.add(p.id); }
+  const moved = first.filter((p) => !keep.has(p.id));
+  for (const p of moved) p.squad = 'reserve';
+  // If any of them were in the team or on the bench, pick the side again from the first-team squad
+  const gone = new Set(moved.map((p) => p.id));
+  if (club.lineup.some((id) => id !== null && gone.has(id)) || club.subs.some((id) => gone.has(id))) {
+    const r = pickLineup(club, first.filter((p) => keep.has(p.id)));
+    club.lineup = r.lineup;
+    club.subs = r.subs;
+  }
+  return moved;
+}
+
+/** What a matchday squad needs fit: enough players for a team and a bench, and cover in each part of the pitch. */
+const MATCH_COVER: Record<'GK' | 'DEF' | 'MID' | 'ATT', number> = { GK: 2, DEF: 5, MID: 5, ATT: 3 };
+const MATCH_SQUAD = 16;
+
+/**
+ * The assistant calls players up from the reserves when the first team is short (injuries, suspensions,
+ * internationals, sales): the best fit reserves for the positions that need cover, then for numbers. They stay in
+ * the first-team squad afterwards; you can send them back. Returns the players promoted.
+ */
+export function coverFromReserves(g: GameState, clubId: number): Player[] {
+  const fit = (p: Player) => !p.injury && p.suspended <= 0 && !p.away;
+  const first: Player[] = [];
+  const reserves: Player[] = [];
+  for (const p of Object.values(g.players)) {
+    if (p.clubId !== clubId) continue;
+    if (p.squad === 'first') first.push(p);
+    else if (p.squad === 'reserve' && fit(p)) reserves.push(p);
+  }
+  if (!reserves.length) return [];
+  reserves.sort((a, b) => overall(b) - overall(a));
+  const up: Player[] = [];
+  const promote = (p: Player) => { p.squad = 'first'; up.push(p); reserves.splice(reserves.indexOf(p), 1); first.push(p); };
+  for (const [grp, n] of Object.entries(MATCH_COVER)) {
+    let have = first.filter((p) => fit(p) && POS_GROUP[p.pos] === grp).length;
+    while (have < n) {
+      const r = reserves.find((p) => POS_GROUP[p.pos] === grp);
+      if (!r) break;
+      promote(r);
+      have++;
+    }
+  }
+  while (first.filter(fit).length < MATCH_SQUAD && reserves.length) promote(reserves[0]);
+  return up;
 }

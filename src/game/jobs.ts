@@ -2,6 +2,7 @@
 // reputation can reach come calling; you can apply for any vacancy; and if you're sacked, smaller clubs give you
 // another chance. Taking a job moves your career to that club. (The Journey has its own version of this.)
 import { resetRegistration } from './actions';
+import { sendFringeToReserves } from './selection';
 import { expectedRank, setBoardObjective } from './club';
 import { leaguePosition, leagueTable } from './competitions';
 import { addDays } from './dates';
@@ -169,5 +170,6 @@ export function takeJob(g: GameState, clubId: number) {
   g.board.confidence = 60;
   setBoardObjective(g);
   resetRegistration(g);
-  sendMessage(g, { from: 'The Board', kind: 'board', title: `Welcome to ${next.name}`, body: `Welcome to ${next.name}. ${g.board.objective}.\n\nTransfer budget: ${fmtMoney(next.transferBudget)}. Have a look at the squad and the tactics before the next game.` });
+  const fringe = sendFringeToReserves(g, clubId).length;
+  sendMessage(g, { from: 'The Board', kind: 'board', title: `Welcome to ${next.name}`, body: `Welcome to ${next.name}. ${g.board.objective}.\n\nTransfer budget: ${fmtMoney(next.transferBudget)}. Have a look at the squad and the tactics before the next game.${fringe ? `\n\n${fringe} fringe players have been put in the reserves; you can bring any of them back from the Squad page.` : ''}` });
 }

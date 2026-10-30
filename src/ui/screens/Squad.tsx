@@ -9,13 +9,13 @@ import { ordinal } from '../../game/season';
 import { Youth } from './Youth';
 import { reserveLeagueFor, youthTable } from '../../game/youth';
 import { age, avgRating, familiarity, fmtMoney, marketValue, overall, ratingAt, scoutedPotential, shortName } from '../../game/ratings';
-import { pickLineup, validateLineup } from '../../game/selection';
+import { pickLineup, sendFringeToReserves, validateLineup } from '../../game/selection';
 import { setPieceSkill, type SetPieceJob } from '../../game/match';
 import type { Club, GameState, Player, Tactics as TacticsT } from '../../game/types';
 import { RunArrowsBox, RunPitch, setRunIn, type ArrowMode } from '../components/RunPitch';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
-import { CondBar, Ovr, OvrChange, PosTag, Sheet, Spark, Stars, StatusIcons } from '../components/common';
+import { CondBar, ConfirmButton, Ovr, OvrChange, PosTag, Sheet, Spark, Stars, StatusIcons } from '../components/common';
 import { useLandscape } from '../useLandscape';
 import { Fit } from '../components/Fit';
 
@@ -27,7 +27,7 @@ const SP_JOBS: [SetPieceJob, string, string][] = [['captain', 'Captain', 'Influe
 const POS_ORDER = ['GK', 'DR', 'DC', 'DL', 'DM', 'MR', 'MC', 'ML', 'AMR', 'AMC', 'AML', 'ST'];
 
 /** Mobile squad list with sort chips; grouped by position when sorted by position. */
-export function SquadList({ g, players, own = true, title, toolbar }: { g: GameState; players: Player[]; own?: boolean; title?: string; toolbar?: React.ReactNode }) {
+export function SquadList({ g, players, own = true, title, toolbar, action }: { g: GameState; players: Player[]; own?: boolean; title?: string; toolbar?: React.ReactNode; action?: React.ReactNode }) {
   const [sort, setSort] = useState<SortKey>('pos');
   const get: Record<SortKey, (p: Player) => number> = {
     pos: (p) => POS_ORDER.indexOf(p.pos) * 100 - overall(p),
@@ -75,7 +75,7 @@ export function SquadList({ g, players, own = true, title, toolbar }: { g: GameS
         </select>
       </div>
       <div className="card fill squad-ns">
-        <div className="card-h"><h3>{title ?? 'Players'}</h3><div className="right tile-sub">{players.length} players</div></div>
+        <div className="card-h"><h3>{title ?? 'Players'}</h3><div className="right tile-sub">{action}{players.length} players</div></div>
         <Fit>
         <table className="t dense">
           <thead><tr><th>No</th><th>Pos</th><th>Name</th><th className="r">Age</th><th className="r ab">Ab</th><th className="r">{lastLabel}</th>{own && <th />}</tr></thead>
@@ -186,7 +186,8 @@ export function Squad({ start }: { start?: 'youth' } = {}) {
       );
   }
   return tab === 'squad'
-    ? <SquadList g={g} players={squad} title={`First team · avg age ${avgAge}`} toolbar={toolbar} />
+    ? <SquadList g={g} players={squad} title={`First team · avg age ${avgAge}`} toolbar={toolbar}
+        action={hasReserves && squad.length > 25 && <ConfirmButton className="btn sm" label="Fringe → reserves" confirmLabel={`Move ${squad.length - 25}?`} onConfirm={() => { const n = mutate((gg) => sendFringeToReserves(gg, club.id).length); ui.toast(`${n} player${n === 1 ? '' : 's'} moved to the reserves`); }} />} />
     : <Tactics g={g} club={club} squad={squad} toolbar={toolbar} />;
 }
 

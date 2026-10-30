@@ -440,7 +440,10 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
   } else if (dt.line === 0) quality *= 0.93;
   if (dt.pressing === 2) quality *= 1.05; // beat the press and there's room to attack
   if (dt.pressing === 0) quality *= 0.97;
-  const pShot = (cmTune?.shotBase ?? 0.22) * Math.pow(ratio, cmTune?.shotExp ?? 1.6) * shotMult;
+  // A side well ahead takes its foot off the gas (no 12-0s): fewer chances once the game is won
+  const margin = m.score[t] - m.score[o];
+  const ease = margin >= 6 ? 0.35 : margin >= 4 ? 0.6 : 1;
+  const pShot = (cmTune?.shotBase ?? 0.22) * Math.pow(ratio, cmTune?.shotExp ?? 1.6) * shotMult * ease;
   if (rand() < pShot && att.onPitch.length > 0) {
     const beatTrap = dt.offsideTrap && rand() < 0.05;
     evs.push(...shot(g, m, t, ratio * quality, beatTrap));

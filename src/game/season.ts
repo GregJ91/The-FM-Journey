@@ -23,7 +23,7 @@ import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
 import { chance, int, normal, pick } from './rng';
 import { aiBidsForUser, aiLoanOffersForUser, aiLoans, aiPreContracts, aiTransfers, completeTransfer, endLoan, expireOffers, respondToContracts, respondToLoanOffers, respondToUserBids, relegationReleases, releaseClauseBids } from './transfers';
 import { matchdayIncome } from './club';
-import { bestFormation } from './selection';
+import { bestFormation, coverFromReserves, sendFringeToReserves } from './selection';
 import { normaliseTactics } from './tactics';
 import type { Cup, Fixture, GameState, Player, SeasonHistory } from './types';
 
@@ -50,6 +50,8 @@ export function startSeason(g: GameState) {
   const byClub = playersByClub(g);
   // A brand-new world already picked every club's formation
   const fresh = !!g.worldStart && g.date === g.worldStart && !g.history.length;
+  // A new CM career: the fringe players start in the reserves, as in CM
+  if (fresh && g.era) sendFringeToReserves(g, g.userClubId);
   for (const c of Object.values(g.clubs)) {
     if (fresh || c.isUser || isTransferOnly(c)) continue; // transfer-only clubs never play
     c.tactics = normaliseTactics({ ...c.tactics, formation: bestFormation(c, (byClub.get(c.id) ?? []).filter((p) => p.squad === 'first')), roles: [] });
@@ -200,6 +202,9 @@ export function quickPlayUserMatch(g: GameState) {
 
 function daily(g: GameState) {
   journeyDaily(g);
+  // Short of fit first-teamers? The assistant calls up reserves
+  const called = coverFromReserves(g, g.userClubId);
+  if (called.length) sendMessage(g, { from: 'Assistant Manager', kind: 'training', title: `${called.length > 1 ? `${called.length} players` : fullName(called[0])} called up from the reserves`, body: `With injuries, suspensions and absences we were short in the first team, so I've brought ${called.map((p) => `${fullName(p)} (${p.pos})`).join(', ')} up from the reserves.\n\nThey'll stay in the first-team squad: send them back down from the player's Manage tab when you have the cover.` });
   jobsDaily(g);
   const intensity = g.training.intensity;
   const userTrainMult = intensity === 'low' ? 0.6 : intensity === 'high' ? 1.8 : 1;
