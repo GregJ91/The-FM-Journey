@@ -28,8 +28,9 @@ describe('cheats', () => {
 
   it.skipIf(!existsSync(DB))('"Champions" wins about 90% of games in a CM career', () => {
     const cm = JSON.parse(gunzipSync(scramble(Buffer.from(readFileSync(DB, 'utf8'), 'base64'))).toString('utf8'));
-    let w = 0, n = 0;
-    for (const club of ['Fulham', 'Burnley', 'Forfar Athletic']) {
+    let w = 0, n = 0, gf = 0, biggest = 0;
+    // Small clubs and a big one: the cheat lifts you above each opponent, so it plays the same everywhere
+    for (const club of ['Fulham', 'Burnley', 'Forfar Athletic', 'Arsenal']) {
       const g = createWorld({ mode: 'classic', manager: 'T', clubName: club, slot: 't', seed: 3, cm });
       g.clubs[g.userClubId].tactics.name = 'Champions';
       expect(activateCheat(g)).toBe('Cheat activated: Champions');
@@ -44,8 +45,15 @@ describe('cheats', () => {
       const wins = games.filter((f) => (f.home === g.userClubId ? f.result!.hg > f.result!.ag : f.result!.ag > f.result!.hg)).length;
       console.log(club, `${wins}/${games.length}`);
       w += wins; n += games.length;
+      for (const f of games) {
+        const [a, b] = f.home === g.userClubId ? [f.result!.hg, f.result!.ag] : [f.result!.ag, f.result!.hg];
+        gf += a; biggest = Math.max(biggest, a - b);
+      }
     }
     expect(w / n).toBeGreaterThan(0.82);
     expect(w / n).toBeLessThan(0.97);
+    // ...by realistic scores (2-0s and 3-0s, not 11-0s)
+    expect(gf / n).toBeLessThan(3.5);
+    expect(biggest).toBeLessThanOrEqual(8);
   }, 600000);
 });

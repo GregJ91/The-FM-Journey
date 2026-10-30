@@ -1,5 +1,5 @@
 // CM 01/02 careers: old-school cheats, switched on by giving your tactic a secret name.
-//   "Champions" - your team wins about 90% of its games
+//   "Champions" - your team wins about 90% of its games, by realistic scores, at any club
 //   "Moneybags" - £25m (2002 money) for transfers, once a season
 //   "Iron Men"  - your players never get injured
 //   "Editor"    - unlocks the in-game editor for this save (players, club finances, board)
@@ -9,8 +9,8 @@ export type CheatId = 'champions' | 'moneybags' | 'ironmen' | 'editor';
 
 export const CHEAT_NAMES: Record<CheatId, string> = { champions: 'Champions', moneybags: 'Moneybags', ironmen: 'Iron Men', editor: 'Editor' };
 
-/** Team-strength multiplier for "Champions", calibrated to about 90% wins (tests/cheats.test.ts). */
-export const CHAMPIONS_EDGE = 1.75;
+/** "Champions" makes your side this much stronger than the opponent (about 90% wins; tests/cheats.test.ts). */
+export const CHAMPIONS_EDGE = 1.8;
 
 /** "Moneybags": £25m (cheats only work in CM careers, which run at 2002 prices). */
 const MONEYBAGS = 25_000_000;

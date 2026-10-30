@@ -41,6 +41,7 @@ export interface Side {
   out: LivePlayer[];
   subsLeft: number;
   str: { att: number; mid: number; def: number; gk: number };
+  cheat?: number; // "Champions": how much this side is lifted (set at kick-off against this opponent)
 }
 
 export type EventType = 'kickoff' | 'goal' | 'save' | 'miss' | 'chance' | 'yellow' | 'red' | 'injury' | 'sub' | 'ht' | 'ft' | 'pens' | 'info';
@@ -154,9 +155,10 @@ function computeStrength(g: GameState, side: Side) {
     defM *= 1 + 0.02 * mgr(g, 'defending');
     midM *= 1 + 0.015 * mgr(g, 'tactical');
   }
-  let edge = isMetaClub(g.clubs[side.clubId], g) ? META_TUNING.edge : 1;
-  if (side.clubId === g.userClubId && cheatOn(g, 'champions', side.tactics)) edge *= CHAMPIONS_EDGE;
-  side.str = { att: (att / 3.6) * attM * edge, mid: (mid / 4.5) * midM * edge, def: (def / 5.0) * defM * edge, gk };
+  const edge = isMetaClub(g.clubs[side.clubId], g) ? META_TUNING.edge : 1;
+  // "Champions" wins mostly by controlling games and not conceding, rather than by running up the score
+  const c = side.clubId === g.userClubId && cheatOn(g, 'champions', side.tactics) ? side.cheat ?? 1 : 1;
+  side.str = { att: (att / 3.6) * attM * edge * Math.pow(c, 0.4), mid: (mid / 4.5) * midM * edge * c, def: (def / 5.0) * defM * edge * Math.pow(c, 2.2), gk };
 }
 
 /**
@@ -265,6 +267,14 @@ export function createMatch(g: GameState, f: Fixture): LiveMatch {
     injuredOut: [],
   };
   m.events.push({ minute: 0, type: 'kickoff', team: -1, text: `Kick-off at ${f.neutral ? 'a neutral venue' : home.stadium}! ${home.name} v ${away.name}.` });
+  // "Champions": lift your side to a set margin above this opponent, so it wins most games at any club without
+  // turning every match into a cricket score
+  m.sides.forEach((sd, k) => {
+    if (sd.clubId !== g.userClubId || !cheatOn(g, 'champions', sd.tactics)) return;
+    const total = (x: Side) => x.str.att + x.str.mid + x.str.def;
+    sd.cheat = Math.max(1, Math.min(2.5, (CHAMPIONS_EDGE * total(m.sides[1 - k])) / total(sd)));
+    computeStrength(g, sd);
+  });
   return m;
 }
 
