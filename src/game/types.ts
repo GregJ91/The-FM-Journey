@@ -308,6 +308,7 @@ export interface Cup {
   groupSets?: number[][][]; // [first group stage, second group stage]
   carry?: number[]; // clubs waiting for the next draw (winners, and clubs dropping in from other competitions)
   direct?: number[]; // Champions League: clubs going straight into the group stage
+  super?: boolean; // a super cup (CM careers): last season's winners in a one-off (or two-legged) curtain-raiser
 }
 
 export interface IntlMatch {
@@ -584,6 +585,7 @@ export interface GameState {
   europe?: Record<string, number[]>;
   managerProfile?: ManagerProfile;
   journey?: Journey;
+  superNext?: Record<string, [number, number]>; // who meets in next season's super cups (set at the end of the season)
   awards?: Award[]; // awards given out (end of season, Ballon d'Or, Manager of the Month)
   jobs?: Jobs; // CM 01/02 careers: reputation, vacancies and the clubs managed
   intl?: IntlTournament[]; // international tournaments (current and recent)

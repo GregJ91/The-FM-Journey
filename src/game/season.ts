@@ -20,6 +20,7 @@ import { monthlyManager } from './manager';
 import { journeyDaily, journeyMonthly } from './journey';
 import { addRep, jobsDaily, jobsMonthly } from './jobs';
 import { seasonAwards } from './awards';
+import { computeSuperEntrants, setupSuperCups, superCupsDone } from './supercups';
 import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
 import { chance, int, normal, pick } from './rng';
 import { aiBidsForUser, aiLoanOffersForUser, aiLoans, aiPreContracts, aiTransfers, completeTransfer, endLoan, expireOffers, respondToContracts, respondToLoanOffers, respondToUserBids, relegationReleases, releaseClauseBids } from './transfers';
@@ -45,6 +46,7 @@ export function startSeason(g: GameState) {
   setupEurope(g, g.europe ?? (g.season === START_SEASON || (g.era && !g.history.length) ? initialEntrants(g) : computeEntrants(g)));
   g.europe = undefined;
   setupYouth(g);
+  setupSuperCups(g); // Community Shield, UEFA Super Cup… (before the friendlies are fitted round them)
   const friendlies = scheduleFriendlies(g);
   setSeasonBudgets(g);
   setBoardObjective(g);
@@ -124,9 +126,10 @@ export function playDayFixtures(g: GameState) {
     }
   });
   // CM 01/02: European competitions in their 2002/03 formats run themselves (draws wait for the competitions feeding them)
+  if (g.era) superCupsDone(g);
   if (g.era) for (const cup of tickEurope2002(g)) cupWon(g, cup, g.fixtures.some((f) => f.comp === cup.id && f.knockout && f.neutral && (f.home === g.userClubId || f.away === g.userClubId)));
   for (const cup of g.cups) {
-    if (cup.winner || cup.format === '2002') continue;
+    if (cup.winner || cup.format === '2002' || cup.super) continue;
     const before = cup.current;
     const round = g.fixtures.filter((f) => f.comp === cup.id && f.round === cup.current + 1);
     if (cup.lp !== undefined || cup.type === 'world') {
@@ -359,6 +362,7 @@ export function endSeason(g: GameState) {
 
   // European places for next season (before promotion and relegation)
   g.europe = computeEntrants(g);
+  if (g.era) g.superNext = computeSuperEntrants(g);
 
   // Promotion & relegation within each country's pyramid (England, Scotland)
   const moves: { id: number; to: string }[] = [];

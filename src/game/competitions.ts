@@ -165,7 +165,7 @@ export function ensureLeagueCups(g: GameState) {
 
 export function setupCups(g: GameState) {
   for (const cup of g.cups) {
-    if (cup.type !== 'domestic') continue;
+    if (cup.type !== 'domestic' || cup.super) continue;
     cup.winner = null;
     cup.runnerUp = null;
     cup.current = 0;
