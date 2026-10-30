@@ -55,6 +55,7 @@ export function MatchScreen() {
   const [subOn, setSubOn] = useState<number | null>(null);
   const [sideTab, setSideTab] = useState<'feed' | 'stats' | 'ratings' | 'pitch'>('feed');
   const [arrows, setArrows] = useState<ArrowMode>('off');
+  const [pitchOf, setPitchOf] = useState<'us' | 'them'>('us');
   const [tacticsOpen, setTacticsOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const histRef = useRef<Snap[]>([]);
@@ -146,6 +147,11 @@ export function MatchScreen() {
   const mySlots = FORMATIONS[userTeam.tactics.formation];
   const myPlayers = mySlots.map((_, i) => { const lp = userTeam.onPitch.find((x) => x.slot === i); return lp ? g.players[lp.id] ?? null : null; });
   const myRuns = (userTeam.tactics.runs ?? []).filter((r) => r.f === userTeam.tactics.formation);
+  // The other side's shape and runs (the Pitch tab can show either)
+  const oppTeam = m.sides[userSide === 0 ? 1 : 0];
+  const oppSlots = FORMATIONS[oppTeam.tactics.formation];
+  const oppPlayers = oppSlots.map((_, i) => { const lp = oppTeam.onPitch.find((x) => x.slot === i); return lp ? g.players[lp.id] ?? null : null; });
+  const oppRuns = (oppTeam.tactics.runs ?? []).filter((r) => r.f === oppTeam.tactics.formation);
   const total = m.stats.poss[0] + m.stats.poss[1] || 1;
   const colors: [string, string] = [hk[0], ak[0]];
   const refresh = () => setTick((t) => t + 1);
@@ -250,7 +256,15 @@ export function MatchScreen() {
             </div>
             {sideTab === 'pitch' ? (
               // Your shape and run arrows, as on the tactics screen
-              <RunPitch slots={mySlots} players={myPlayers} runs={myRuns} showRating={false} className="match-runs" />
+              <>
+                <div className="seg pitch-of">
+                  <button className={pitchOf === 'us' ? 'on' : ''} onClick={() => setPitchOf('us')}>{g.clubs[userTeam.clubId].short} · {userTeam.tactics.formation}</button>
+                  <button className={pitchOf === 'them' ? 'on' : ''} onClick={() => setPitchOf('them')}>{g.clubs[oppTeam.clubId].short} · {oppTeam.tactics.formation}</button>
+                </div>
+                {pitchOf === 'us'
+                  ? <RunPitch slots={mySlots} players={myPlayers} runs={myRuns} showRating={false} className="match-runs" />
+                  : <RunPitch slots={oppSlots} players={oppPlayers} runs={oppRuns} showRating={false} className="match-runs opp" />}
+              </>
             ) : sideTab !== 'ratings' ? (
               <div className="comm-stats">
                 <div className={`mom-strip ${mom.tone}`}><b>{mom.label}</b><div className="mom-bars"><MomBars bars={mom.bars} /></div></div>

@@ -1677,3 +1677,6 @@ table.t.dense .pos { font-size: 10.5px; }
 .comm-side .cm-pitch.match-runs .cm-box, .match-runs-edit .cm-box { font-size: 11px; padding: 1px 4px 1px 1px; }
 .match-runs-edit { display: flex; flex-direction: column; margin-bottom: 12px; }
 .match-runs-edit .cm-pitch { height: 300px; margin: 0; }
+.pitch-of { flex: none; }
+.pitch-of button { font-size: 12px; }
+.cm-pitch.match-runs.opp .cm-box i { background: #6a0a0a; }

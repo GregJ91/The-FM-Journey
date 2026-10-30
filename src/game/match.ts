@@ -6,7 +6,7 @@ import { mgr, noteMatch, noteTactics } from './manager';
 import { POS_GROUP, ratingAt, rawOverallAt, shortName } from './ratings';
 import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
-import { normaliseTactics, roleFor, ROLES, withRun, type Role } from './tactics';
+import { autoRuns, normaliseTactics, roleFor, ROLES, withRun, type Role } from './tactics';
 import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, Pos, Run, StatLine, Tactics } from './types';
 import { playersByClub } from './shirts';
 
@@ -209,7 +209,8 @@ function buildSide(g: GameState, club: Club, isUser: boolean, cupTie = false, co
   });
   const side: Side = {
     clubId: club.id,
-    tactics: { ...club.tactics, roles: [...club.tactics.roles] },
+    // Computer sides make their own runs (yours are the arrows you drew)
+    tactics: { ...club.tactics, roles: [...club.tactics.roles], runs: isUser ? club.tactics.runs : autoRuns(club.tactics, club.id) },
     onPitch,
     bench: [...club.subs].slice(0, 9),
     out: [],
@@ -856,6 +857,7 @@ export function changeFormation(g: GameState, m: LiveMatch, side: 0 | 1, formati
     return ROLES[sl.pos].some((r) => r.id === prev) ? prev! : ROLES[sl.pos][0].id;
   });
   s.tactics = normaliseTactics({ ...s.tactics, formation, roles });
+  if (s.clubId !== g.userClubId) s.tactics.runs = autoRuns(s.tactics, s.clubId);
   computeStrength(g, s);
   m.events.push({ minute: m.minute, type: 'info', team: side, text: `${g.clubs[s.clubId].short} switch to a ${formation}.` });
 }

@@ -106,6 +106,33 @@ export function withRun(r: Role, from: { x: number; y: number }, run: Run): Role
   };
 }
 
+/**
+ * Run arrows for a computer side, from its formation, roles and mentality: forwards running in behind, wingers going
+ * down the line or cutting in, wing-backs overlapping, box-to-box midfielders getting forward. `seed` gives each club
+ * its own habits (which wide players cut inside).
+ */
+export function autoRuns(t: Tactics, seed: number): Run[] {
+  const slots = FORMATIONS[t.formation];
+  if (!slots) return [];
+  const bold = t.mentality >= 1 || t.width === 2;
+  const out: Run[] = [];
+  slots.forEach((s, i) => {
+    const role = t.roles[i];
+    const inward = s.y < 50 ? 1 : -1;
+    const cutsIn = (seed + i) % 3 === 0;
+    let to: { x: number; y: number; ball?: boolean } | null = null;
+    if (s.pos === 'ST') to = role === 'tm' ? null : role === 'f9' ? { x: s.x - 14, y: s.y } : { x: s.x + 9, y: s.y };
+    else if (s.pos === 'AML' || s.pos === 'AMR') to = role === 'if' || role === 'iw' || cutsIn ? { x: s.x + 10, y: s.y + inward * 24, ball: role !== 'if' } : { x: s.x + 13, y: s.y, ball: true };
+    else if (s.pos === 'ML' || s.pos === 'MR') to = role === 'w' ? { x: s.x + 20, y: s.y, ball: true } : role === 'wm' && bold ? { x: s.x + 16, y: s.y } : null;
+    else if (s.pos === 'DL' || s.pos === 'DR') to = role === 'wb' ? { x: s.x + 34, y: s.y } : role === 'fb' && bold && t.mentality > -1 ? { x: s.x + 24, y: s.y } : null;
+    else if (s.pos === 'MC') to = role === 'b2b' ? { x: s.x + 24, y: s.y } : role === 'mez' ? { x: s.x + 20, y: s.y - inward * 14 } : null;
+    else if (s.pos === 'AMC') to = role === 'ss' ? { x: s.x + 13, y: s.y } : null;
+    if (!to || (t.mentality <= -1 && s.pos !== 'ST' && !s.pos.startsWith('AM'))) return;
+    out.push({ f: t.formation, slot: i, x: Math.round(Math.max(0, Math.min(97, to.x))), y: Math.round(Math.max(2, Math.min(98, to.y))), ball: to.ball || undefined });
+  });
+  return out;
+}
+
 export function roleFor(pos: Pos, id: string | undefined): Role {
   const list = ROLES[pos];
   return list.find((r) => r.id === id) ?? list[0];

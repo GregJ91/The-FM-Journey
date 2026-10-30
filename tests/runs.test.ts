@@ -6,7 +6,7 @@ import { createWorld } from '../src/game/generate';
 import { createMatch } from '../src/game/match';
 import { pendingUserFixture, advanceDay, startSeason } from '../src/game/season';
 import { autoResolveActions } from '../src/game/actions';
-import { roleFor, withRun } from '../src/game/tactics';
+import { autoRuns, normaliseTactics, roleFor, withRun } from '../src/game/tactics';
 
 describe('run arrows', () => {
   it('change how a player plays', () => {
@@ -40,5 +40,16 @@ describe('run arrows', () => {
     expect(pushed.def).toBeLessThan(base.def);
     club.tactics = { ...club.tactics, runs: club.tactics.runs!.map((r) => ({ ...r, f: 'other' })) };
     expect(createMatch(g, f).sides[side].str.att).toBeCloseTo(base.att, 6);
+  });
+
+  it('computer sides make their own runs, fewer when defensive', () => {
+    const bold = normaliseTactics({ formation: '4-4-2', mentality: 1, width: 2, roles: [] });
+    const runs = autoRuns(bold, 3);
+    expect(runs.length).toBeGreaterThanOrEqual(3);
+    expect(runs.every((r) => r.f === '4-4-2' && r.x >= 0 && r.x <= 97)).toBe(true);
+    const wb = normaliseTactics({ formation: '4-4-2', mentality: 0, roles: ['gk', 'fb', 'cd', 'cd', 'wb'] });
+    expect(autoRuns(wb, 3).some((r) => r.slot === 4)).toBe(true); // the wing-back overlaps
+    const parked = normaliseTactics({ formation: '4-4-2', mentality: -2, width: 2, roles: [] });
+    expect(autoRuns(parked, 3).length).toBeLessThan(runs.length);
   });
 });
