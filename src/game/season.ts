@@ -20,9 +20,10 @@ import { monthlyManager } from './manager';
 import { journeyDaily, journeyMonthly } from './journey';
 import { addRep, jobsDaily, jobsMonthly } from './jobs';
 import { seasonAwards } from './awards';
+import { fitnessBonus, physioRecovery, staffMonthly, staffOf } from './staff';
 import { computeSuperEntrants, setupSuperCups, superCupsDone } from './supercups';
 import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
-import { chance, int, normal, pick } from './rng';
+import { chance, int, normal, pick, rand } from './rng';
 import { aiBidsForUser, aiLoanOffersForUser, aiLoans, aiPreContracts, aiTransfers, completeTransfer, endLoan, expireOffers, respondToContracts, respondToLoanOffers, respondToUserBids, relegationReleases, releaseClauseBids } from './transfers';
 import { matchdayIncome } from './club';
 import { bestFormation, coverFromReserves, sendFringeToReserves } from './selection';
@@ -55,6 +56,7 @@ export function startSeason(g: GameState) {
   const fresh = !!g.worldStart && g.date === g.worldStart && !g.history.length;
   // A new CM career: the fringe players start in the reserves, as in CM
   if (fresh && g.era) sendFringeToReserves(g, g.userClubId);
+  if (fresh && g.era) staffOf(g); // your backroom staff
   for (const c of Object.values(g.clubs)) {
     if (fresh || c.isUser || isTransferOnly(c)) continue; // transfer-only clubs never play
     c.tactics = normaliseTactics({ ...c.tactics, formation: bestFormation(c, (byClub.get(c.id) ?? []).filter((p) => p.squad === 'first')), roles: [] });
@@ -213,11 +215,14 @@ function daily(g: GameState) {
   const intensity = g.training.intensity;
   const userTrainMult = intensity === 'low' ? 0.6 : intensity === 'high' ? 1.8 : 1;
   const ironMen = cheatOn(g, 'ironmen');
-  const userRecovery = intensity === 'low' ? 2 : intensity === 'high' ? -2 : 0;
+  const userRecovery = (intensity === 'low' ? 2 : intensity === 'high' ? -2 : 0) + fitnessBonus(g);
+  const physio = physioRecovery(g);
   for (const p of Object.values(g.players)) {
     const isUser = p.clubId === g.userClubId && p.clubId !== null;
     if (p.injury) {
-      p.injury.days--;
+      // Your physio: a good one gets him back sooner, none at all slows things down
+      const step = !isUser ? 1 : physio >= 0 ? (rand() < physio ? 2 : 1) : rand() < -physio ? 0 : 1;
+      p.injury.days -= step;
       if (p.injury.days <= 0) {
         if (isUser) sendMessage(g, { from: 'Medical Team', kind: 'injury', title: `${fullName(p)} is fit again`, body: `${fullName(p)} has recovered from a ${p.injury.name.toLowerCase()} and is available for selection.` });
         p.injury = null;
@@ -255,6 +260,7 @@ function newDay(g: GameState) {
     monthlyManager(g);
     journeyMonthly(g);
     jobsMonthly(g);
+    staffMonthly(g);
     recordLedger(g);
     monthlyFinances(g);
     const dev = monthlyDevelopment(g);

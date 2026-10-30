@@ -195,6 +195,7 @@ export function setClubFinances(club: Club, tier: number) {
 export function wageBill(g: GameState, clubId: number) {
   let s = 0;
   for (const p of Object.values(g.players)) if (p.clubId === clubId) s += p.wage;
+  for (const st of g.staff ?? []) if (st.clubId === clubId) s += st.wage; // backroom staff (CM careers)
   return s;
 }
 

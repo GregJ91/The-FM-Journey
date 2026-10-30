@@ -48,6 +48,7 @@ export function monthlyFinances(g: GameState) {
 export function weeklyWages(g: GameState) {
   const bills: Record<number, number> = {};
   for (const p of Object.values(g.players)) if (p.clubId !== null) bills[p.clubId] = (bills[p.clubId] ?? 0) + p.wage;
+  for (const s of g.staff ?? []) if (s.clubId !== null) bills[s.clubId] = (bills[s.clubId] ?? 0) + s.wage;
   for (const club of Object.values(g.clubs)) {
     const w = bills[club.id] ?? 0;
     club.balance -= w;

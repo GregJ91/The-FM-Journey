@@ -32,13 +32,13 @@ describe.skipIf(!existsSync(DB))('CM 01/02 transfer add-ons', () => {
     expect(userBid(g, target.id, Math.round(ask * 0.5), offer).ok).toBe(true);
     const o = g.offers.at(-1)!;
     expect(addOnValue(g, o, target)).toBeGreaterThan(0);
-    day(g); day(g);
+    for (let i = 0; i < 7 && o.status === 'pending'; i++) day(g);
     // Accepted, or countered with the add-ons kept in
     if (o.status === 'countered') { o.fee = o.counter!; o.status = 'accepted'; }
     expect(o.status).toBe('accepted');
     const terms = { wage: Math.round(dealDemand(g, o, target) * 1.3), years: preferredYears(g, target), bonus: 0, role: expectedRole(g, target, user), release: 20_000_000, relegation: true };
     expect(offerContract(g, o.id, terms).ok).toBe(true);
-    day(g); day(g);
+    for (let i = 0; i < 7 && o.contract!.state === 'pending'; i++) day(g); // his answer (a day can go on other business)
     expect(o.contract!.state).toBe('agreed');
     expect(confirmTransfer(g, o.id).ok).toBe(true);
     expect(target.clubId).toBe(user.id);

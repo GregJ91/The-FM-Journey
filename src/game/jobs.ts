@@ -168,6 +168,7 @@ export function takeJob(g: GameState, clubId: number) {
   g.sacked = false;
   g.shortlist = g.shortlist.filter((id) => g.players[id]?.clubId !== clubId);
   g.board.confidence = 60;
+  g.staff = undefined; // the backroom stays at your old club; the new one has its own
   setBoardObjective(g);
   resetRegistration(g);
   const fringe = sendFringeToReserves(g, clubId).length;

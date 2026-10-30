@@ -1690,3 +1690,8 @@ table.t.dense .pos { font-size: 10.5px; }
 .instr-flags { display: flex; flex-wrap: wrap; gap: 6px; }
 .mark-row { gap: 8px; padding: 6px 8px; background: var(--surface-2); border: 1px solid var(--line); }
 .card-h .tile-sub .btn { margin-right: 8px; }
+
+/* Backroom staff */
+.staff-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.staff-row .main { flex: 1; min-width: 0; }
+.staff-row select.input { width: 112px; flex: none; }

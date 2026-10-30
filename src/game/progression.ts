@@ -1,4 +1,5 @@
 import { GUEST_LEAGUES } from './guests';
+import { coachFactor } from './staff';
 import { ATTR_GROUPS, POS_WEIGHTS, age, clampAttr, overall, rawOverallAt } from './ratings';
 import { normal } from './rng';
 import { mgr } from './manager';
@@ -90,7 +91,8 @@ export function monthlyChange(g: GameState, p: Player) {
   const ovr = rawOverallAt(p.attrs, p.pos);
   const gap = p.pa - ovr;
   const intensity = isUser ? intensityFactor(g.training.intensity) : 1;
-  const facilities = club ? 0.8 + 0.1 * club.facilities.training : 0.7;
+  // Training facilities, and (your club, CM careers) how good your coaches are in his area
+  const facilities = (club ? 0.8 + 0.1 * club.facilities.training : 0.7) * coachFactor(g, p);
   // Guest clubs' domestic league games aren't simulated: regular starters count as playing
   const mins = club && GUEST_LEAGUES.includes(club.leagueId) ? Math.max(p.monthMins, club.lineup.includes(p.id) ? 300 : 120) : p.monthMins;
   // Youth-team matches count at half weight (see youth.ts); a youth player with no games at all still trains

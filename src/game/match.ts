@@ -8,6 +8,7 @@ import { chance, int, normal, pick, rand, weighted } from './rng';
 import { pickLineup, validateLineup } from './selection';
 import { cmExtra } from './cm0102/attrs';
 import { appearanceMade } from './transfers';
+import { physioInjuryRisk } from './staff';
 import { autoRuns, instrFor, normaliseTactics, roleFor, ROLES, withInstr, withRun, type Role } from './tactics';
 import type { Club, Fixture, FixtureResult, GameState, GoalRecord, MatchStats, Player, ManMark, Pos, SetPieces, StatLine, Tactics } from './types';
 import { playersByClub } from './shirts';
@@ -483,7 +484,7 @@ export function stepMinute(g: GameState, m: LiveMatch): MatchEvent[] {
   for (const side of [0, 1] as const) {
     const s = m.sides[side];
     const ironMen = s.clubId === g.userClubId && cheatOn(g, 'ironmen', s.tactics);
-    if (!ironMen && rand() < 0.0012 * (1 + 0.3 * (s.tactics.pressing - 1)) * (s.tactics.tackling === 2 ? 1.1 : 1) && s.onPitch.length > 0) {
+    if (!ironMen && rand() < 0.0012 * (1 + 0.3 * (s.tactics.pressing - 1)) * (s.tactics.tackling === 2 ? 1.1 : 1) * (s.clubId === g.userClubId ? physioInjuryRisk(g) : 1) && s.onPitch.length > 0) {
       const lp = pick(s.onPitch.filter((x) => x.pos !== 'GK').length ? s.onPitch.filter((x) => x.pos !== 'GK') : s.onPitch);
       lp.injured = true;
       m.injuredOut.push(lp.id);

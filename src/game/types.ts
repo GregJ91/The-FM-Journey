@@ -477,6 +477,24 @@ export interface Training {
   youthFocus: TrainingFocus;
 }
 
+export type StaffRole = 'coach' | 'physio' | 'scout';
+export type CoachFocus = 'general' | 'attacking' | 'defending' | 'goalkeeping' | 'fitness' | 'youth';
+
+/** A member of the backroom staff (CM careers): yours (clubId) or available to hire (clubId null). */
+export interface Staff {
+  id: number;
+  first: string;
+  last: string;
+  nat: string;
+  age: number;
+  role: StaffRole;
+  ability: number; // 1-20: coaching, physiotherapy or judging players
+  focus?: CoachFocus; // coaches
+  assign?: string; // scouts: a country code, 'ALL' or 'YOUTH'
+  wage: number;
+  clubId: number | null;
+}
+
 /** An award (end of season, Ballon d'Or, or Manager of the Month). */
 export interface Award {
   season: number;
@@ -586,6 +604,7 @@ export interface GameState {
   managerProfile?: ManagerProfile;
   journey?: Journey;
   superNext?: Record<string, [number, number]>; // who meets in next season's super cups (set at the end of the season)
+  staff?: Staff[]; // CM careers: your backroom staff and those available to hire
   awards?: Award[]; // awards given out (end of season, Ballon d'Or, Manager of the Month)
   jobs?: Jobs; // CM 01/02 careers: reputation, vacancies and the clubs managed
   intl?: IntlTournament[]; // international tournaments (current and recent)

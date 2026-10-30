@@ -3,16 +3,17 @@ import { fmtMoney } from '../../game/ratings';
 import { ordinal, seasonLabel } from '../../game/season';
 import { mutate, useGame } from '../../store';
 import { useUI } from '../context';
-import { Card, Meter, SectionPage } from '../components/common';
+import { Card, ConfirmButton, Meter, SectionPage } from '../components/common';
 import { ClubEditor } from './Editor';
 import { ClubBadgeButton } from '../components/BadgesSheet';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NATIONS } from '../../game/data/names';
 import { MANAGER_ATTRS, defaultProfile, managerStyle } from '../../game/manager';
 import { BACKGROUNDS, repLabel } from '../../game/journey';
 import { Crest } from '../components/Crest';
 import { applyForJob, hasJobs, jobsOf, managerRepLabel } from '../../game/jobs';
-import type { ManagerAttr } from '../../game/types';
+import type { CoachFocus, ManagerAttr, Staff, StaffRole } from '../../game/types';
+import { FOCUS_NAME, ROLE_PLURAL, coachingLevel, hasStaff, hireStaff, myStaff, physioRecovery, releaseStaff, scoutError, staffLimits, staffOf } from '../../game/staff';
 
 /** The Journey: reputation and the clubs managed so far. */
 function CareerCard() {
@@ -73,6 +74,59 @@ function JobsCard() {
           </div>
         )}
         <div className="small muted" style={{ marginTop: 6 }}>Clubs answer in a few days. Boards want a manager whose reputation fits the club.</div>
+      </Card>
+    </>
+  );
+}
+
+const SCOUT_AREAS: [string, string][] = [['ENG', 'England'], ['SCO', 'Scotland'], ['ESP', 'Spain'], ['ITA', 'Italy'], ['FRA', 'France'], ['GER', 'Germany'], ['NED', 'Holland'], ['POR', 'Portugal'], ['BRA', 'Brazil'], ['ARG', 'Argentina'], ['ALL', 'Worldwide'], ['YOUTH', 'Young talent (any country)']];
+const abilityWord = (a: number) => (a >= 18 ? 'World class' : a >= 15 ? 'Excellent' : a >= 12 ? 'Very good' : a >= 9 ? 'Decent' : a >= 6 ? 'Average' : 'Poor');
+
+/** CM 01/02 careers: your coaches, physios and scouts, and staff you can hire. */
+function StaffPage() {
+  const g = useGame();
+  const ui = useUI();
+  const [role, setRole] = useState<StaffRole>('coach');
+  useEffect(() => { if (!g.staff) mutate((gg) => { staffOf(gg); }); }, [g.staff]);
+  if (!g.staff) return null;
+  const lim = staffLimits(g);
+  const act = (fn: () => { ok: boolean; msg: string }) => { const r = mutate(fn); ui.toast(r.msg, !r.ok); };
+  const mine = myStaff(g);
+  const pool = g.staff.filter((s) => s.clubId === null && s.role === role).sort((a, b) => b.ability - a.ability);
+  const physio = physioRecovery(g);
+  const name = (s: Staff) => `${s.first} ${s.last}`;
+  return (
+    <>
+      <Card title="Backroom staff" tag={`£${Math.round(mine.reduce((t, s) => t + s.wage, 0) / 1000)}k/wk`} tagColor="var(--sky)">
+        {(['coach', 'physio', 'scout'] as StaffRole[]).map((r) => (
+          <div key={r} style={{ marginBottom: 8 }}>
+            <div className="section-label" style={{ marginTop: 4 }}>{ROLE_PLURAL[r]} {mine.filter((s) => s.role === r).length}/{lim[r]}</div>
+            {mine.filter((s) => s.role === r).map((s) => (
+              <div key={s.id} className="staff-row">
+                <div className="main"><b>{name(s)}</b><span className="muted small"> {s.age} · {NATIONS[s.nat] ?? s.nat}</span><div className="small"><b className="num">{s.ability}</b> {abilityWord(s.ability)} · {fmtMoney(s.wage)}/wk</div></div>
+                {r === 'coach' && <select className="input" value={s.focus} onChange={(e) => mutate(() => { s.focus = e.target.value as CoachFocus; })}>{(Object.keys(FOCUS_NAME) as CoachFocus[]).map((f) => <option key={f} value={f}>{FOCUS_NAME[f]}</option>)}</select>}
+                {r === 'scout' && <select className="input" value={s.assign ?? 'ALL'} onChange={(e) => mutate(() => { s.assign = e.target.value; })}>{SCOUT_AREAS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}
+                <ConfirmButton className="btn sm" label="Release" confirmLabel={`Pay ${fmtMoney(s.wage * 13)}?`} onConfirm={() => act(() => releaseStaff(g, s.id))} />
+              </div>
+            ))}
+            {!mine.some((s) => s.role === r) && <div className="small" style={{ color: 'var(--bad)' }}>None: {r === 'coach' ? 'players develop more slowly' : r === 'physio' ? 'injured players take longer to recover' : 'scout reports are much less reliable'}.</div>}
+          </div>
+        ))}
+        <div className="small muted">
+          Development {(() => { const d = Math.round((coachingLevel(g) - 1) * 100); return `${d >= 0 ? '+' : ''}${d}%`; })()} vs an average backroom ·
+          {' '}Injuries {physio >= 0 ? `back about ${Math.round(physio * 100)}% sooner` : `about ${Math.round(-physio * 100)}% slower`} ·
+          {' '}Scout reports within ±{scoutError(g).toFixed(1)}
+        </div>
+      </Card>
+      <Card title="Staff available" tag={`${pool.length}`} tagColor="var(--orange)">
+        <div className="seg" style={{ marginBottom: 8 }}>{(['coach', 'physio', 'scout'] as StaffRole[]).map((r) => <button key={r} className={role === r ? 'on' : ''} onClick={() => setRole(r)}>{ROLE_PLURAL[r]}</button>)}</div>
+        {pool.map((s) => (
+          <div key={s.id} className="staff-row">
+            <div className="main"><b>{name(s)}</b><span className="muted small"> {s.age} · {NATIONS[s.nat] ?? s.nat}</span><div className="small"><b className="num">{s.ability}</b> {abilityWord(s.ability)}{s.focus ? ` · ${FOCUS_NAME[s.focus]}` : ''} · {fmtMoney(s.wage)}/wk</div></div>
+            <button className="btn sm primary" onClick={() => act(() => hireStaff(g, s.id))}>Hire</button>
+          </div>
+        ))}
+        <div className="small muted" style={{ marginTop: 6 }}>Coaches: the best one for a player's area counts most (attack, defence, keepers; a youth coach for under-21s; general coaches cover everyone). A fitness coach keeps players sharp. Staff wages come out of the wage budget.</div>
       </Card>
     </>
   );
@@ -154,10 +208,10 @@ export function Board() {
     ui.toast(r.msg, !r.ok);
   };
   const used = g.board.lastRequest === g.date.slice(0, 7);
-  const [sec, setSec] = useState<'board' | 'money' | 'club' | 'you' | 'honours' | 'editor'>('board');
+  const [sec, setSec] = useState<'board' | 'money' | 'club' | 'staff' | 'you' | 'honours' | 'editor'>('board');
   const stars = (n: number) => <span className="stars">{'★'.repeat(n)}<span className="off">{'★'.repeat(5 - n)}</span></span>;
   return (
-    <SectionPage sections={[['board', 'Board'], ['money', 'Finances'], ['club', 'Club'], ['you', 'Manager'], ['honours', 'Honours'], ...(g.editor ? [['editor', 'Editor'] as ['editor', string]] : [])]} sec={sec} setSec={setSec}
+    <SectionPage sections={[['board', 'Board'], ['money', 'Finances'], ['club', 'Club'], ...(hasStaff(g) ? [['staff', 'Staff'] as ['staff', string]] : []), ['you', 'Manager'], ['honours', 'Honours'], ...(g.editor ? [['editor', 'Editor'] as ['editor', string]] : [])]} sec={sec} setSec={setSec}
       status={<><span>Confidence <b>{conf}%</b></span><span>Balance <b>{fmtMoney(fin.balance)}</b></span><span>{g.mode === 'create' ? 'Owner-manager' : 'Sacked at 5%'}</span></>}>
       {sec === 'board' && <Card title="Confidence" tag={mood} tagColor={conf >= 60 ? 'var(--lime)' : conf >= 30 ? 'var(--yellow)' : 'var(--coral)'}>
         <div className="row" style={{ alignItems: 'flex-end' }}>
@@ -168,6 +222,7 @@ export function Board() {
         <div className="small muted">Moves monthly with your league position against the target, and jumps at season end for trophies and promotions.</div>
       </Card>}
 
+      {sec === 'staff' && hasStaff(g) && <StaffPage />}
       {sec === 'you' && hasJobs(g) && <JobsCard />}
       {sec === 'you' && <ManagerCard />}
       {sec === 'you' && g.journey && g.mode === 'journey' && <CareerCard />}

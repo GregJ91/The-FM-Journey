@@ -3,6 +3,7 @@
 import { cmAttributes } from './cm0102/attrs';
 import { squadOf } from './generate';
 import { hash } from './rng';
+import { scoutError } from './staff';
 import { age, overall, scoutedPotential } from './ratings';
 import type { GameState, Player } from './types';
 
@@ -37,7 +38,7 @@ const band = (v: number) => LEVELS.findIndex(([min]) => v >= min);
 /** Plain-language report on `p` from the user's staff. Scouts judge other clubs' players a little less exactly. */
 export function scoutReport(g: GameState, p: Player): ScoutReport {
   const own = p.clubId === g.userClubId;
-  const err = own ? 0 : Math.round((hash(p.id * 13 + 5) - 0.5) * 4); // scouts can be a point or two out
+  const err = own ? 0 : Math.round((hash(p.id * 13 + 5) - 0.5) * 2 * scoutError(g)); // scouts can be out, the poorer ones more
   const ovr = overall(p) + err;
   const pot = Math.max(ovr, scoutedPotential(p, own));
   const years = age(p, g.date);
