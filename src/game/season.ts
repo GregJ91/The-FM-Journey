@@ -19,6 +19,7 @@ import { monthlyDevelopment } from './progression';
 import { monthlyManager } from './manager';
 import { journeyDaily, journeyMonthly } from './journey';
 import { addRep, jobsDaily, jobsMonthly } from './jobs';
+import { seasonAwards } from './awards';
 import { age, fmtMoney, fullName, overall, wageFor } from './ratings';
 import { chance, int, normal, pick } from './rng';
 import { aiBidsForUser, aiLoanOffersForUser, aiLoans, aiPreContracts, aiTransfers, completeTransfer, endLoan, expireOffers, respondToContracts, respondToLoanOffers, respondToUserBids, relegationReleases, releaseClauseBids } from './transfers';
@@ -353,6 +354,8 @@ export function endSeason(g: GameState) {
   }
   for (const cup of g.cups) if (cup.winner !== null && cup.type !== 'world') hist.winners.push({ comp: cup.name, name: g.clubs[cup.winner].name, clubId: cup.winner });
   g.history.push(hist);
+  // Player and Young Player of the Year, Team of the Year, Golden Boot, Manager of the Year; the Ballon d'Or
+  seasonAwards(g);
 
   // European places for next season (before promotion and relegation)
   g.europe = computeEntrants(g);

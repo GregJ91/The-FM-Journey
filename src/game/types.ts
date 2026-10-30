@@ -97,6 +97,7 @@ export interface Player {
   past?: [number, number, number, number, number][]; // CM careers: real career before the save began ([season, index into g.pastClubs, apps, goals, loan])
   cm?: { v: number[]; o: number };
   preContract?: PreContract; // agreed to join another club on a free in the summer
+  awards?: string[]; // e.g. "Ballon d'Or 2002/03"
   clauses?: ContractClauses; // clauses in his contract with his current club (CM careers)
   sellOn?: { clubId: number; pct: number }; // a club he was sold by gets this share of his next transfer fee
   appsFee?: { clubId: number; payer: number; fee: number; apps: number; done: number }; // owed to clubId once he plays `apps` games for payer
@@ -475,6 +476,17 @@ export interface Training {
   youthFocus: TrainingFocus;
 }
 
+/** An award (end of season, Ballon d'Or, or Manager of the Month). */
+export interface Award {
+  season: number;
+  comp: string; // league id, or 'EUR' for the Ballon d'Or
+  award: string;
+  playerId?: number;
+  name: string;
+  clubId: number;
+  detail?: string; // position in the Team of the Year, goals, the month…
+}
+
 export interface SeasonHistory {
   season: number;
   winners: { comp: string; name: string; clubId: number }[];
@@ -572,6 +584,7 @@ export interface GameState {
   europe?: Record<string, number[]>;
   managerProfile?: ManagerProfile;
   journey?: Journey;
+  awards?: Award[]; // awards given out (end of season, Ballon d'Or, Manager of the Month)
   jobs?: Jobs; // CM 01/02 careers: reputation, vacancies and the clubs managed
   intl?: IntlTournament[]; // international tournaments (current and recent)
   youth?: YouthComp[]; // this season's youth competitions

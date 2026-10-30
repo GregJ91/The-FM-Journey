@@ -48,6 +48,12 @@ function JobsCard() {
       <Card title="Your career" tag={managerRepLabel(j.rep)} tagColor="var(--yellow)">
         <div className="row" style={{ gap: 10, marginBottom: 6 }}><span className="small muted bold">Reputation</span><div style={{ flex: 1 }}><Meter value={j.rep} /></div></div>
         <div className="small">{j.career.map((c, i) => <span key={i}>{i ? ' → ' : ''}<b>{g.clubs[c.clubId].name}</b> ({c.from.slice(0, 4)}{c.to ? `–${c.to.slice(0, 4)}` : '–'})</span>)}</div>
+        {(() => {
+          // Your manager awards
+          const mine = (g.awards ?? []).filter((a) => a.award.startsWith('Manager of the') && a.name === g.manager);
+          const count = (k: string) => mine.filter((a) => a.award === k).length;
+          return mine.length ? <div className="small" style={{ marginTop: 6 }}>🏅 {[count('Manager of the Year') && `Manager of the Year ×${count('Manager of the Year')}`, count('Manager of the Month') && `Manager of the Month ×${count('Manager of the Month')}`].filter(Boolean).join(' · ')}</div> : null;
+        })()}
         <div className="small muted" style={{ marginTop: 6 }}>Win things and beat expectations and your name grows: bigger clubs will come for you.</div>
       </Card>
       <Card title="Jobs available" tag={`${vac.length}`} tagColor="var(--orange)">
@@ -69,6 +75,37 @@ function JobsCard() {
         <div className="small muted" style={{ marginTop: 6 }}>Clubs answer in a few days. Boards want a manager whose reputation fits the club.</div>
       </Card>
     </>
+  );
+}
+
+/** End-of-season awards: your league's (wherever you were that season) and the Ballon d'Or. */
+function AwardsCard() {
+  const g = useGame();
+  const seasons = [...new Set((g.awards ?? []).filter((a) => a.award !== 'Manager of the Month').map((a) => a.season))].sort((a, b) => b - a);
+  const [season, setSeason] = useState(seasons[0]);
+  const list = (g.awards ?? []).filter((a) => a.season === season);
+  const leagueName = g.history.find((h) => h.season === season)?.userFinish?.comp;
+  const league = g.leagues.find((l) => l.name === leagueName) ?? g.leagues.find((l) => l.clubIds.includes(g.userClubId));
+  const ofLeague = list.filter((a) => a.comp === league?.id);
+  const one = (k: string) => ofLeague.find((a) => a.award === k);
+  const club = (id: number) => g.clubs[id]?.short ?? '';
+  const row = (label: string, a: typeof list[number] | undefined, extra = '') => a && (
+    <div key={label} className="li"><div className="main"><div className="t">{a.name}{a.clubId === g.userClubId ? ' 🏅' : ''}</div><div className="s">{label} · {club(a.clubId)}{extra}</div></div></div>
+  );
+  const ballon = ['Ballon d\'Or', 'Ballon d\'Or 2nd', 'Ballon d\'Or 3rd'].map((k) => list.find((a) => a.award === k));
+  const toty = ofLeague.filter((a) => a.award === 'Team of the Year');
+  return (
+    <Card title="Awards" tag={seasonLabel(season)} tagColor="var(--yellow)">
+      {seasons.length > 1 && <select className="input" style={{ marginBottom: 8 }} value={season} onChange={(e) => setSeason(Number(e.target.value))}>{seasons.map((s2) => <option key={s2} value={s2}>{seasonLabel(s2)}</option>)}</select>}
+      <div className="list">
+        {row("Ballon d'Or", ballon[0], ballon[1] ? ` · 2nd ${ballon[1].name}${ballon[2] ? `, 3rd ${ballon[2].name}` : ''}` : '')}
+        {row(`${league?.short ?? ''} Player of the Year`, one('Player of the Year'))}
+        {row('Young Player of the Year', one('Young Player of the Year'))}
+        {row('Golden Boot', one('Golden Boot'), one('Golden Boot')?.detail ? ` · ${one('Golden Boot')!.detail}` : '')}
+        {row('Manager of the Year', one('Manager of the Year'))}
+      </div>
+      {toty.length > 0 && <div className="small" style={{ marginTop: 8 }}><b>Team of the Year:</b> {toty.map((a) => `${a.detail} ${a.name}${a.clubId === g.userClubId ? ' 🏅' : ''}`).join(', ')}</div>}
+    </Card>
   );
 }
 
@@ -203,6 +240,7 @@ export function Board() {
         </Card>
       )}
 
+      {sec === 'honours' && (g.awards ?? []).some((a) => a.award !== 'Manager of the Month') && <AwardsCard />}
       {sec === 'honours' && <Card title="History" tag="Seasons" tagColor="var(--pink)">
         {g.history.length ? (
           <div className="list">

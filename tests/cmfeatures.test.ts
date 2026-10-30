@@ -139,6 +139,21 @@ describe.skipIf(!existsSync(DB))('CM 01/02 career features', () => {
     expect(loanP.clubId).not.toBe(user.id);
     // Our loanees came back (or left on a free if their contract also ran out this summer)
     for (const p of loanedOut) if (g.players[p.id]) { expect(g.players[p.id].loan).toBeUndefined(); expect([user.id, null]).toContain(g.players[p.id].clubId); }
+    // End-of-season awards in every league, Manager of the Month through the season, and the Ballon d'Or
+    const aw = (g.awards ?? []).filter((x) => x.season === 2002);
+    for (const lid of ['ENG1', 'ESP1', 'SCO1']) {
+      for (const k of ['Player of the Year', 'Young Player of the Year', 'Golden Boot', 'Manager of the Year']) expect(aw.some((x) => x.comp === lid && x.award === k)).toBe(true);
+      expect(aw.filter((x) => x.comp === lid && x.award === 'Team of the Year')).toHaveLength(11);
+    }
+    expect(aw.filter((x) => x.comp === 'ENG1' && x.award === 'Manager of the Month').length).toBeGreaterThanOrEqual(8);
+    const ballon = aw.filter((x) => x.comp === 'EUR');
+    expect(ballon.map((x) => x.award)).toEqual(["Ballon d'Or", "Ballon d'Or 2nd", "Ballon d'Or 3rd"]);
+    expect(g.players[ballon[0].playerId!].awards).toContain("Ballon d'Or 2002/03");
+    const boot = aw.find((x) => x.comp === 'ENG1' && x.award === 'Golden Boot')!;
+    expect(Number(boot.detail!.split(' ')[0])).toBeGreaterThanOrEqual(12);
+    expect(g.inbox.some((m) => m.title.startsWith("Ballon d'Or 2002/03"))).toBe(true);
+    if (process.env.CM_DUMP) console.log(aw.filter((x) => x.comp === 'ENG1' && x.award !== 'Manager of the Month' || x.comp === 'EUR').map((x) => `${x.award}${x.detail ? ` (${x.detail})` : ''}: ${x.name} ${g.clubs[x.clubId]?.short ?? ''}`).join('\n'));
+
     // Real young prospects are never deleted from the free-agent pool
     const freeProspects = Object.values(g.players).filter((p) => p.clubId === null && age(p, g.date) <= 23 && p.pa >= overall(p) + 6);
     expect(freeProspects.length).toBeGreaterThan(0);

@@ -175,6 +175,7 @@ export function PlayerModal() {
 
         {tab === 'career' && (
           <div className="win-list pf-one">
+            {(p.awards?.length ?? 0) > 0 && <Card title="Honours" tag={`${p.awards!.length}`} tagColor="var(--yellow)"><div className="small">{[...p.awards!].reverse().map((x, i) => <div key={i}>🏅 {x}</div>)}</div></Card>}
             <Card title="Career" className="grow">
             {p.history.length > 0 || p.past?.length ? (
               <table className="t dense">

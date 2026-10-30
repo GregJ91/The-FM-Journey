@@ -3,6 +3,7 @@
 import { compName, leagueTable } from './competitions';
 import { addDays, diffDays, month, monthName } from './dates';
 import { START_SEASON, leagueOf, squadOf } from './generate';
+import { managerOfTheMonth } from './awards';
 import { sendMessage } from './inbox';
 import { age, fullName, overall, shortName } from './ratings';
 import { normal } from './rng';
@@ -257,6 +258,7 @@ export function monthlyAwards(g: GameState) {
     pts[f.away] = (pts[f.away] ?? 0) + (r.ag > r.hg ? 3 : r.hg === r.ag ? 1 : 0);
   }
   const mom = Object.entries(pts).sort((a, b) => b[1] - a[1])[0];
+  if (mom) managerOfTheMonth(g, league, Number(mom[0]), monthName(month(prev)));
   const winners = [potm, young].filter(Boolean).map((p) => p.clubId);
   const mine = winners.includes(me) || (mom && Number(mom[0]) === me);
   for (const p of [potm, young]) if (p) p.morale = Math.min(100, p.morale + 5);
@@ -266,7 +268,7 @@ export function monthlyAwards(g: GameState) {
     body:
       `Player of the Month: ${fullName(potm)} (${g.clubs[potm.clubId!].name}), average rating ${score(potm).toFixed(2)}\n` +
       (young ? `Young Player of the Month: ${fullName(young)} (${g.clubs[young.clubId!].name}), ${score(young).toFixed(2)}\n` : '') +
-      (mom ? `Manager of the Month: ${g.clubs[Number(mom[0])].name}'s manager, ${mom[1]} points\n` : '') +
+      (mom ? `Manager of the Month: ${Number(mom[0]) === me ? `you, ${g.manager} (${g.clubs[me].name})` : `the ${g.clubs[Number(mom[0])].name} manager`}, ${mom[1]} points\n` : '') +
       (mine ? `\nCongratulations. The award has gone down well around the club.` : ''),
   });
 }
