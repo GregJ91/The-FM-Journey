@@ -683,8 +683,10 @@ export function randomInjury(severity = 1) {
 
 /** Write the result back to the fixture and update player states. */
 export function applyResult(g: GameState, m: LiveMatch) {
-  noteMatch(g, m);
   const f = g.fixtures.find((x) => x.id === m.fixtureId)!;
+  // Friendlies count for fitness and match practice only: no stats, cards, suspensions or manager record
+  const friendly = f.comp === 'FRN';
+  if (!friendly) noteMatch(g, m);
   const ratings: Record<number, number> = {};
   const sides = m.sides;
   const all: { lp: LivePlayer; side: 0 | 1 }[] = [];
@@ -712,6 +714,12 @@ export function applyResult(g: GameState, m: LiveMatch) {
     r = Math.round(r * 10) / 10;
     ratings[lp.id] = r;
     if (!motm || r > motm.r) motm = { id: lp.id, r };
+    if (friendly) {
+      p.condition = Math.round(lp.cond);
+      p.monthMins += mins * 0.6;
+      if (lp.injured && chance(0.5)) p.injury = randomInjury(0.5);
+      continue;
+    }
     // Player updates
     p.stats.apps++;
     p.stats.mins += mins;
@@ -741,7 +749,7 @@ export function applyResult(g: GameState, m: LiveMatch) {
       p.injury = randomInjury();
     }
   }
-  if (motm) g.players[motm.id].stats.motm++;
+  if (motm && !friendly) g.players[motm.id].stats.motm++;
   const result: FixtureResult = {
     hg: m.score[0],
     ag: m.score[1],
@@ -757,8 +765,8 @@ export function applyResult(g: GameState, m: LiveMatch) {
     result.ratings = ratings;
   }
   f.result = result;
-  // Suspensions served: players of both clubs who were suspended and not involved
-  for (const clubId of [f.home, f.away]) {
+  // Suspensions served: players of both clubs who were suspended and not involved (not in friendlies)
+  for (const clubId of friendly ? [] : [f.home, f.away]) {
     for (const p of Object.values(g.players)) {
       if (p.clubId === clubId && p.suspended > 0 && !(p.id in ratings)) p.suspended--;
     }

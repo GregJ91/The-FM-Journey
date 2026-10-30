@@ -1,6 +1,6 @@
 import { addDays, diffDays, nextWeekday } from './dates';
 import { nextId } from './generate';
-import { shuffle } from './rng';
+import { pick, shuffle } from './rng';
 import { winnerOf } from './match';
 import type { Cup, Fixture, GameState, League } from './types';
 import { REAL_FIXTURES, REAL_FIXTURES_SEASON } from './data/realFixtures';
@@ -252,8 +252,49 @@ export function progressCup(g: GameState, cup: Cup) {
   return true;
 }
 
+/** Pre-season friendlies (CM 01/02 careers): the user's club only; they count for nothing but fitness. */
+export const FRIENDLY = 'FRN';
+
 export function compName(g: GameState, comp: string) {
+  if (comp === FRIENDLY) return 'Friendly';
   return g.leagues.find((l) => l.id === comp)?.name ?? g.cups.find((c) => c.id === comp)?.name ?? comp;
+}
+
+/**
+ * Arrange the user's pre-season friendlies (CM 01/02 careers): up to five in July and early August, before the first
+ * competitive game, against two lower-league sides, a club at your level and a side from abroad.
+ */
+export function scheduleFriendlies(g: GameState) {
+  if (!g.era) return [];
+  const me = g.clubs[g.userClubId];
+  const mine = g.fixtures.filter((f) => f.home === me.id || f.away === me.id);
+  const firstComp = mine.map((f) => f.date).sort()[0] ?? `${g.season}-08-17`;
+  const busy = (id: number, d: string) => g.fixtures.some((f) => (f.home === id || f.away === id) && Math.abs(Date.parse(f.date) - Date.parse(d)) < 3 * 86400000);
+  const dates = ['07-13', '07-17', '07-20', '07-24', '07-27', '07-31', '08-03']
+    .map((md) => `${g.season}-${md}`)
+    .filter((d) => d > g.date && Date.parse(firstComp) - Date.parse(d) >= 4 * 86400000 && !busy(me.id, d));
+  // Every other date, so there's a rest in between
+  const picked = dates.filter((_, i) => i % 2 === 0 || dates.length <= 5).slice(0, 5);
+  const myLeague = g.leagues.find((l) => l.clubIds.includes(me.id));
+  const sameCountry = g.leagues.filter((l) => l.country === me.country);
+  const lower = sameCountry.filter((l) => myLeague && l.tier > myLeague.tier && l.tier <= myLeague.tier + 2).flatMap((l) => l.clubIds);
+  const level = (myLeague?.clubIds ?? []).filter((id) => id !== me.id);
+  const abroad = Object.values(g.clubs).filter((c) => c.country !== me.country && !c.isUser && Math.abs(c.reputation - me.reputation) < 15 && (c.leagueId === 'EUR' || g.leagues.some((l) => l.tier === 1 && l.clubIds.includes(c.id)))).map((c) => c.id);
+  const pools = [lower, lower, level, abroad, abroad.length ? abroad : level];
+  const used = new Set<number>();
+  const out: Fixture[] = [];
+  picked.forEach((d, i) => {
+    const pool = (pools[i] ?? level).filter((id) => !used.has(id) && !busy(id, d));
+    const opp = pool.length ? pick(pool) : undefined;
+    if (opp === undefined) return;
+    used.add(opp);
+    // Lower-league sides host (as they usually did); the rest alternate
+    const home = i < 2 ? opp : i % 2 ? me.id : opp;
+    const f: Fixture = { id: nextId(g), comp: FRIENDLY, date: d, round: i + 1, home, away: home === me.id ? opp : me.id, result: null };
+    g.fixtures.push(f);
+    out.push(f);
+  });
+  return out;
 }
 
 export function compColor(g: GameState, comp: string) {

@@ -1,5 +1,5 @@
 import { boardMonthly, checkFacilityUpgrade, clampConf, monthlyFinances, prizeMoney, recordLedger, setBoardObjective, setSeasonBudgets, weeklyWages } from './club';
-import { compName, ensureLeagueCups, leagueTable, progressCup, scheduleLeague, setupCups } from './competitions';
+import { FRIENDLY, compName, ensureLeagueCups, leagueTable, progressCup, scheduleFriendlies, scheduleLeague, setupCups } from './competitions';
 import { tickEurope2002 } from './europe2002';
 import { computeEntrants, ensureEurope, europeFor, initialEntrants, progressEurope, setupEurope } from './europe';
 import { guestLevel, isGuest, isTransferOnly } from './guests';
@@ -9,7 +9,7 @@ import { assignAllShirtNumbers, assignShirtNumbers, playersByClub } from './shir
 import { contractTalks, openActions, pressConference, registrationDeadlines, resetRegistration, unhappyPlayers } from './actions';
 import { leagueRoundup, matchPreview, matchReport, monthlyAwards, scriptedEvents, trainingReport } from './news';
 import { CWC_ID, progressClubWorldCup, setupClubWorldCup } from './world';
-import { addDays, dayOfMonth, diffDays, month, weekday } from './dates';
+import { addDays, dayOfMonth, diffDays, fmtDate, month, weekday } from './dates';
 import { LEAGUE_DEFS } from './data/leagues';
 import { cheatOn } from './cheats';
 import { START_SEASON, emptyStats, fillSquad, generatePlayer, generateYouth, leagueOf, squadOf } from './generate';
@@ -43,6 +43,7 @@ export function startSeason(g: GameState) {
   setupEurope(g, g.europe ?? (g.season === START_SEASON || (g.era && !g.history.length) ? initialEntrants(g) : computeEntrants(g)));
   g.europe = undefined;
   setupYouth(g);
+  const friendlies = scheduleFriendlies(g);
   setSeasonBudgets(g);
   setBoardObjective(g);
   const byClub = playersByClub(g);
@@ -66,6 +67,14 @@ export function startSeason(g: GameState) {
     title: `Welcome to the ${seasonLabel(g.season)} season`,
     body: `The board expects: ${g.board.objective}.\n\nCompetitions: ${league.name}, ${compName(g, g.cups.find((c) => c.country === club.country)!.id)}${euro.length ? `, ${euro.join(', ')}` : ''}.\nTransfer budget: ${fmtMoney(club.transferBudget)}. Wage budget: ${fmtMoney(club.wageBudget)}/week.\n\nThe summer transfer window is open until 31 August.`,
   });
+  if (friendlies.length) {
+    sendMessage(g, {
+      from: 'Assistant Manager',
+      kind: 'news',
+      title: 'Pre-season friendlies arranged',
+      body: `I've arranged these friendlies to get the players fit for the new season:\n\n${friendlies.map((f) => `${fmtDate(f.date)}: ${f.home === club.id ? `${g.clubs[f.away].name} (home)` : `${g.clubs[f.home].name} (away)`}`).join('\n')}\n\nThey don't count for anything: no stats, cards or suspensions, just match fitness. A good chance to give the fringe players and youngsters a run-out.`,
+    });
+  }
 }
 
 export function userFixtureOn(g: GameState, date: string): Fixture | undefined {
@@ -141,7 +150,7 @@ function cupWon(g: GameState, cup: Cup, userWasIn: boolean) {
 /** Matchday side effects: gate receipts, injuries news. */
 export function postFixture(g: GameState, f: Fixture) {
   const home = g.clubs[f.home];
-  matchdayIncome(g, home, !g.leagues.some((l) => l.id === f.comp));
+  if (f.comp !== FRIENDLY) matchdayIncome(g, home, !g.leagues.some((l) => l.id === f.comp));
   if (f.home === g.userClubId || f.away === g.userClubId) {
     for (const p of squadOf(g, g.userClubId)) {
       if (p.injury && f.result?.ratings && p.id in f.result.ratings && !p.injury.reported) {
