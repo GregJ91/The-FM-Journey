@@ -64,17 +64,19 @@ export interface CmWorld {
 }
 
 /** The database that ships with the game (in public/, built by tests/cm0102.test.ts with CM_EXPORT=1; see pack.ts). */
-export const CM_BUILTIN = 'cm0102-v5.txt';
+export const CM_BUILTIN = 'cm0102-v6.txt';
 /** The file for a database revision. Keep every revision's file in public/: saves are rebuilt from their own one. */
 export const cmFile = (rev: number) => `cm0102-v${rev}.txt`;
-/** Bumped whenever the built-in database gains data (2: career histories, real squads only; 3: every decent player; 4: half the database and random potentials; 5: blank attributes and personalities filled in, as CM did). */
-export const CM_REV = 5;
+/** Bumped whenever the built-in database gains data (2: career histories, real squads only; 3: every decent player; 4: half the database and random potentials; 5: blank attributes and personalities filled in, as CM did; 6: every country's top two divisions in full). */
+export const CM_REV = 6;
 /** CM current ability from which a player counts as "decent": included wherever he plays (about a 49 rating here: half of the database). */
 const GOOD_CA = 70;
 /** …or a prospect with CM potential from here, or a random potential (the wonderkids CM is remembered for). */
 const GOOD_PA = 120;
 /** …or any youngster (20 or under when the database starts): every youth player is in, as in CM. */
 const YOUTH_FROM = 1982;
+/** Each country's top divisions come in with complete squads. */
+const FULL_DIVISIONS = 2;
 const isGood = (ca: number, pa: number, born: number) => ca >= GOOD_CA || pa >= GOOD_PA || pa < 0 || born >= YOUTH_FROM;
 /** Free agents: the better ones and every prospect (the rest of the unemployed are left out). */
 const FREE_CA = 90;
@@ -387,8 +389,24 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
     const po = playerT.offset + pd * playerSize;
     if (isGood(staff.i16(po + 5), staff.i16(po + 7), staff.i16(o + 18))) good.add(clubCm);
   }
+  // Every country's top two divisions come in whole (Allsvenskan, Tippeligaen, Superliga…), the rest of the world
+  // its decent players: divisions are ranked within each country by their clubs' average reputation
+  const divReps = new Map<number, { nation: string; reps: number[] }>();
+  for (const c of raw) if (c.div >= 0) (divReps.get(c.div) ?? divReps.set(c.div, { nation: c.nation, reps: [] }).get(c.div)!).reps.push(c.rep);
+  const byNation = new Map<string, { div: number; avg: number }[]>();
+  for (const [div, d] of divReps) if (d.reps.length >= 6) (byNation.get(d.nation) ?? byNation.set(d.nation, []).get(d.nation)!).push({ div, avg: d.reps.reduce((a, b) => a + b, 0) / d.reps.length });
+  const fullDivs = new Set<number>();
+  for (const list of byNation.values()) list.sort((a, b) => b.avg - a.avg).slice(0, FULL_DIVISIONS).forEach((x) => fullDivs.add(x.div));
   const others: number[] = [];
-  for (const c of raw) if (good.has(c.id) && !picked.has(c.id)) others.push(addClub(c));
+  const fullClubs = new Set<number>(); // our index: every player comes in
+  for (const c of raw) {
+    if (picked.has(c.id)) continue;
+    const full = fullDivs.has(c.div);
+    if (!good.has(c.id) && !full) continue;
+    const ci = addClub(c);
+    others.push(ci);
+    if (full) fullClubs.add(ci);
+  }
   const otherSet = new Set(others);
   const first = nameTable(files['first_names.dat']);
   const second = nameTable(files['second_names.dat']);
@@ -429,7 +447,7 @@ export function parseCm0102(files: Record<string, Uint8Array>): CmWorld {
     const po = playerT.offset + pd * playerSize;
     const ca = staff.i16(po + 5);
     if (ca <= 0) continue;
-    if (ci !== undefined && otherSet.has(ci) && !isGood(ca, staff.i16(po + 7), staff.i16(o + 18))) continue; // transfer-only clubs: their good players and prospects only
+    if (ci !== undefined && otherSet.has(ci) && !fullClubs.has(ci) && !isGood(ca, staff.i16(po + 7), staff.i16(o + 18))) continue; // other transfer-only clubs: their good players and prospects only
     let dob = dateFrom(staff, o + 16);
     // A few records have no real birth date: assume mid-twenties
     if (!dob || dob < '1955') dob = `${1977 + (i % 6)}-0${1 + (i % 9)}-15`;
